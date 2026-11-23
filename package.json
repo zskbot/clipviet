@@ -1,5 +1,5 @@
 {
-  "name": "phim-streaming",
+  "name": "clipviet-live",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -9,9 +9,10 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "next": "15.5.28",
+    "next": "15.5.29",
     "react": "19.1.10",
-    "react-dom": "19.1.10"
+    "react-dom": "19.1.10",
+    "@netlify/blobs": "^11.1.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

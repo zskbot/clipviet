@@ -1,6 +1,6 @@
-# TX.TOP 18+ — Video Streaming Platform
+# ClipViet.live — Video Streaming Platform
 
-TX.TOP 18+ is a Vietnamese streaming catalogue built with Next.js App Router, React and Tailwind CSS.
+ClipViet.live is a Vietnamese streaming catalogue built with Next.js App Router, React and Tailwind CSS. The canonical domain configured for the application is https://clipviet.live.
 
 ## Features
 - Dynamic video feed through internal `GET /api/videos`
@@ -30,6 +30,14 @@ Set these variables in `.env.local` or Vercel Project Settings → Environment V
 The provider may return a JSON array or an object containing `results`, `data`, or `videos`. Each item should include `id` (or `video_id`/`slug`), `title`, and optional `description`, `category`, `year`, `duration`, `rating`, `views`, `poster`/`thumbnail_url`, `backdrop`, `videoUrl`/`video_url`, and `embedUrl`/`embed_url`.
 
 Only HTTPS media URLs are accepted. Iframe URLs are ignored unless their hostname matches `VIDEO_EMBED_ALLOWED_HOSTS`. Keep API credentials private; never commit real secrets. Only ingest and stream content you own or are licensed to distribute, with documented consent and appropriate adult-content safeguards.
+
+## Domain and branding
+- Brand / project name: **ClipViet.live**
+- Canonical domain: `https://clipviet.live`
+- Brand logo: `public/clipviet-logo.svg`
+- App icon: `app/icon.svg`
+
+The repository rebrand does not change DNS, registrar settings, Vercel project domains, or production deployment configuration. Connect the domain in the hosting dashboard only after confirming ownership and the intended hosting target.
 
 ## API
 - `GET /api/videos` returns the normalized feed.
