@@ -1,0 +1,30 @@
+name: GitHub Pages Preview Build
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages-preview.yml"
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  build-static-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate static site files
+        run: |
+          test -s site/index.html
+          test -s site/app.js
+          test -s site/data.js
+          test -s site/styles.css
+          test "$(cat site/CNAME)" = "clipviet.live"
+          node --check site/app.js
+          node --check site/data.js
+      - name: Upload Pages artifact (no deployment)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site

@@ -1,0 +1,19 @@
+import { categories, videos } from "./data.js";
+const grid=document.querySelector("#video-grid"), count=document.querySelector("#result-count"), empty=document.querySelector("#empty-state"), search=document.querySelector("#search"), dialog=document.querySelector("#detail-dialog"), detail=document.querySelector("#detail-content");
+let activeCategory="Tất cả", query=new URLSearchParams(location.search).get("q")||"";
+search.value=query;
+document.querySelector("#year").textContent=new Date().getFullYear();
+const categoryRoot=document.querySelector("#categories");
+categories.forEach(category=>{const button=document.createElement("button");button.className="category-button";button.type="button";button.textContent=category;button.setAttribute("aria-pressed",String(category===activeCategory));button.addEventListener("click",()=>{activeCategory=category;categoryRoot.querySelectorAll("button").forEach(item=>item.setAttribute("aria-pressed",String(item.textContent===category)));render()});categoryRoot.append(button)});
+function render(){const sort=document.querySelector("#sort").value;const term=query.trim().toLocaleLowerCase("vi");let items=videos.filter(video=>(activeCategory==="Tất cả"||video.category===activeCategory)&&[video.title,video.category,video.description].join(" ").toLocaleLowerCase("vi").includes(term));if(sort==="title")items.sort((a,b)=>a.title.localeCompare(b.title,"vi"));else items.sort((a,b)=>b.year-a.year);grid.replaceChildren();count.textContent=items.length+" VIDEO";empty.hidden=items.length!==0;items.forEach(video=>{const card=document.createElement("button");card.className="video-card";card.type="button";card.innerHTML='<div class="poster"><img loading="lazy" alt=""><span class="poster-label"></span></div><div class="card-info"><h3></h3><p></p></div>';card.querySelector("img").src=video.poster;card.querySelector("img").alt=video.title;card.querySelector(".poster-label").textContent=video.rating;card.querySelector("h3").textContent=video.title;card.querySelector(".card-info p").textContent=video.year+" · "+video.category;card.addEventListener("click",()=>openDetail(video));grid.append(card)})}
+function openDetail(video){detail.innerHTML='<div class="detail-inner"><img alt=""><div><p class="eyebrow"></p><h2></h2><p class="description"></p><p class="meta"></p><p>Đây là dữ liệu thư viện demo tĩnh. Chưa có nguồn phát video được cấu hình.</p></div></div>';detail.querySelector("img").src=video.poster;detail.querySelector("img").alt=video.title;detail.querySelector(".eyebrow").textContent=video.category.toUpperCase();detail.querySelector("h2").textContent=video.title;detail.querySelector(".description").textContent=video.description;detail.querySelector(".meta").textContent=video.year+" · "+video.duration+" · "+video.rating;dialog.showModal()}
+document.querySelector("#close-detail").addEventListener("click",()=>dialog.close());
+dialog.addEventListener("click",event=>{if(event.target===dialog)dialog.close()});
+document.querySelector("#search-form").addEventListener("submit",event=>{event.preventDefault();query=search.value;const url=new URL(location.href);if(query)url.searchParams.set("q",query);else url.searchParams.delete("q");history.replaceState({}, "",url);render()});
+search.addEventListener("input",()=>{query=search.value;render()});
+document.querySelector("#sort").addEventListener("change",render);
+const ageDialog=document.querySelector("#age-dialog");
+if(sessionStorage.getItem("clipviet-age-confirmed")!=="yes")ageDialog.showModal();
+document.querySelector("#confirm-age").addEventListener("click",()=>{sessionStorage.setItem("clipviet-age-confirmed","yes");ageDialog.close()});
+document.querySelector("#leave-button").addEventListener("click",()=>{location.href="https://www.google.com/"});
+render();
