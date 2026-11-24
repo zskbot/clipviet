@@ -83,6 +83,34 @@ async function bodyJson(request) {
   if (new TextEncoder().encode(raw).length > 16384) throw new Error("Payload too large");
   return JSON.parse(raw);
 }
+
+function mediaHostAllowed(raw, env) {
+  if (typeof raw !== "string" || raw.length > 2048) return false;
+  let url; try { url = new URL(raw); } catch { return false; }
+  if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
+  const host = url.hostname.toLowerCase();
+  if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal") || /^\\d{1,3}(\\.\\d{1,3}){3}$/.test(host) || host.includes(":")) return false;
+  const hosts = (env.VIDEO_MEDIA_HOSTS || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
+  return hosts.length > 0 && hosts.some(domain => host === domain || host.endsWith("." + domain));
+}
+async function readCatalog(env) {
+  if (!env.VIDEO_CATALOG) throw new Error("Video catalog KV is not configured");
+  const rows = await env.VIDEO_CATALOG.get("catalog:v1", "json");
+  return Array.isArray(rows) ? rows : [];
+}
+async function writeCatalog(env, rows) {
+  if (!env.VIDEO_CATALOG) throw new Error("Video catalog KV is not configured");
+  if (rows.length > 1000) throw new Error("Catalog limit reached");
+  await env.VIDEO_CATALOG.put("catalog:v1", JSON.stringify(rows));
+}
+function safeVideo(row) {
+  return { id: row.id, title: row.title, description: row.description, poster_url: row.poster_url, genre: row.genre, country: row.country, duration: row.duration, created_at: row.created_at };
+}
+async function adminSession(request, env) {
+  const current = await session(request, env);
+  return current && allowedUsers(env).has(String(current.id)) ? current : null;
+}
+
 async function handle(request, env) {
   const url = new URL(request.url), path = url.pathname.replace(/\/$/, "") || "/";
   if (request.method === "OPTIONS") return originOK(request, env) ? new Response(null, { status: 204, headers: cors(request, env) }) : new Response(null, { status: 403 });
@@ -134,6 +162,61 @@ async function handle(request, env) {
       return answer(request, env, { ok: true, message_id: sent.message_id, channel: env.TELEGRAM_CHANNEL_ID });
     } catch { return answer(request, env, { error: "Publishing failed; verify bot rights and Telegram media requirements" }, 502); }
   }
+
+  if (path === "/api/v1/videos" && request.method === "GET") {
+    try {
+      const rows = await readCatalog(env);
+      const videos = rows.filter(row => row.status === "published").map(safeVideo);
+      return answer(request, env, { data: videos, count: videos.length });
+    } catch { return answer(request, env, { error: "Video catalog unavailable" }, 503); }
+  }
+  if (path.startsWith("/api/v1/videos/") && request.method === "GET") {
+    try {
+      const id = decodeURIComponent(path.slice("/api/v1/videos/".length));
+      const row = (await readCatalog(env)).find(item => item.id === id && item.status === "published");
+      return row ? answer(request, env, { data: { ...safeVideo(row), media_url: row.media_url } }) : answer(request, env, { error: "Video not found" }, 404);
+    } catch { return answer(request, env, { error: "Video catalog unavailable" }, 503); }
+  }
+  if (path === "/api/v1/admin/videos" && request.method === "GET") {
+    if (!await adminSession(request, env)) return answer(request, env, { error: "Admin authentication required" }, 401);
+    try { const rows = await readCatalog(env); return answer(request, env, { data: rows, count: rows.length }); }
+    catch { return answer(request, env, { error: "Video catalog unavailable" }, 503); }
+  }
+  if (path === "/api/v1/admin/videos" && request.method === "POST") {
+    const current = await adminSession(request, env);
+    if (!current) return answer(request, env, { error: "Admin authentication required" }, 401);
+    let data; try { data = await bodyJson(request); } catch { return answer(request, env, { error: "Invalid JSON body" }, 400); }
+    if (data.rights_confirmed !== true) return answer(request, env, { error: "Distribution rights confirmation required" }, 400);
+    if (!mediaHostAllowed(data.media_url, env)) return answer(request, env, { error: "Media host is not allowlisted" }, 400);
+    if (data.poster_url && !mediaHostAllowed(data.poster_url, env)) return answer(request, env, { error: "Poster host is not allowlisted" }, 400);
+    const title = typeof data.title === "string" ? data.title.trim().slice(0, 160) : "";
+    if (!title) return answer(request, env, { error: "Title is required" }, 400);
+    const row = {
+      id: crypto.randomUUID(), title, description: String(data.description || "").slice(0, 2000),
+      media_url: data.media_url, poster_url: data.poster_url || "", genre: String(data.genre || "").slice(0, 80),
+      country: String(data.country || "").slice(0, 80), duration: String(data.duration || "").slice(0, 40),
+      status: data.status === "draft" ? "draft" : "published", rights_confirmed: true,
+      created_by: current.id, created_at: new Date().toISOString()
+    };
+    try {
+      const rows = await readCatalog(env); rows.unshift(row); await writeCatalog(env, rows);
+      console.log("video_catalog_created", { id: row.id, userId: current.id, status: row.status });
+      return answer(request, env, { data: row }, 201);
+    } catch { return answer(request, env, { error: "Could not save video; catalog may not be configured or full" }, 503); }
+  }
+  if (path.startsWith("/api/v1/admin/videos/") && request.method === "DELETE") {
+    const current = await adminSession(request, env);
+    if (!current) return answer(request, env, { error: "Admin authentication required" }, 401);
+    const id = decodeURIComponent(path.slice("/api/v1/admin/videos/".length));
+    try {
+      const rows = await readCatalog(env), next = rows.filter(item => item.id !== id);
+      if (next.length === rows.length) return answer(request, env, { error: "Video not found" }, 404);
+      await writeCatalog(env, next);
+      console.log("video_catalog_deleted", { id, userId: current.id });
+      return answer(request, env, { ok: true });
+    } catch { return answer(request, env, { error: "Could not update video catalog" }, 503); }
+  }
+
   return answer(request, env, { error: "Not found" }, 404);
 }
 export default { async fetch(request, env) {
