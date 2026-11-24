@@ -1,41 +1,40 @@
-# GitHub Preview — ClipViet.live
+# GitHub Pages — ClipViet.live (static HTML)
 
-## Scope
+## Static-site mode
 
-This workflow creates a short-lived GitHub Actions artifact from `site/` for pull requests and `preview/**` branches. It does **not** deploy the artifact to GitHub Pages, Cloudflare, Netlify, a custom domain, or any production environment.
+The deployable frontend is the plain HTML/CSS/JavaScript website in `site/`. The `site/.nojekyll` marker disables Jekyll processing when GitHub Pages publishes this folder. Pages serves the files as static assets; it does not execute Next.js, Node.js, PHP, API routes, or server-side authentication.
 
-The artifact deliberately excludes `site/CNAME` so it cannot accidentally claim `clipviet.live`. Retention is three days.
+Keep relative asset paths (for example `./styles.css`, `./app.js`, and `./admin/`) so the site works from a project subpath as well as a custom domain.
 
-## How to inspect a Preview
+## Preview workflow
 
-1. Open the pull request or the branch's Actions run.
-2. Open the **GitHub Preview Artifact** workflow.
-3. Download the `clipviet-github-preview` artifact.
-4. Extract it and inspect `index.html`; the artifact is a static-site package, not a hosted public URL.
+The **GitHub Preview Artifact** workflow creates a short-lived artifact from `site/` for pull requests and `preview/**` branches. It does **not** deploy to GitHub Pages, Cloudflare, Netlify, a custom domain, or Production. It removes `CNAME` from the artifact so the artifact cannot claim `clipviet.live`. Retention is three days.
 
-GitHub Pages has a single configured site/environment for this repository. Publishing a branch to that Pages environment would replace the currently published site, so this workflow intentionally does not do that.
+To inspect it, open the workflow run, download `clipviet-github-preview`, extract it, and open `index.html`. This is a package for local inspection, not a hosted Preview URL.
 
-## Video sources
+GitHub Pages has a single configured site/environment for this repository. Publishing a branch to that Pages environment would replace the currently published site, so this change does not enable or trigger a Pages deployment. The repository's Pages source and HTTPS state still need to be verified in Settings before any future publication.
 
-No real video API or licensed media source has been supplied yet. The public catalogue remains demo metadata and does not pretend to contain playable videos.
+## Video sources and admin
+
+No real video API or licensed media source has been supplied. The public catalogue remains demo metadata and does not pretend to contain playable videos.
 
 Use `/admin/` to test an API you own or are authorized to use:
 
 - API endpoint: HTTPS JSON endpoint.
 - API allowlist: exact API hostname(s), comma-separated.
-- Media allowlist: exact hostname(s) that serve the MP4/WebM/HLS files.
+- Media allowlist: exact hostname(s) that serve MP4/WebM/HLS files.
 - Bearer token: optional; held only in the current tab's memory.
-- The browser sends no cookies and rejects redirects.
-- The API must permit browser CORS requests from the Preview origin.
+- Browser requests omit cookies and reject redirects.
+- The API must allow browser CORS requests from the Preview origin.
 - Direct playback requires a reachable HTTPS media URL and suitable MIME/range support.
 
-Allowlist values are saved in the current browser's local storage, not in GitHub or server environment variables. Do not put credentials in repository files, commits, query strings, or screenshots.
+Allowlist values are saved in the current browser's local storage, not in GitHub or server environment variables. Do not put credentials in repository files, commits, query strings, or screenshots. The static admin is a client-side testing panel, not a centrally authenticated control plane.
 
-Only add content that ClipViet is authorized to distribute. Do not use scraped download links, third-party playlists, or sources without documented rights. No provider is configured by default; unknown API/media hosts fail closed.
+Only add content ClipViet is authorized to distribute. Do not use scraped download links, third-party playlists, or sources without documented rights. No provider is configured by default; unknown API/media hosts fail closed.
 
-## Cost and production boundary
+## Cost and Production boundary
 
-- Uses the repository's existing GitHub Actions workflow and standard GitHub-hosted runner.
+- This change uses the existing repository and workflow only.
 - No Cloudflare resources, paid services, secrets, DNS, or custom-domain changes.
-- No Pages deployment action or production deployment.
+- No Pages deployment action or Production deployment.
 - CI/Preview execution remains subject to GitHub Actions runner availability. A runner startup failure is infrastructure-level and does not establish a source-code failure.
