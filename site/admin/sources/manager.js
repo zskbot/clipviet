@@ -1,5 +1,5 @@
 const API=window.CLIPVIET_API_BASE||"https://api.clipviet.live/api/v1";
-const ROOT=API.replace(/\\/api\\/v1\\/?$/, "");
+const ROOT=API.replace("/api/v1", "");
 const $=s=>document.querySelector(s), status=$("#status-text"), rows=$("#rows");
 async function request(path,options={}){const r=await fetch(API+path,{credentials:"include",redirect:"error",headers:{Accept:"application/json","Content-Type":"application/json",...(options.headers||{})},...options});const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||"HTTP "+r.status);return data;}
 function say(message){status.textContent=message;}
