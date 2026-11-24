@@ -182,11 +182,12 @@ export async function checkProviderHealth(providerId, env) {
     const provider = getProvider(providerId, env);
     const categories = await getProviderCategories(providerId, env);
     const page = await listProviderVideos(providerId, { page: 1 }, env);
+    const playbackUrlsPresent = page.items.some(item => item.lines.some(line => line.episodes.length > 0));
     return {
-      id: provider.id, name: provider.name, status: page.items.length > 0 && categories.length > 0 ? "api-ok" : "degraded",
+      id: provider.id, name: provider.name, status: page.items.length > 0 && categories.length > 0 && playbackUrlsPresent ? "api-ok" : "degraded",
       latencyMs: Date.now() - started, categoryCount: categories.length,
       pageCount: page.pageCount, total: page.total, sampleCount: page.items.length,
-      playbackUrlsPresent: page.items.some(item => item.lines.some(line => line.episodes.length > 0))
+      playbackUrlsPresent
     };
   } catch (error) {
     const provider = PROVIDERS.find(item => item.id === providerId);
