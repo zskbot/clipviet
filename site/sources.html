@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08090d">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Nguồn liên kết bên ngoài — ClipViet.live</title>
+  <link rel="icon" href="./clipviet-logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    .sources-wrap{max-width:900px;margin:0 auto;padding:72px 22px 100px}
+    .sources-panel{border:1px solid var(--line);background:var(--panel);padding:clamp(22px,5vw,42px);margin-top:28px}
+    .sources-panel h2{font-size:clamp(24px,4vw,38px);margin:10px 0 18px}
+    .sources-panel p,.sources-panel li{color:#a5a6ae;font-size:13px;line-height:1.85}
+    .sources-panel ul{padding-left:20px}
+    .status-line{display:flex;align-items:center;gap:10px;color:#f0c36d;font-size:10px;font-weight:800;letter-spacing:1.5px}
+    .status-dot{width:8px;height:8px;background:#d59b36;display:inline-block}
+    .source-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:25px}
+    .source-actions a{border:1px solid var(--line);padding:12px 16px;font-size:10px;font-weight:800;letter-spacing:1px}
+    .source-actions a:first-child{background:var(--red);border-color:var(--red)}
+    .source-foot{font-size:10px!important;color:#777!important;margin-top:24px}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="ClipViet.live trang chủ"><img src="./clipviet-logo.svg" alt=""><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a>
+    <nav aria-label="Điều hướng"><a href="./">Trang chủ</a><a href="./#catalog">Thư viện</a></nav>
+  </header>
+  <main class="sources-wrap">
+    <p class="eyebrow">CLIPVIET.LIVE / EXTERNAL SOURCES</p>
+    <h1>Nguồn liên kết bên ngoài</h1>
+    <section class="sources-panel" aria-labelledby="source-status">
+      <div class="status-line"><span class="status-dot" aria-hidden="true"></span><span id="source-status">CHƯA ĐƯỢC PHÊ DUYỆT ĐỂ HIỂN THỊ</span></div>
+      <h2>Danh mục nguồn đang được rà soát</h2>
+      <p>Repo tham chiếu <strong>zskbot/dizhi33.github.io</strong> là một trang công bố địa chỉ bên ngoài. Các URL trong mã nguồn thay đổi/ngẫu nhiên và trỏ tới nhiều tên miền không thuộc ClipViet.live. Vì vậy, ClipViet không tự động nhúng script, chuyển hướng hoặc phát nội dung từ các tên miền đó.</p>
+      <ul>
+        <li>Chỉ thêm nguồn sau khi xác minh quyền phân phối, quyền sử dụng nhãn hiệu và trạng thái an toàn của từng URL.</li>
+        <li>Không tải script, iframe, cookie hoặc tracker từ website bên ngoài vào trang chính.</li>
+        <li>Liên kết ngoài phải hiển thị tên miền đích rõ ràng, mở bằng tab mới với rel="noopener noreferrer".</li>
+        <li>Nội dung người lớn (nếu được pháp luật và chính sách nền tảng cho phép) phải được tách biệt, có kiểm soát độ tuổi phù hợp và không được nhắm tới người chưa thành niên.</li>
+        <li>Không đưa nội dung không có sự đồng thuận, nội dung xâm phạm quyền riêng tư hoặc nội dung không có quyền phân phối vào thư viện.</li>
+      </ul>
+      <div class="source-actions">
+        <a href="./">QUAY LẠI CLIPVIET</a>
+        <a href="https://github.com/zskbot/dizhi33.github.io" target="_blank" rel="noopener noreferrer">MỞ REPOSITORY NGUỒN ↗</a>
+      </div>
+      <p class="source-foot">Trạng thái hiện tại: chỉ tích hợp trang kiểm soát nguồn ở Preview. Chưa có URL nội dung bên ngoài nào được kích hoạt.</p>
+    </section>
+  </main>
+  <footer><a class="brand footer-brand" href="./"><img src="./clipviet-logo.svg" alt=""><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a><p>© <span id="year"></span> ClipViet.live · Chỉ đăng tải nội dung bạn sở hữu hoặc có quyền phân phối.</p></footer>
+  <script>document.querySelector("#year").textContent = new Date().getFullYear();</script>
+</body>
+</html>
