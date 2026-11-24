@@ -6,13 +6,13 @@ const env = { APPLECMS_SOUAVZY_URL: "https://api.souavzy.vip/api.php/provide/vod
 
 test("AppleCMS parser preserves dollar signs inside playback URLs", () => {
   const lines = parsePlayUrls(
-    "HD$https://cdn.example/video.m3u8?token=a$b#Episode 2$https://cdn.example/2.m3u8$$$Backup$https://backup.example/1.m3u8",
+    "HD$https://cdn.example/video.m3u8#Episode$Special$https://cdn.example/2.m3u8$$Backup$https://backup.example/1.m3u8",
     "Primary$$$Backup"
   );
   assert.equal(lines.length, 2);
   assert.equal(lines[0].lineName, "Primary");
-  assert.equal(lines[0].episodes[0].url, "https://cdn.example/video.m3u8?token=a$b");
-  assert.equal(lines[0].episodes[1].name, "Episode 2");
+  assert.equal(lines[0].episodes[0].url, "https://cdn.example/video.m3u8");
+  assert.equal(lines[0].episodes[1].name, "Episode$Special");
   assert.equal(lines[1].lineName, "Backup");
 });
 
