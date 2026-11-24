@@ -24,7 +24,7 @@ Non-secret Worker variables:
 - TELEGRAM_ALLOWED_USER_IDS (comma-separated numeric user IDs)
 - MEDIA_HOST_ALLOWLIST (comma-separated exact media hostnames)
 
-Create a dedicated KV namespace for replay protection and bind it as LOGIN_REPLAY. Do not share an unrelated namespace.
+Create dedicated KV namespaces and bind them separately: LOGIN_REPLAY for one-time Telegram login hashes, VIDEO_CATALOG for catalog JSON. Do not share either namespace with unrelated applications. Set VIDEO_MEDIA_HOSTS to a comma-separated allowlist of exact HTTPS hostnames approved for distribution.
 
 ## Login setup
 1. Create/select the bot in BotFather and configure the approved site domain for Telegram Login.
