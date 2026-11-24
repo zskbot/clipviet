@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getOcodejsOverview, OCODEJS_READ_ONLY_ENDPOINTS } from "../lib/ocodejs-control.js";
+import { getOcodejsOverview, OCODEJS_READ_ONLY_ENDPOINTS } from "../lib/ocodejs-control.mjs";
 
 test("OCodeJS monitoring exposes only the fixed read-only endpoint set", () => {
   assert.deepEqual(OCODEJS_READ_ONLY_ENDPOINTS, [
