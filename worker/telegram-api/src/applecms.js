@@ -1,9 +1,9 @@
 const PROVIDERS = [
-  { id: "souavzy", name: "Souavzy · Main", role: "primary", baseUrl: "https://api.souavzy.vip/api.php/provide/vod/", enabled: true },
-  { id: "apiyutu", name: "ApiYutu · Backup 1", role: "backup", baseUrl: "https://apiyutu.com/api.php/provide/vod/", enabled: true },
-  { id: "lbapi9", name: "LBApi9 · Backup 2", role: "backup", baseUrl: "https://lbapi9.com/api.php/provide/vod/", enabled: true },
-  { id: "slapibf", name: "Slapibf · Backup 3", role: "backup", baseUrl: "https://slapibf.com/api.php/provide/vod/", enabled: true },
-  { id: "jipinvip1", name: "JipinVIP1 · Backup 4", role: "backup", baseUrl: "https://jipinvip1.com/api.php/provide/vod/", enabled: true }
+  { id: "souavzy", name: "Souavzy · Main", role: "primary", envKey: "APPLECMS_SOUAVZY_URL", host: "api.souavzy.vip", enabled: true },
+  { id: "apiyutu", name: "ApiYutu · Backup 1", role: "backup", envKey: "APPLECMS_APIYUTU_URL", host: "apiyutu.com", enabled: true },
+  { id: "lbapi9", name: "LBApi9 · Backup 2", role: "backup", envKey: "APPLECMS_LBAPI9_URL", host: "lbapi9.com", enabled: true },
+  { id: "slapibf", name: "Slapibf · Backup 3", role: "backup", envKey: "APPLECMS_SLAPIBF_URL", host: "slapibf.com", enabled: true },
+  { id: "jipinvip1", name: "JipinVIP1 · Backup 4", role: "backup", envKey: "APPLECMS_JIPINVIP1_URL", host: "jipinvip1.com", enabled: true }
 ];
 const USER_AGENT = "Mozilla/5.0 (compatible; ClipVietProvider/1.0; +https://clipviet.live)";
 const REQUEST_TIMEOUT_MS = 15000;
@@ -36,13 +36,18 @@ export class ProviderError extends Error {
     this.status = status;
   }
 }
-export function listProviders() {
-  return PROVIDERS.filter(p => p.enabled).map(({ id, name, role }) => ({ id, name, role, protocol: "AppleCMS V10" }));
+export function listProviders(env) {
+  return PROVIDERS.filter(p => p.enabled).map(({ id, name, role, envKey }) => ({ id, name, role, protocol: "AppleCMS V10", configured: Boolean(env?.[envKey]) }));
 }
-function getProvider(id) {
-  const provider = PROVIDERS.find(p => p.id === id && p.enabled);
-  if (!provider) throw new ProviderError(String(id || ""), "Unknown or disabled provider", 404);
-  return provider;
+function getProvider(id, env) {
+  const configured = PROVIDERS.find(p => p.id === id && p.enabled);
+  if (!configured) throw new ProviderError(String(id || ""), "Unknown or disabled provider", 404);
+  const raw = env?.[configured.envKey];
+  if (!raw) throw new ProviderError(configured.id, "Provider URL is not configured", 503);
+  let url;
+  try { url = new URL(raw); } catch { throw new ProviderError(configured.id, "Provider URL is invalid", 503); }
+  if (url.protocol !== "https:" || url.hostname.toLowerCase() !== configured.host || url.pathname !== "/api.php/provide/vod/" || url.username || url.password || url.search || url.hash) throw new ProviderError(configured.id, "Provider URL does not match the approved AppleCMS endpoint", 503);
+  return { ...configured, baseUrl: url.toString() };
 }
 function parsePlayUrls(raw, playFrom) {
   if (!raw) return [];
@@ -135,8 +140,8 @@ async function fetchProviderJson(provider, params) {
   console.warn("applecms_provider_failed", { providerId: provider.id, reason: lastError instanceof Error ? lastError.message : "unknown" });
   throw new ProviderError(provider.id, "Provider request failed", 502);
 }
-export async function getProviderCategories(providerId) {
-  const provider = getProvider(providerId);
+export async function getProviderCategories(providerId, env) {
+  const provider = getProvider(providerId, env);
   const payload = await fetchProviderJson(provider, { ac: "list" });
   const all = (payload.class || []).map(item => ({
     id: Number(item.type_id) || 0,
@@ -146,8 +151,8 @@ export async function getProviderCategories(providerId) {
   const parentIds = new Set(all.map(item => item.parentId).filter(Boolean));
   return all.filter(item => !parentIds.has(item.id));
 }
-export async function listProviderVideos(providerId, options = {}) {
-  const provider = getProvider(providerId);
+export async function listProviderVideos(providerId, options = {}, env) {
+  const provider = getProvider(providerId, env);
   const page = Math.max(1, Math.min(1000000, Number.parseInt(options.page, 10) || 1));
   const params = { ac: "detail", pg: page };
   if (options.categoryId) params.t = String(options.categoryId).slice(0, 20);
@@ -163,20 +168,20 @@ export async function listProviderVideos(providerId, options = {}) {
     limit: Number(payload.limit) || items.length
   };
 }
-export async function getProviderVideo(providerId, vodId) {
-  const provider = getProvider(providerId);
+export async function getProviderVideo(providerId, vodId, env) {
+  const provider = getProvider(providerId, env);
   const id = String(vodId || "").trim().slice(0, 40);
   if (!/^[0-9,]+$/.test(id)) throw new ProviderError(provider.id, "Invalid video ID", 400);
   const payload = await fetchProviderJson(provider, { ac: "detail", ids: id });
   const row = (payload.list || []).find(item => String(item.vod_id) === id);
   return row ? mapVideo(provider, row) : null;
 }
-export async function checkProviderHealth(providerId) {
-  const provider = getProvider(providerId);
+export async function checkProviderHealth(providerId, env) {
+  const provider = getProvider(providerId, env);
   const started = Date.now();
   try {
-    const categories = await getProviderCategories(providerId);
-    const page = await listProviderVideos(providerId, { page: 1 });
+    const categories = await getProviderCategories(providerId, env);
+    const page = await listProviderVideos(providerId, { page: 1 }, env);
     return {
       id: provider.id, name: provider.name, status: page.items.length > 0 && categories.length > 0 ? "api-ok" : "degraded",
       latencyMs: Date.now() - started, categoryCount: categories.length,
@@ -187,10 +192,10 @@ export async function checkProviderHealth(providerId) {
     return { id: provider.id, name: provider.name, status: "offline", latencyMs: Date.now() - started };
   }
 }
-export async function checkAllProviderHealth() {
+export async function checkAllProviderHealth(env) {
   const results = [];
   for (const provider of PROVIDERS.filter(item => item.enabled)) {
-    results.push(await checkProviderHealth(provider.id));
+    results.push(await checkProviderHealth(provider.id, env));
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   return results;
