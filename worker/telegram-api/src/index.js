@@ -88,7 +88,7 @@ async function handle(request, env) {
   if (request.method === "OPTIONS") return originOK(request, env) ? new Response(null, { status: 204, headers: cors(request, env) }) : new Response(null, { status: 403 });
   if (path === "/health" && request.method === "GET") return reply({
     ok: true, service: "clipviet-telegram-api",
-    configured: Boolean(env.TELEGRAM_BOT_TOKEN && env.SESSION_SECRET && env.TELEGRAM_BOT_ID && env.TELEGRAM_CHANNEL_ID && env.LOGIN_REPLAY)
+    configured: Boolean(env.TELEGRAM_BOT_TOKEN && env.SESSION_SECRET && env.TELEGRAM_BOT_USERNAME && env.TELEGRAM_BOT_ID && env.TELEGRAM_CHANNEL_ID && env.TELEGRAM_ALLOWED_USER_IDS && env.MEDIA_HOST_ALLOWLIST && env.LOGIN_REPLAY)
   });
   if (!originOK(request, env)) return answer(request, env, { error: "Origin not allowed" }, 403);
   if (path === "/auth/telegram" && request.method === "POST") {
