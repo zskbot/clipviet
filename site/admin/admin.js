@@ -229,8 +229,7 @@ async function probeProviderMedia(rawUrl, hosts) {
   const type = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
   const acceptedType = type.startsWith("video/") ||
     type === "application/vnd.apple.mpegurl" ||
-    type === "application/x-mpegurl" ||
-    type === "application/octet-stream";
+    type === "application/x-mpegurl";
   const rangeOk = response.status === 206;
   if (response.body) await response.body.cancel().catch(() => {});
   if (!rangeOk) throw new Error("Media không xác nhận byte-range (HTTP " + response.status + ").");
