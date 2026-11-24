@@ -1,0 +1,39 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { validateProviderInput, transitionAllowed } from "../workers/provider-registry/src/index.mjs";
+
+const valid = {
+  name: "Authorized demo provider",
+  apiBaseUrl: "https://api.example.com/v1/videos",
+  apiHost: "api.example.com",
+  mediaHosts: ["cdn.example.com"],
+  rightsHolder: "Example Media Ltd",
+  licenseReference: "LIC-2026-001",
+  rightsEvidenceUrl: "https://example.com/licenses/clipviet.pdf",
+  licenseExpiresAt: "2099-01-01T00:00:00.000Z",
+  distributionRightsAttested: true
+};
+
+test("accepts a complete HTTPS provider declaration", () => {
+  assert.equal(validateProviderInput(valid).data.apiHost, "api.example.com");
+});
+test("rejects HTTP, IP literals, custom ports and host mismatch", () => {
+  assert.ok(validateProviderInput({...valid,apiBaseUrl:"http://api.example.com"}).error);
+  assert.ok(validateProviderInput({...valid,apiBaseUrl:"https://127.0.0.1"}).error);
+  assert.ok(validateProviderInput({...valid,apiBaseUrl:"https://api.example.com:8443"}).error);
+  assert.ok(validateProviderInput({...valid,apiHost:"other.example.com"}).error);
+});
+test("requires distribution-rights attestation and future license", () => {
+  assert.ok(validateProviderInput({...valid,distributionRightsAttested:false}).error);
+  assert.ok(validateProviderInput({...valid,licenseExpiresAt:"2000-01-01"}).error);
+});
+test("only reviewer roles can advance their exact state transition", () => {
+  const tech = {apiReachable:true,schemaValid:true,mediaProbePassed:true,redirectsRejected:true,exactHostAllowlist:true,testRunId:"run-1"};
+  const legal = {rightsReviewed:true,ageConsentReviewed:true,reviewReference:"legal-review-1"};
+  assert.equal(transitionAllowed("PENDING","VERIFIED","technical",tech),true);
+  assert.equal(transitionAllowed("PENDING","VERIFIED","admin",tech),false);
+  assert.equal(transitionAllowed("VERIFIED","APPROVED","legal",legal),true);
+  assert.equal(transitionAllowed("VERIFIED","APPROVED","technical",legal),false);
+  assert.equal(transitionAllowed("APPROVED","ENABLED","admin",{}),true);
+  assert.equal(transitionAllowed("PENDING","ENABLED","admin",{}),false);
+});
