@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { validateProviderInput, transitionAllowed } from "../workers/provider-registry/src/index.mjs";
+import { encryptCredential, decryptCredential } from "../workers/provider-registry/src/security.mjs";
 
 const valid = {
   name: "Authorized demo provider",
@@ -56,4 +57,21 @@ test("requires explicit evidence for every state transition", () => {
   assert.equal(transitionAllowed("VERIFIED","APPROVED","legal",{}),false);
   assert.equal(transitionAllowed("APPROVED","ENABLED","admin",{}),true);
   assert.equal(transitionAllowed("ENABLED","APPROVED","admin",{}),false);
+});
+
+test("encrypts credentials with a versioned key id and decrypts with the matching key ring", async () => {
+  const keyA = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+  const keyB = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=";
+  const oldEnv = { REGISTRY_ENCRYPTION_KEYS: JSON.stringify({activeKid:"k1",keys:{k1:keyA}}) };
+  const newEnv = { REGISTRY_ENCRYPTION_KEYS: JSON.stringify({activeKid:"k2",keys:{k1:keyA,k2:keyB}}) };
+  const cipher = await encryptCredential("preview-secret", oldEnv, "provider-1");
+  assert.match(cipher, /^v1:k1:/);
+  assert.equal(await decryptCredential(cipher, newEnv, "provider-1"), "preview-secret");
+  const rotated = await encryptCredential(await decryptCredential(cipher,newEnv,"provider-1"),newEnv,"provider-1");
+  assert.match(rotated,/^v1:k2:/);
+  assert.equal(await decryptCredential(rotated,newEnv,"provider-1"),"preview-secret");
+  await assert.rejects(() => decryptCredential(rotated,oldEnv,"provider-1"));
+});
+test("rejects an incomplete encryption key ring", async () => {
+  await assert.rejects(() => encryptCredential("secret",{REGISTRY_ENCRYPTION_KEYS:"{}"},"provider-1"));
 });
