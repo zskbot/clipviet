@@ -80,8 +80,6 @@ export default function AdminPage() {
       <a href="/providers" className="text-sm text-zinc-400 hover:text-white">← Provider Sandbox</a>
     </div>
 
-    <AdminVideoApiPlayer />
-
     <section className="mb-8 rounded-2xl border border-white/10 bg-white/[.03] p-5 sm:p-6">
       <div className="mb-5"><p className="text-xs font-bold uppercase tracking-[.2em] text-red-400">TELEGRAM / PUBLIC SOURCES</p><h2 className="mt-2 text-xl font-black">Nguồn video công khai</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">Nhập link kênh Telegram công khai. TX.TOP chỉ lấy thông tin bài đăng và nhúng trình phát Telegram; không tải hoặc lưu tệp video. Với nhóm, bot cần quyền quản trị để nhận bài đăng mới.</p></div>
       <form onSubmit={addSource} className="flex flex-col gap-3 sm:flex-row">
@@ -102,7 +100,7 @@ export default function AdminPage() {
       <label className="mt-5 block text-xs font-semibold text-zinc-400">Admin token</label>
       <input type="password" autoComplete="off" value={token} onChange={e => setToken(e.target.value)} className="mt-2 w-full rounded-lg border border-white/10 bg-black px-3 py-3 text-sm outline-none focus:border-red-500" placeholder="Token CMS (không phải Telegram Bot Token)" />
       <button disabled={!token || busy} onClick={loadCatalog} className="mt-4 rounded-lg bg-red-600 px-5 py-3 text-sm font-bold disabled:opacity-40">{busy ? "Đang kết nối…" : "Kết nối CMS"}</button>
-    </section> : <div className="grid gap-8 xl:grid-cols-[minmax(320px,420px)_1fr]">
+    </section> : <><AdminVideoApiPlayer /><div className="grid gap-8 xl:grid-cols-[minmax(320px,420px)_1fr]">
       <form onSubmit={submit} className="h-fit space-y-4 rounded-2xl border border-white/10 bg-white/[.03] p-5">
         <div><h2 className="text-lg font-bold">Thêm nội dung có quyền phân phối</h2><p className="mt-1 text-xs text-zinc-500">Mọi nội dung mới sẽ vào trạng thái chờ duyệt.</p></div>
         {[
@@ -118,7 +116,7 @@ export default function AdminPage() {
           <div className="mt-4 flex flex-wrap gap-2">{item.status === "pending_review" && <><button disabled={busy} onClick={() => transition(item.id,"approved")} className="rounded-md bg-emerald-700/80 px-3 py-2 text-xs font-bold">Duyệt</button><button disabled={busy} onClick={() => transition(item.id,"rejected")} className="rounded-md bg-white/10 px-3 py-2 text-xs font-bold">Từ chối</button></>}{item.status === "approved" && <button disabled={busy} onClick={() => transition(item.id,"published")} className="rounded-md bg-red-600 px-3 py-2 text-xs font-bold">Phát hành</button>}{!["archived","rejected"].includes(item.status) && <button disabled={busy} onClick={() => transition(item.id,"archived")} className="rounded-md border border-white/10 px-3 py-2 text-xs">Lưu trữ</button>}</div>
         </article>) : <div className="rounded-xl border border-dashed border-white/10 p-10 text-center text-sm text-zinc-500">Chưa có nội dung.</div>}</div>
       </section>
-    </div>}
+    </div></>}
     {message && <p role="status" className="mt-5 rounded-lg border border-white/10 bg-white/[.03] p-3 text-sm text-zinc-300">{message}</p>}
   </main>;
 }
