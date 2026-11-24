@@ -1,4 +1,7 @@
-import { categories, videos } from "./data.js";
+import { categories, videos as demoVideos } from "./data.js";
+
+let videos = demoVideos;
+const API_BASE = window.CLIPVIET_API_BASE || "https://api.clipviet.live/api/v1";
 
 const grid = document.querySelector("#video-grid");
 const count = document.querySelector("#result-count");
@@ -120,7 +123,7 @@ function render() {
 }
 
 function openDetail(video) {
-  detail.innerHTML = '<div class="detail-inner"><img alt=""><div><p class="eyebrow"></p><h2></h2><p class="description"></p><p class="meta"></p><p>Đây là dữ liệu thư viện demo tĩnh. Chưa có nguồn phát video được cấu hình.</p></div></div>';
+  detail.innerHTML = '<div class="detail-inner"><img alt=""><div><p class="eyebrow"></p><h2></h2><p class="description"></p><p class="meta"></p><p class="detail-source"></p><a class="primary-link watch-link" hidden>PHÁT VIDEO <span>↗</span></a></div></div>';
   detail.querySelector("img").src = video.poster;
   detail.querySelector("img").addEventListener("error", (event) => { event.currentTarget.src = new URL("./poster-fallback.svg", import.meta.url).href; }, { once: true });
   detail.querySelector("img").alt = video.title;
@@ -187,3 +190,28 @@ document.querySelector("#confirm-age").addEventListener("click", () => {
 document.querySelector("#leave-button").addEventListener("click", () => { location.href = "https://www.google.com/"; });
 
 render();
+
+async function loadPublishedCatalog() {
+  try {
+    const response = await fetch(API_BASE + "/videos", { headers: { Accept: "application/json" }, credentials: "include", redirect: "error", cache: "no-store" });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    const payload = await response.json();
+    if (!Array.isArray(payload.data)) throw new Error("Invalid catalog");
+    const live = payload.data.map((item) => ({
+      id: item.id, title: item.title, category: item.genre || "Khác", genre: item.genre || "",
+      year: item.created_at ? new Date(item.created_at).getFullYear() : new Date().getFullYear(),
+      duration: item.duration || "", rating: "ĐÃ KIỂM DUYỆT", description: item.description || "",
+      poster: item.poster_url || "./poster-fallback.svg", country: item.country || "", apiManaged: true
+    }));
+    if (live.length) {
+      videos = live;
+      render();
+      const note = document.querySelector(".data-note");
+      if (note) note.textContent = "LIVE API CATALOG · " + live.length + " VIDEO";
+    }
+  } catch {
+    const note = document.querySelector(".data-note");
+    if (note) note.textContent = "API CHƯA KẾT NỐI · ĐANG HIỂN THỊ BẢN GHI DEMO, KHÔNG CÓ STREAM";
+  }
+}
+loadPublishedCatalog();
