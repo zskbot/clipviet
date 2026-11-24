@@ -36,11 +36,19 @@ jobs:
           test -s site/api-docs/index.html
           test -s site/watch/index.html
           test -s site/watch/watch.js
+          test -s site/watch/source.html
+          test -s site/watch/source-player.js
+          test -s site/browse/index.html
+          test -s site/browse/browse.js
+          test -s worker/telegram-api/src/applecms.js
           test -s site/admin/sources/index.html
           test -s site/admin/sources/manager.js
           grep -q '/api/v1/admin/videos' worker/telegram-api/src/index.js
           grep -q 'VIDEO_CATALOG' worker/telegram-api/src/index.js
           grep -q 'VIDEO_MEDIA_HOSTS' worker/telegram-api/src/index.js
+          grep -q 'api/catalog/videos' worker/telegram-api/src/index.js
+          grep -q 'lastIndexOf' worker/telegram-api/src/applecms.js
+          grep -q 'APPLECMS_SOUAVZY_URL' worker/telegram-api/src/applecms.js
       - name: Secret pattern scan
         run: |
           ! grep -R -nE '([0-9]{6,}:[A-Za-z0-9_-]{30,}|TELEGRAM_BOT_TOKEN=.{8,}|SESSION_SECRET=.{8,})' worker/telegram-api site
