@@ -44,3 +44,7 @@ The repository rebrand does not change DNS, registrar settings, Vercel project d
 - `GET /api/videos?id=<video-id>` returns one video or 404.
 
 Provider responses are cached for 60 seconds. The browser refreshes the feed every five minutes.
+
+## OCodeJS Admin Control
+
+A read-only monitoring workspace is available at `/admin/ocodejs`. Configure `OCODEJS_API_BASE_URL` and `OCODEJS_API_TOKEN` as server-side hosting secrets, plus the existing `ADMIN_CMS_TOKEN`. See [the integration roadmap](docs/OCODEJS-ADMIN-ROADMAP.md) for rollout boundaries and remaining backend verification.
