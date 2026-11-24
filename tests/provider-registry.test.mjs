@@ -34,12 +34,14 @@ test("requires distribution-rights attestation and future license", () => {
 });
 test("only reviewer roles can advance their exact state transition", () => {
   const tech = {apiReachable:true,schemaValid:true,mediaProbePassed:true,redirectsRejected:true,exactHostAllowlist:true,testRunId:"run-1"};
-  const legal = {rightsReviewed:true,ageConsentReviewed:true,reviewReference:"legal-review-1"};
+  const legal = {distributionPermissionReviewed:true,contentRightsReviewed:true,performerAgeVerified:true,performerConsentVerified:true,complaintsProcessVerified:true,takedownProcessVerified:true,distributionPermissionReference:"permission-1",contentRightsReference:"rights-1",ageVerificationReference:"age-1",consentRecordReference:"consent-1",complaintsProcessReference:"complaints-1",takedownProcessReference:"takedown-1",reviewReference:"legal-review-1"};
   assert.equal(transitionAllowed("PENDING","VERIFIED","technical",tech),true);
   assert.equal(transitionAllowed("PENDING","VERIFIED","admin",tech),false);
   assert.equal(transitionAllowed("VERIFIED","APPROVED","legal",legal),true);
   assert.equal(transitionAllowed("VERIFIED","APPROVED","technical",legal),false);
-  assert.equal(transitionAllowed("APPROVED","ENABLED","admin",{}),true);
+  assert.equal(transitionAllowed("VERIFIED","APPROVED","legal",{...legal,performerConsentVerified:false}),false);
+  assert.equal(transitionAllowed("APPROVED","ENABLED","admin",{}),false);
+  assert.equal(transitionAllowed("APPROVED","ENABLED","admin",{explicitEnableConfirmation:true}),true);
   assert.equal(transitionAllowed("PENDING","ENABLED","admin",{}),false);
 });
 
@@ -55,7 +57,7 @@ test("rejects local and IP-based media hostnames", () => {
 test("requires explicit evidence for every state transition", () => {
   assert.equal(transitionAllowed("PENDING","VERIFIED","technical",{}),false);
   assert.equal(transitionAllowed("VERIFIED","APPROVED","legal",{}),false);
-  assert.equal(transitionAllowed("APPROVED","ENABLED","admin",{}),true);
+  assert.equal(transitionAllowed("APPROVED","ENABLED","admin",{explicitEnableConfirmation:true}),true);
   assert.equal(transitionAllowed("ENABLED","APPROVED","admin",{}),false);
 });
 
