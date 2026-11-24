@@ -59,7 +59,7 @@ function render() {
     card.innerHTML = '<div class="poster"><img loading="lazy" alt=""><span class="poster-label"></span></div><div class="card-info"><h3></h3><p></p></div>';
     card.querySelector("img").src = video.poster;
     card.querySelector("img").decoding = "async";
-    card.querySelector("img").addEventListener("error", () => { card.querySelector(".poster").classList.add("poster-unavailable"); card.querySelector("img").hidden = true; }, { once: true });
+    card.querySelector("img").addEventListener("error", (event) => { event.currentTarget.src = new URL("./poster-fallback.svg", import.meta.url).href; card.querySelector(".poster").classList.add("poster-unavailable"); }, { once: true });
     card.querySelector("img").alt = video.title;
     card.querySelector(".poster-label").textContent = video.rating;
     card.querySelector("h3").textContent = video.title;
@@ -72,6 +72,7 @@ function render() {
 function openDetail(video) {
   detail.innerHTML = '<div class="detail-inner"><img alt=""><div><p class="eyebrow"></p><h2></h2><p class="description"></p><p class="meta"></p><p>Đây là dữ liệu thư viện demo tĩnh. Chưa có nguồn phát video được cấu hình.</p></div></div>';
   detail.querySelector("img").src = video.poster;
+  detail.querySelector("img").addEventListener("error", (event) => { event.currentTarget.src = new URL("./poster-fallback.svg", import.meta.url).href; }, { once: true });
   detail.querySelector("img").alt = video.title;
   detail.querySelector(".eyebrow").textContent = video.category.toUpperCase();
   detail.querySelector("h2").textContent = video.title;
