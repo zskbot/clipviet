@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getVideoFeed } from "@/lib/video-provider";
-import { searchVideos } from "@/lib/video-search";
+import { searchVideos } from "@/lib/video-search.mjs";
 
 export const revalidate = 60;
 export async function GET(request) {
