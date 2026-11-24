@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isAllowedEmbedUrl, isAllowedMediaUrl, getVideoSecurityConfig } from "../lib/embed-security.mjs";
+import { isAllowedApiUrl, isAllowedEmbedUrl, isAllowedMediaUrl, getVideoSecurityConfig } from "../lib/embed-security.mjs";
 
 test("allows only official HTTPS player hosts and valid player paths", () => {
   assert.equal(isAllowedEmbedUrl("https://www.youtube-nocookie.com/embed/abcDEF_123"), true);
@@ -25,6 +25,13 @@ test("direct media hosts are denied unless explicitly allowlisted", () => {
   assert.equal(isAllowedMediaUrl("http://cdn.example/video.mp4", "cdn.example"), false);
   assert.equal(isAllowedMediaUrl("https://127.0.0.1/video.mp4", "127.0.0.1"), false);
   assert.equal(isAllowedMediaUrl("https://cdn.example:8443/video.mp4", "cdn.example"), false);
+});
+
+test("provider API hosts require exact explicit allowlisting", () => {
+  assert.equal(isAllowedApiUrl("https://api.example/videos"), false);
+  assert.equal(isAllowedApiUrl("https://api.example/videos", "api.example"), true);
+  assert.equal(isAllowedApiUrl("https://api.example.evil.test/videos", "api.example"), false);
+  assert.equal(isAllowedApiUrl("https://api.example/videos", "sub.api.example"), false);
 });
 
 test("allowlist config exposes hostnames only and keeps empty media defaults", () => {
