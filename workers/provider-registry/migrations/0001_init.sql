@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS provider_registry (
   license_reference TEXT NOT NULL,
   rights_evidence_url TEXT NOT NULL,
   license_expires_at TEXT NOT NULL,
+  api_credential_ciphertext TEXT,
   technical_evidence_json TEXT,
   legal_evidence_json TEXT,
   created_at TEXT NOT NULL,
