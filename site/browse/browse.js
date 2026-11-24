@@ -37,7 +37,7 @@ function render(){
 }
 async function loadVideos(){
  status("Đang tải trang "+page+"…");
- const url=new URL(API+"/api/catalog/videos");if($("source").value)url.searchParams.set("sourceId",$("source").value);
+ const url=new URL(API+"/api/catalog/videos");const pinnedSource=$("source").value||(categoryId?activeProvider:"");if(pinnedSource)url.searchParams.set("sourceId",pinnedSource);
  url.searchParams.set("page",String(page));if(categoryId)url.searchParams.set("categoryId",categoryId);if(keyword)url.searchParams.set("keyword",keyword);
  try{
   const response=await fetch(url,{headers:{Accept:"application/json"},cache:"no-store",redirect:"error"});
