@@ -1,0 +1,15 @@
+name = "clipviet-provider-registry-preview"
+main = "src/index.mjs"
+compatibility_date = "2026-11-24"
+workers_dev = true
+preview_urls = false
+
+[vars]
+REGISTRY_ENV = "preview"
+CORS_ALLOWED_ORIGINS = ""
+
+# Add a dedicated D1 database binding after creating the Preview-only database.
+# [[d1_databases]]
+# binding = "PROVIDER_DB"
+# database_name = "clipviet-provider-registry-preview"
+# database_id = "REPLACE_WITH_NEW_PREVIEW_DATABASE_ID"
