@@ -24,10 +24,20 @@ export default function HomeFeed() {
     let active = true;
     async function load() {
       try {
-        const response = await fetch("/api/videos", { headers: { Accept: "application/json" } });
-        const data = await response.json();
-        if (!response.ok || !data.success) throw new Error(data.error || "Không tải được video feed");
-        if (active) { setVideos(data.results || []); setSource(data.source || "provider"); setError(""); }
+        const allResults = [];
+        let page = 1;
+        let sourceName = "provider";
+        let hasMore = true;
+        while (hasMore && page <= 20) {
+          const response = await fetch(`/api/videos?page=${page}&limit=100`, { headers: { Accept: "application/json" } });
+          const data = await response.json();
+          if (!response.ok || !data.success) throw new Error(data.error || "Không tải được video feed");
+          allResults.push(...(data.results || []));
+          sourceName = data.source || sourceName;
+          hasMore = Boolean(data.hasMore);
+          page += 1;
+        }
+        if (active) { setVideos(allResults); setSource(sourceName); setError(""); }
       } catch (err) { if (active) setError(err.message || "Không thể tải dữ liệu video."); }
       finally { if (active) setLoading(false); }
     }
