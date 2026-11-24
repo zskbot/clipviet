@@ -24,6 +24,7 @@ test("direct media hosts are denied unless explicitly allowlisted", () => {
   assert.equal(isAllowedMediaUrl("https://cdn.example/video.mp4", "cdn.example"), true);
   assert.equal(isAllowedMediaUrl("http://cdn.example/video.mp4", "cdn.example"), false);
   assert.equal(isAllowedMediaUrl("https://127.0.0.1/video.mp4", "127.0.0.1"), false);
+  assert.equal(isAllowedMediaUrl("https://[::1]/video.mp4", "[::1]"), false);
   assert.equal(isAllowedMediaUrl("https://cdn.example:8443/video.mp4", "cdn.example"), false);
 });
 
