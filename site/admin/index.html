@@ -32,8 +32,29 @@
       <p class="notice">Chỉ host khớp chính xác allowlist trên thiết bị mới được kết nối/phát. Request API chặn redirect, không gửi cookie. Allowlist lưu cục bộ; token chỉ giữ trong bộ nhớ tab.</p>
       <p id="api-status" class="status" role="status">Chưa kết nối API.</p>
     </section>
+
+    <section class="panel validator-panel" id="provider-validator">
+      <div class="panel-head"><div><p class="eyebrow">02 / PROVIDER GATE</p><h2>Kiểm tra Provider độc lập</h2></div><span class="local-tag">MẶC ĐỊNH TẮT</span></div>
+      <p class="hint block">Công cụ chỉ kiểm tra endpoint do bạn cung cấp. Không tự tìm nguồn, không scrape trang HTML, không tải video và không kích hoạt provider.</p>
+      <form id="provider-form" class="form-grid">
+        <label class="wide">Tên provider<input id="provider-name" type="text" maxlength="80" placeholder="Tên nguồn / đơn vị cung cấp" required></label>
+        <label class="wide">API endpoint HTTPS<input id="provider-url" type="url" inputmode="url" placeholder="https://api.example.com/videos" required></label>
+        <label class="wide">API hostname allowlist<input id="provider-api-hosts" type="text" placeholder="api.example.com" autocomplete="off" required></label>
+        <label class="wide">Media hostname allowlist<input id="provider-media-hosts" type="text" placeholder="cdn.example.com,stream.example.net" autocomplete="off" required></label>
+        <label class="wide">Thumbnail hostname allowlist <span class="hint">(có thể dùng cùng hostname media)</span><input id="provider-poster-hosts" type="text" placeholder="images.example.com" autocomplete="off"></label>
+        <label class="wide">Bearer token <span class="hint">(tùy chọn · chỉ lưu trong bộ nhớ tab, không lưu localStorage)</span><input id="provider-token" type="password" autocomplete="off" placeholder="Provider API token"></label>
+        <label class="attestation wide"><input id="provider-rights" type="checkbox" required><span>Tôi xác nhận có quyền sử dụng API, metadata, thumbnail và media được kiểm tra; nội dung đáp ứng yêu cầu độ tuổi, sự đồng thuận và quy định pháp luật.</span></label>
+        <div class="actions wide"><button class="primary" type="submit">CHẠY KIỂM TRA AN TOÀN</button><button class="secondary" id="provider-reset" type="button">XÓA KẾT QUẢ</button></div>
+      </form>
+      <div id="provider-result" class="provider-result" role="status" aria-live="polite">
+        <strong>CHƯA KIỂM TRA</strong>
+        <p>Provider chưa được xác minh. Không có nguồn nào được kích hoạt.</p>
+      </div>
+      <p class="notice">Kiểm tra API tối đa 1 MB JSON và 100 bản ghi; kiểm tra tối đa 3 media URL đầu tiên bằng Range request 1 byte. Kết quả phụ thuộc CORS và phản hồi của máy chủ. Đây không phải xác nhận quyền phân phối hay chứng nhận bảo mật.</p>
+    </section>
+
     <section class="panel">
-      <div class="panel-head"><div><p class="eyebrow">02 / DIRECT PLAY</p><h2>Phát bằng URL</h2></div></div>
+      <div class="panel-head"><div><p class="eyebrow">03 / DIRECT PLAY</p><h2>Phát bằng URL</h2></div></div>
       <form id="direct-form" class="direct-form">
         <label>URL media HTTPS<input id="direct-url" type="url" inputmode="url" placeholder="https://cdn.example.com/video.mp4 hoặc .m3u8" required></label>
         <button class="primary" type="submit">PHÁT VIDEO</button>
@@ -41,11 +62,11 @@
       <p class="hint block">MP4/WebM được hỗ trợ phổ biến. HLS (.m3u8) phát trực tiếp khi trình duyệt hỗ trợ native HLS, ví dụ Safari/iPhone. URL media phải cho phép truy cập và có quyền phát.</p>
     </section>
     <section class="panel">
-      <div class="panel-head"><div><p class="eyebrow">03 / LIBRARY</p><h2>Danh sách từ API</h2></div><span id="video-count" class="count">0 VIDEO</span></div>
+      <div class="panel-head"><div><p class="eyebrow">04 / LIBRARY</p><h2>Danh sách từ API</h2></div><span id="video-count" class="count">0 VIDEO</span></div>
       <div id="video-list" class="video-list"><p class="empty">Kết nối API JSON để tải danh sách video.</p></div>
     </section>
     <section class="panel player-panel">
-      <div class="panel-head"><div><p class="eyebrow">04 / PREVIEW PLAYER</p><h2 id="player-title">Chưa chọn video</h2></div><span id="player-state" class="count">IDLE</span></div>
+      <div class="panel-head"><div><p class="eyebrow">05 / PREVIEW PLAYER</p><h2 id="player-title">Chưa chọn video</h2></div><span id="player-state" class="count">IDLE</span></div>
       <video id="player" controls playsinline preload="metadata"></video>
       <p id="player-message" class="hint block">Chọn một video trong danh sách hoặc nhập URL media ở phần Phát bằng URL.</p>
     </section>

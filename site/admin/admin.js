@@ -31,12 +31,12 @@ function safeHttpsUrl(value, allowedHosts = null, label = "URL") {
   if (url.username || url.password) throw new Error("Không nhúng thông tin đăng nhập trong URL.");
   const host = url.hostname.toLowerCase();
   if (allowedHosts && !allowedHosts.has(host)) throw new Error(label + ": host chưa nằm trong allowlist.");
-  if (host.includes(":") || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) throw new Error("Chỉ cho phép hostname, không dùng IP literal.");
+  if (host.includes(":") || /^(?:\\d{1,3}\\.){3}\\d{1,3}$/.test(host)) throw new Error("Chỉ cho phép hostname, không dùng IP literal.");
   if (url.port) throw new Error("Không cho phép cổng tùy chỉnh.");
-  if (host === "localhost" || host.endsWith(".localhost") || host === "::1" ||
-      /^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host) ||
-      host === "0.0.0.0" || host.endsWith(".local")) {
-    throw new Error("Không cho phép địa chỉ localhost hoặc mạng nội bộ.");
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") ||
+      host.endsWith(".internal") || host.endsWith(".test") || host.endsWith(".invalid") ||
+      host.endsWith(".example")) {
+    throw new Error("Không cho phép hostname nội bộ hoặc hostname dành riêng.");
   }
   return url.href;
 }
@@ -168,4 +168,184 @@ player.addEventListener("pause", () => { if (!player.ended && player.currentTime
 player.addEventListener("error", () => {
   playerState.textContent = "ERROR";
   playerMessage.textContent = "Trình duyệt không phát được URL này. Kiểm tra định dạng MP4/WebM/HLS, MIME type, CORS và quyền truy cập.";
+});
+
+
+// Independent provider validation: this only tests a supplied endpoint; it never activates a provider.
+const providerForm = $("#provider-form");
+const providerResult = $("#provider-result");
+const providerReset = $("#provider-reset");
+
+function providerUrl(value, hosts, label) {
+  const normalized = safeHttpsUrl(value, hosts, label);
+  const parsed = new URL(normalized);
+  if (/[?&](?:token|api[_-]?key|password|secret|auth)=/i.test(parsed.search)) {
+    throw new Error(label + ": không đặt credential trong query string; dùng Bearer token.");
+  }
+  return parsed.href;
+}
+
+async function readJsonLimited(response, maxBytes = 1024 * 1024) {
+  const length = Number(response.headers.get("content-length") || 0);
+  if (length > maxBytes) throw new Error("API response vượt giới hạn 1 MB.");
+  if (!response.body) throw new Error("API không trả về response body.");
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      total += part.value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        throw new Error("API response vượt giới hạn 1 MB.");
+      }
+      chunks.push(part.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+}
+
+function addProviderCheck(lines, label, state, detail) {
+  lines.push({ label, state, detail });
+}
+
+async function probeProviderMedia(rawUrl, hosts) {
+  const url = providerUrl(rawUrl, hosts, "Media URL");
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { Range: "bytes=0-0", Accept: "video/*,application/vnd.apple.mpegurl,application/x-mpegURL" },
+    credentials: "omit",
+    redirect: "error",
+    cache: "no-store",
+    signal: AbortSignal.timeout(10000)
+  });
+  const type = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+  const acceptedType = type.startsWith("video/") ||
+    type === "application/vnd.apple.mpegurl" ||
+    type === "application/x-mpegurl";
+  const rangeOk = response.status === 206;
+  if (response.body) await response.body.cancel().catch(() => {});
+  if (!rangeOk) throw new Error("Media không xác nhận byte-range (HTTP " + response.status + ").");
+  if (!acceptedType) throw new Error("MIME không phải media được hỗ trợ (" + (type || "không có") + ").");
+  return { status: response.status, type: type || "unknown" };
+}
+
+function renderProviderResult(title, checks, overall) {
+  providerResult.replaceChildren();
+  const heading = document.createElement("strong");
+  heading.textContent = title;
+  heading.dataset.state = overall;
+  providerResult.append(heading);
+  const listNode = document.createElement("ul");
+  for (const check of checks) {
+    const item = document.createElement("li");
+    const mark = document.createElement("span");
+    mark.className = "check-mark " + check.state;
+    mark.textContent = check.state === "pass" ? "PASS" : check.state === "warn" ? "WARN" : "FAIL";
+    const description = document.createElement("span");
+    description.textContent = check.label + " — " + check.detail;
+    item.append(mark, description);
+    listNode.append(item);
+  }
+  providerResult.append(listNode);
+  const note = document.createElement("p");
+  note.textContent = overall === "success"
+    ? "Kiểm tra kỹ thuật đạt các bước đã chạy. Provider vẫn TẮT; cần duyệt quyền nội dung và cấu hình backend trước khi kích hoạt."
+    : "Không đạt điều kiện kiểm tra. Provider vẫn TẮT và không được đưa vào danh sách phát.";
+  providerResult.append(note);
+}
+
+providerForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const checks = [];
+  const button = providerForm.querySelector('button[type="submit"]');
+  button.disabled = true;
+  button.textContent = "ĐANG KIỂM TRA…";
+  try {
+    const name = $("#provider-name").value.trim();
+    if (!name) throw new Error("Thiếu tên provider.");
+    if (!$("#provider-rights").checked) throw new Error("Cần xác nhận quyền sử dụng, độ tuổi và sự đồng thuận trước khi kiểm tra.");
+    const apiHosts = parseAllowedHosts($("#provider-api-hosts").value);
+    const mediaHosts = parseAllowedHosts($("#provider-media-hosts").value);
+    const posterHosts = parseAllowedHosts($("#provider-poster-hosts").value);
+    if (!apiHosts.size || !mediaHosts.size) throw new Error("Cần khai báo API hostname và media hostname allowlist.");
+    const endpoint = providerUrl($("#provider-url").value.trim(), apiHosts, "API endpoint");
+    addProviderCheck(checks, "HTTPS + exact API hostname", "pass", new URL(endpoint).hostname);
+    addProviderCheck(checks, "Rights attestation", "pass", "Người vận hành đã xác nhận; đây không phải xác minh pháp lý độc lập.");
+
+    const headers = { Accept: "application/json" };
+    const token = $("#provider-token").value.trim();
+    if (token) headers.Authorization = "Bearer " + token;
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers,
+      credentials: "omit",
+      redirect: "error",
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!response.ok) throw new Error("Provider API trả HTTP " + response.status + ".");
+    const contentType = response.headers.get("content-type") || "";
+    if (!/\bjson\b/i.test(contentType)) throw new Error("Provider endpoint không trả Content-Type JSON.");
+    addProviderCheck(checks, "API response", "pass", "HTTP " + response.status + " · " + contentType);
+    const payload = await readJsonLimited(response);
+    const videos = normalizeVideos(payload);
+    if (videos.length > 100) throw new Error("API trả quá 100 bản ghi; giới hạn kiểm tra là 100.");
+    if (!videos.length) addProviderCheck(checks, "JSON schema", "warn", "JSON hợp lệ nhưng chưa có video.");
+    else addProviderCheck(checks, "JSON schema", "pass", videos.length + " video record.");
+
+    let posterCount = 0;
+    for (const video of videos) {
+      if (video.media) providerUrl(video.media, mediaHosts, "Media URL");
+      if (video.poster) {
+        if (!posterHosts.size) throw new Error("Có thumbnail nhưng chưa khai báo thumbnail hostname allowlist.");
+        providerUrl(video.poster, posterHosts, "Thumbnail URL");
+        posterCount++;
+      }
+    }
+    addProviderCheck(checks, "Media hostname allowlist", "pass", "Tất cả media URL có trong response khớp exact host.");
+    addProviderCheck(checks, "Thumbnail hostname allowlist", "pass", posterCount + " thumbnail URL đã kiểm tra.");
+
+    const mediaSamples = videos.filter(video => video.media).slice(0, 3);
+    if (!mediaSamples.length) {
+      addProviderCheck(checks, "Media probe", "fail", "Không có media URL trong JSON.");
+    } else {
+      let mediaPassed = 0;
+      for (let index = 0; index < mediaSamples.length; index++) {
+        try {
+          const result = await probeProviderMedia(mediaSamples[index].media, mediaHosts);
+          mediaPassed++;
+          addProviderCheck(checks, "Media probe " + (index + 1), "pass", "HTTP 206 · " + result.type);
+        } catch (error) {
+          addProviderCheck(checks, "Media probe " + (index + 1), "fail", error.message);
+        }
+      }
+      if (mediaPassed !== mediaSamples.length) throw new Error("Một hoặc nhiều media probe không đạt.");
+    }
+    renderProviderResult("KIỂM TRA KỸ THUẬT ĐẠT", checks, "success");
+  } catch (error) {
+    addProviderCheck(checks, "Validation", "fail", error.name === "TimeoutError" ? "Quá thời gian chờ." : error.message);
+    renderProviderResult("KIỂM TRA KHÔNG ĐẠT", checks, "error");
+  } finally {
+    $("#provider-token").value = "";
+    button.disabled = false;
+    button.textContent = "CHẠY KIỂM TRA AN TOÀN";
+  }
+});
+
+providerReset.addEventListener("click", () => {
+  providerForm.reset();
+  providerResult.replaceChildren();
+  const heading = document.createElement("strong");
+  heading.textContent = "CHƯA KIỂM TRA";
+  const message = document.createElement("p");
+  message.textContent = "Provider chưa được xác minh. Không có nguồn nào được kích hoạt.";
+  providerResult.append(heading, message);
 });
