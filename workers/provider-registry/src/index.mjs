@@ -192,7 +192,7 @@ export default {
         return respond({providers:await listProviders(env.PROVIDER_DB)});
       }
       if (request.method === "GET" && parts.length === 1 && parts[0] === "audit") {
-        if (role !== "admin") return json({error:"Forbidden"},403);
+        if (role !== "admin") return respond({error:"Forbidden"},403);
         return respond({events:await listAudit(env.PROVIDER_DB)});
       }
       if (request.method === "POST" && parts.length === 1 && parts[0] === "providers") {
