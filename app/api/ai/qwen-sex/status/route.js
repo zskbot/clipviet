@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getQwen25SexProviderStatus } from "@/lib/qwen25-sex-provider";
+import { getQwen25SexProviderStatus } from "@/lib/qwen25-sex-provider.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
