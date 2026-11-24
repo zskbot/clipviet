@@ -19,6 +19,7 @@ The review evidence fields are reviewer attestations. They are not proof by them
 ## Security
 - The Worker rejects all requests unless `REGISTRY_ENV=preview` and the request host matches the dedicated `clipviet-provider-registry-preview.*.workers.dev` hostname.
 - Three distinct bearer secrets provide Admin, Technical and Legal roles. Keep them in Worker secrets, never in source, frontend bundles, URL parameters or logs.
+- Optional provider API credentials are encrypted with AES-256-GCM before being stored in D1. Supply a base64-encoded 32-byte `REGISTRY_ENCRYPTION_KEY` as a Worker secret. The API never returns ciphertext or plaintext. Credentials are never written to audit metadata. URL query parameters commonly used for secrets are rejected.
 - Provider API/media hosts must be exact valid DNS hostnames; HTTP, userinfo, custom ports, IP literals and local hostnames are rejected.
 - No provider API fetch, scraping, stream proxy, media download, or secret storage is performed by this registry.
 - Audit records are append-only through the API and written in the same D1 batch as each state change. The public API has no audit update/delete route.
@@ -29,7 +30,7 @@ The review evidence fields are reviewer attestations. They are not proof by them
 1. Create a dedicated D1 database named `clipviet-provider-registry-preview` on the Cloudflare Free plan only; do not upgrade the account. Cloudflare D1 Free includes up to 10 databases, 5 million rows read/day, 100,000 rows written/day and 5 GB total storage across the account. Stop if the account is on a paid plan and the new database would incur any charge.
 2. Apply `migrations/0001_init.sql` to that new database only.
 3. Copy `wrangler.example.toml` to `wrangler.toml` and insert the returned database ID. Do not bind any existing production database.
-4. Set Worker secrets `REGISTRY_ADMIN_TOKEN`, `REGISTRY_TECH_TOKEN`, `REGISTRY_LEGAL_TOKEN`; set `REGISTRY_ENV=preview`; set `CORS_ALLOWED_ORIGINS` to the exact Preview origin.
+4. Set Worker secrets `REGISTRY_ADMIN_TOKEN`, `REGISTRY_TECH_TOKEN`, `REGISTRY_LEGAL_TOKEN`, and `REGISTRY_ENCRYPTION_KEY` if provider credentials will be stored; set `REGISTRY_ENV=preview`; set `CORS_ALLOWED_ORIGINS` to the exact Preview origin.
 5. Deploy only the separately named Preview Worker. Never change or deploy `clipviet-live`.
 
 No database has been provisioned and no Worker has been deployed by this change.
