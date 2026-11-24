@@ -11,7 +11,8 @@ const valid = {
   licenseReference: "LIC-2026-001",
   rightsEvidenceUrl: "https://example.com/licenses/clipviet.pdf",
   licenseExpiresAt: "2099-01-01T00:00:00.000Z",
-  distributionRightsAttested: true
+  distributionRightsAttested: true,
+  apiCredential: ""
 };
 
 test("accepts a complete HTTPS provider declaration", () => {
@@ -22,6 +23,9 @@ test("rejects HTTP, IP literals, custom ports and host mismatch", () => {
   assert.ok(validateProviderInput({...valid,apiBaseUrl:"https://127.0.0.1"}).error);
   assert.ok(validateProviderInput({...valid,apiBaseUrl:"https://api.example.com:8443"}).error);
   assert.ok(validateProviderInput({...valid,apiHost:"other.example.com"}).error);
+});
+test("rejects credential-bearing query parameters", () => {
+  assert.ok(validateProviderInput({...valid,apiBaseUrl:"https://api.example.com/v1?api_key=secret"}).error);
 });
 test("requires distribution-rights attestation and future license", () => {
   assert.ok(validateProviderInput({...valid,distributionRightsAttested:false}).error);
