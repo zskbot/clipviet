@@ -1,3 +1,4 @@
+import { listProviders, getProviderCategories, listProviderVideos, getProviderVideo, checkAllProviderHealth } from "./applecms.js";
 const COOKIE = "__Host-clipviet_tg_session";
 const SESSION_TTL = 28800;
 const LOGIN_MAX_AGE = 300;
@@ -161,6 +162,65 @@ async function handle(request, env) {
       console.log("telegram_video_published", { userId: current.id, messageId: sent.message_id });
       return answer(request, env, { ok: true, message_id: sent.message_id, channel: env.TELEGRAM_CHANNEL_ID });
     } catch { return answer(request, env, { error: "Publishing failed; verify bot rights and Telegram media requirements" }, 502); }
+  }
+
+
+  if (path === "/api/providers" && request.method === "GET") {
+    return answer(request, env, { data: listProviders(), count: listProviders().length, protocol: "AppleCMS V10" });
+  }
+  if (path === "/api/providers/health" && request.method === "GET") {
+    if (!await adminSession(request, env)) return answer(request, env, { error: "Admin authentication required" }, 401);
+    const providers = await checkAllProviderHealth();
+    return answer(request, env, { data: providers, checked_at: new Date().toISOString() });
+  }
+  if (path === "/api/catalog/categories" && request.method === "GET") {
+    const providerId = url.searchParams.get("sourceId") || "souavzy";
+    try {
+      const data = await getProviderCategories(providerId);
+      return answer(request, env, { sourceId: providerId, data, count: data.length });
+    } catch (error) {
+      return answer(request, env, { error: error.message, providerId }, error.status || 502);
+    }
+  }
+  if (path === "/api/catalog/videos" && request.method === "GET") {
+    const explicitSource = url.searchParams.get("sourceId");
+    const categoryId = url.searchParams.get("categoryId") || undefined;
+    const keyword = url.searchParams.get("keyword") || undefined;
+    const page = url.searchParams.get("page") || "1";
+    const candidates = explicitSource ? [explicitSource] : ["souavzy", "apiyutu", "lbapi9", "slapibf", "jipinvip1"];
+    let lastError = null;
+    for (const providerId of candidates) {
+      try {
+        const result = await listProviderVideos(providerId, { page, categoryId, keyword });
+        return answer(request, env, { ...result, failover: !explicitSource && providerId !== "souavzy" });
+      } catch (error) {
+        lastError = error;
+        if (explicitSource || categoryId) break;
+      }
+    }
+    return answer(request, env, { error: "All eligible providers failed", providerId: lastError?.providerId || explicitSource || "souavzy" }, lastError?.status || 502);
+  }
+  const providerRoute = path.match(/^\/api\/providers\/([a-z0-9-]+)\/(categories|videos)(?:\/([0-9]+))?$/);
+  if (providerRoute && request.method === "GET") {
+    const [, providerId, resource, vodId] = providerRoute;
+    try {
+      if (resource === "categories") {
+        const data = await getProviderCategories(providerId);
+        return answer(request, env, { sourceId: providerId, data, count: data.length });
+      }
+      if (vodId) {
+        const data = await getProviderVideo(providerId, vodId);
+        return data ? answer(request, env, { data }) : answer(request, env, { error: "Video not found" }, 404);
+      }
+      const data = await listProviderVideos(providerId, {
+        page: url.searchParams.get("page") || "1",
+        categoryId: url.searchParams.get("categoryId") || undefined,
+        keyword: url.searchParams.get("keyword") || undefined
+      });
+      return answer(request, env, data);
+    } catch (error) {
+      return answer(request, env, { error: error.message, providerId }, error.status || 502);
+    }
   }
 
   if (path === "/api/v1/videos" && request.method === "GET") {
