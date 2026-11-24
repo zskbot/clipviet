@@ -131,7 +131,6 @@ if (root) {
     renderLogs();
   });
 
-  root.innerHTML = root.innerHTML;
   renderLogs();
   log("REGISTRY", "AdultEmbed được khai báo PENDING; chưa có quyền phân phối được xác minh.", "warn");
 }
