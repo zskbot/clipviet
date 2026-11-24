@@ -174,13 +174,19 @@ async function handle(request, env) {
     return answer(request, env, { data: providers, checked_at: new Date().toISOString() });
   }
   if (path === "/api/catalog/categories" && request.method === "GET") {
-    const providerId = url.searchParams.get("sourceId") || "souavzy";
-    try {
-      const data = await getProviderCategories(providerId);
-      return answer(request, env, { sourceId: providerId, data, count: data.length });
-    } catch (error) {
-      return answer(request, env, { error: error.message, providerId }, error.status || 502);
+    const explicitSource = url.searchParams.get("sourceId");
+    const candidates = explicitSource ? [explicitSource] : ["souavzy", "apiyutu", "lbapi9", "slapibf", "jipinvip1"];
+    let lastError = null;
+    for (const providerId of candidates) {
+      try {
+        const data = await getProviderCategories(providerId);
+        return answer(request, env, { sourceId: providerId, data, count: data.length, failover: !explicitSource && providerId !== "souavzy" });
+      } catch (error) {
+        lastError = error;
+        if (explicitSource) break;
+      }
     }
+    return answer(request, env, { error: "All eligible providers failed", providerId: lastError?.providerId || explicitSource || "souavzy" }, lastError?.status || 502);
   }
   if (path === "/api/catalog/videos" && request.method === "GET") {
     const explicitSource = url.searchParams.get("sourceId");
