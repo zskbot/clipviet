@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#08090d">
+  <meta name="robots" content="noindex,nofollow">
+  <title>ClipViet.live — Admin Video API</title>
+  <link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../"><span class="mark">C<span>▶</span></span><span>Clip<span class="accent">Viet</span><small>.live</small></span></a>
+    <span class="top-label">ADMIN / VIDEO API</span>
+    <a class="back" href="../">← TRANG CHỦ</a>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">VIDEO SOURCE CONTROL</p>
+      <h1>API Video <span>Player</span></h1>
+      <p>Kết nối JSON API của bạn hoặc dán URL phát trực tiếp để kiểm tra video ngay trên trình duyệt.</p>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><p class="eyebrow">01 / API CONNECTION</p><h2>Nguồn API JSON</h2></div><span class="local-tag">CẤU HÌNH TRÊN THIẾT BỊ</span></div>
+      <form id="api-form" class="form-grid">
+        <label class="wide">API endpoint URL<input id="api-url" type="url" inputmode="url" placeholder="https://api.example.com/videos" autocomplete="url" required></label>
+        <label class="wide">Bearer token <span class="hint">(không bắt buộc · chỉ giữ trong phiên hiện tại)</span><input id="api-token" type="password" placeholder="Dán token nếu API yêu cầu" autocomplete="off"></label>
+        <div class="actions wide"><button class="primary" type="submit">LƯU & TẢI DANH SÁCH</button><button class="secondary" id="clear-api" type="button">XÓA CẤU HÌNH</button></div>
+      </form>
+      <p class="notice">URL API phải dùng HTTPS và cho phép CORS từ domain Preview. Token chỉ lưu trong session của tab, không gửi về ClipViet và không được ghi vào repository.</p>
+      <p id="api-status" class="status" role="status">Chưa kết nối API.</p>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><p class="eyebrow">02 / DIRECT PLAY</p><h2>Phát bằng URL</h2></div></div>
+      <form id="direct-form" class="direct-form">
+        <label>URL media HTTPS<input id="direct-url" type="url" inputmode="url" placeholder="https://cdn.example.com/video.mp4 hoặc .m3u8" required></label>
+        <button class="primary" type="submit">PHÁT VIDEO</button>
+      </form>
+      <p class="hint block">MP4/WebM được hỗ trợ phổ biến. HLS (.m3u8) phát trực tiếp khi trình duyệt hỗ trợ native HLS, ví dụ Safari/iPhone. URL media phải cho phép truy cập và có quyền phát.</p>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><p class="eyebrow">03 / LIBRARY</p><h2>Danh sách từ API</h2></div><span id="video-count" class="count">0 VIDEO</span></div>
+      <div id="video-list" class="video-list"><p class="empty">Kết nối API JSON để tải danh sách video.</p></div>
+    </section>
+    <section class="panel player-panel">
+      <div class="panel-head"><div><p class="eyebrow">04 / PREVIEW PLAYER</p><h2 id="player-title">Chưa chọn video</h2></div><span id="player-state" class="count">IDLE</span></div>
+      <video id="player" controls playsinline preload="metadata"></video>
+      <p id="player-message" class="hint block">Chọn một video trong danh sách hoặc nhập URL media ở phần Phát bằng URL.</p>
+    </section>
+    <footer><span>CLIPVIET.LIVE / ADMIN PREVIEW</span><span>Không lưu video lên máy chủ · Không thay đổi Production</span></footer>
+  </main>
+  <script type="module" src="./admin.js"></script>
+</body>
+</html>
