@@ -20,7 +20,8 @@ function safeHost(value) {
 function safeHttps(value) {
   try {
     const url = new URL(value);
-    if (url.protocol !== "https:" || url.username || url.password || url.port) return null;
+    if (url.protocol !== "https:" || url.username || url.password || url.port || url.hash) return null;
+    if ([...url.searchParams.keys()].some(key => /^(api[_-]?key|access[_-]?token|token|secret|password|auth)$/i.test(key))) return null;
     if (!safeHost(url.hostname)) return null;
     return url;
   } catch { return null; }
@@ -68,8 +69,27 @@ export function validateProviderInput(input) {
   return { data: {
     name, apiBaseUrl: apiBaseUrl.toString(), apiHost, mediaHosts,
     rightsHolder, licenseReference, rightsEvidenceUrl, licenseExpiresAt,
-    distributionRightsAttested: true
+    distributionRightsAttested: true,
+    apiCredential: clean(input.apiCredential, 4096)
   }};
+}
+function base64(bytes) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+async function encryptCredential(value, env) {
+  if (!value) return null;
+  const encoded = clean(env.REGISTRY_ENCRYPTION_KEY, 256);
+  if (!encoded) throw new Error("REGISTRY_ENCRYPTION_KEY is required when a provider credential is supplied.");
+  let raw;
+  try { raw = Uint8Array.from(atob(encoded), char => char.charCodeAt(0)); }
+  catch { throw new Error("REGISTRY_ENCRYPTION_KEY must be base64-encoded 32-byte key material."); }
+  if (raw.length !== 32) throw new Error("REGISTRY_ENCRYPTION_KEY must be base64-encoded 32-byte key material.");
+  const key = await crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt"]);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(value));
+  return base64(iv) + "." + base64(new Uint8Array(ciphertext));
 }
 export function transitionAllowed(from, to, role, evidence = {}) {
   if (from === "PENDING" && to === "VERIFIED" && role === "technical") {
@@ -120,17 +140,18 @@ async function listAudit(db) {
     metadata: JSON.parse(row.metadata_json || "{}"), createdAt: row.created_at
   }));
 }
-async function createProvider(db, data, role) {
+async function createProvider(db, data, role, env) {
+  const encryptedCredential = await encryptCredential(data.apiCredential, env);
   const id = crypto.randomUUID();
   const eventId = crypto.randomUUID();
   const now = new Date().toISOString();
   await db.batch([
     db.prepare(`INSERT INTO provider_registry
-      (id,name,status,api_base_url,api_host,media_hosts_json,rights_holder,license_reference,rights_evidence_url,license_expires_at,created_at,updated_at,last_event_id)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,data.name,"PENDING",data.apiBaseUrl,data.apiHost,JSON.stringify(data.mediaHosts),data.rightsHolder,data.licenseReference,data.rightsEvidenceUrl,data.licenseExpiresAt,now,now,eventId),
+      (id,name,status,api_base_url,api_host,media_hosts_json,rights_holder,license_reference,rights_evidence_url,license_expires_at,api_credential_ciphertext,created_at,updated_at,last_event_id)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(id,data.name,"PENDING",data.apiBaseUrl,data.apiHost,JSON.stringify(data.mediaHosts),data.rightsHolder,data.licenseReference,data.rightsEvidenceUrl,data.licenseExpiresAt,encryptedCredential,now,now,eventId),
     db.prepare(`INSERT INTO provider_audit
       (event_id,provider_id,action,from_status,to_status,actor_role,metadata_json,created_at)
-      VALUES (?,?,?,?,?,?,?,?)`).bind(eventId,id,"PROVIDER_CREATED",null,"PENDING",role,JSON.stringify({rightsEvidenceProvided:true,secretMaterialStored:false}),now)
+      VALUES (?,?,?,?,?,?,?,?)`).bind(eventId,id,"PROVIDER_CREATED",null,"PENDING",role,JSON.stringify({rightsEvidenceProvided:true,credentialStored:Boolean(encryptedCredential),credentialEncryptedAtRest:Boolean(encryptedCredential)}),now)
   ]);
   return providerRow(await db.prepare("SELECT * FROM provider_registry WHERE id=?").bind(id).first());
 }
@@ -199,7 +220,7 @@ export default {
         if (role !== "admin") return respond({error:"Admin role required."},403);
         const parsed = validateProviderInput(await readJson(request));
         if (parsed.error) return respond({error:parsed.error},400);
-        return respond({provider:await createProvider(env.PROVIDER_DB,parsed.data,role)},201);
+        return respond({provider:await createProvider(env.PROVIDER_DB,parsed.data,role,env)},201);
       }
       if (request.method === "PATCH" && parts.length === 3 && parts[0] === "providers" && parts[2] === "transition") {
         const body = await readJson(request);
