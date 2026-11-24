@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 
-function safeHttps(value) {
+function safeHttps(value, allowedHosts, label = "URL") {
   let url;
   try { url = new URL(String(value || "").trim()); } catch { throw new Error("URL không hợp lệ."); }
   if (url.protocol !== "https:" || url.username || url.password || url.port) {
     throw new Error("Chỉ chấp nhận URL HTTPS không chứa thông tin đăng nhập hoặc cổng tùy chỉnh.");
   }
   const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (!Array.isArray(allowedHosts) || !allowedHosts.includes(host)) throw new Error(`${label}: host chưa nằm trong allowlist.`);
   if (
     host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") ||
     host === "::1" || host === "0.0.0.0" ||
@@ -40,13 +41,21 @@ export default function AdminVideoApiPlayer() {
   const [selected, setSelected] = useState(null);
   const [status, setStatus] = useState("Chưa kết nối API.");
   const [busy, setBusy] = useState(false);
+  const [allowlist, setAllowlist] = useState({ apiHosts: [], mediaHosts: [] });
+
+  useState(() => {
+    fetch("/api/security/allowlist", { cache: "no-store" })
+      .then(response => response.ok ? response.json() : Promise.reject(new Error("Không tải được allowlist.")))
+      .then(data => setAllowlist({ apiHosts: data.apiHosts || [], mediaHosts: data.mediaHosts || [] }))
+      .catch(() => setAllowlist({ apiHosts: [], mediaHosts: [] }));
+  });
 
   async function connect(event) {
     event.preventDefault();
     setBusy(true);
     setStatus("Đang kết nối API…");
     try {
-      const url = safeHttps(endpoint);
+      const url = safeHttps(endpoint, allowlist.apiHosts, "API endpoint");
       const headers = { Accept: "application/json" };
       if (token.trim()) headers.Authorization = `Bearer ${token.trim()}`;
       const response = await fetch(url, {
@@ -76,7 +85,7 @@ export default function AdminVideoApiPlayer() {
 
   function play(url, title) {
     try {
-      const media = safeHttps(url);
+      const media = safeHttps(url, allowlist.mediaHosts, "Media URL");
       setSelected({ url: media, title: title || "Video URL" });
       setStatus("Đã chọn video. Nhấn Play trong trình phát nếu trình duyệt không tự chạy.");
     } catch (error) {
@@ -90,14 +99,14 @@ export default function AdminVideoApiPlayer() {
         <p className="text-xs font-bold uppercase tracking-[.2em] text-red-400">VIDEO API / PLAYER</p>
         <h2 className="mt-2 text-xl font-black">Phát video từ API URL</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">
-          Kết nối HTTPS JSON API của bạn hoặc phát trực tiếp MP4, WebM, HLS bằng URL. Chỉ sử dụng API và media bạn sở hữu hoặc được cấp quyền.
+          Chỉ kết nối API và phát media HTTPS từ host đã khai báo trong VIDEO_API_ALLOWED_HOSTS và VIDEO_MEDIA_ALLOWED_HOSTS. Chỉ dùng nguồn bạn sở hữu hoặc được cấp quyền.
         </p>
       </div>
       <form onSubmit={connect} className="grid gap-3">
         <label className="block text-xs font-semibold text-zinc-300">
           JSON API endpoint
           <input required type="url" inputMode="url" value={endpoint} onChange={event => setEndpoint(event.target.value)}
-            placeholder="https://api.example.com/videos"
+            placeholder={allowlist.apiHosts.length ? `https://${allowlist.apiHosts[0]}/videos` : "Chưa cấu hình VIDEO_API_ALLOWED_HOSTS"}
             className="mt-2 w-full border border-white/15 bg-black px-3 py-3 text-sm text-white outline-none focus:border-red-500" />
         </label>
         <label className="block text-xs font-semibold text-zinc-300">
@@ -146,12 +155,12 @@ export default function AdminVideoApiPlayer() {
           <form onSubmit={event => { event.preventDefault(); play(directUrl, "Phát trực tiếp bằng URL"); }} className="mt-4 space-y-2">
             <label className="block text-xs font-semibold text-zinc-300">Hoặc nhập URL media trực tiếp</label>
             <input required type="url" inputMode="url" value={directUrl} onChange={event => setDirectUrl(event.target.value)}
-              placeholder="https://cdn.example.com/video.mp4"
+              placeholder={allowlist.mediaHosts.length ? `https://${allowlist.mediaHosts[0]}/video.mp4` : "Chưa cấu hình VIDEO_MEDIA_ALLOWED_HOSTS"}
               className="w-full border border-white/15 bg-black px-3 py-3 text-sm text-white outline-none focus:border-red-500" />
             <button className="w-full border border-white/20 px-4 py-3 text-xs font-bold tracking-wide">PHÁT URL NÀY</button>
           </form>
           <p className="mt-3 text-[11px] leading-5 text-zinc-600">
-            Trình duyệt cần CORS từ API. HLS .m3u8 phát native trên Safari/iPhone; trình duyệt khác có thể cần HLS.js. Token không được lưu vào localStorage hay repository.
+            API và media host được kiểm tra theo allowlist chính xác; request API chặn redirect, không gửi cookie và token chỉ tồn tại trong bộ nhớ tab. HLS .m3u8 cần host media được cấp quyền.
           </p>
         </div>
       </div>
