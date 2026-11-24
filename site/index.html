@@ -14,7 +14,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="./" aria-label="ClipViet.live trang chủ"><img src="./clipviet-logo.svg" alt=""><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a>
-    <nav aria-label="Điều hướng" class="primary-nav"><a href="#catalog">Khám phá</a><a href="#about">Giới thiệu</a><a href="./sources.html">Nguồn liên kết</a></nav>
+    <nav aria-label="Điều hướng" class="primary-nav"><a href="#catalog">Khám phá</a><a href="#about">Giới thiệu</a><a href="./watch/">Trình phát</a><a href="./api-docs/">API Docs</a><a href="./sources.html">Nguồn liên kết</a></nav>
     <form id="search-form" role="search" aria-label="Tìm kiếm thư viện"><input id="search" type="search" placeholder="Tìm video..." aria-label="Tìm video"><button type="submit">TÌM</button></form>
     <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Mở menu điều hướng" aria-expanded="false" aria-controls="filter-menu"><span></span><span></span><span></span></button>
     <aside id="filter-menu" class="filter-menu" aria-label="Menu điều hướng và bộ lọc" hidden>
@@ -24,6 +24,9 @@
         <a href="#catalog"><span class="drawer-nav-icon" aria-hidden="true">⌕</span><span>Khám phá video</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
         <a href="#about"><span class="drawer-nav-icon" aria-hidden="true">◎</span><span>Giới thiệu</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
         <a href="./sources.html"><span class="drawer-nav-icon" aria-hidden="true">↗</span><span>Nguồn liên kết</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
+        <a href="./api-docs/"><span class="drawer-nav-icon" aria-hidden="true">⌘</span><span>API Documentation</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
+        <a href="./watch/"><span class="drawer-nav-icon" aria-hidden="true">▶</span><span>Trình phát video</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
+        <a href="./admin/sources/"><span class="drawer-nav-icon" aria-hidden="true">▤</span><span>Quản lý nguồn video</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
         <a href="./telegram/"><span class="drawer-nav-icon" aria-hidden="true">➤</span><span>Telegram Studio</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
         <a href="./admin/"><span class="drawer-nav-icon" aria-hidden="true">▣</span><span>Quản trị viên</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
       </nav>
@@ -43,9 +46,9 @@
       <div class="filters"><div id="categories" class="category-list" aria-label="Lọc thể loại"></div><label class="sort-label">SẮP XẾP <select id="sort"><option value="new">Mới nhất</option><option value="title">Tên A–Z</option></select></label></div>
       <div id="video-grid" class="video-grid" aria-live="polite"></div>
       <p id="empty-state" class="empty-state" hidden>Không tìm thấy video phù hợp.</p>
-      <p class="data-note">DỮ LIỆU DEMO TĨNH · API/ADMIN ĐỘNG CHƯA ĐƯỢC HOST TRÊN GITHUB PAGES</p>
+      <p class="data-note">CATALOG API ĐANG CHỜ WORKER CONFIGURATION · VIDEO DEMO KHÔNG CÓ STREAM</p>
     </section>
-    <section class="about" id="about"><p class="eyebrow">ABOUT CLIPVIET.LIVE</p><h2>Một điểm đến.<br><span>Nhiều câu chuyện.</span></h2><p>Phiên bản GitHub Pages là frontend tĩnh để kiểm tra giao diện và trải nghiệm duyệt thư viện. Các chức năng cần máy chủ — API video, quản trị, webhook và lưu trữ — vẫn nằm ngoài phạm vi Pages.</p></section>
+    <section class="about" id="about"><p class="eyebrow">ABOUT CLIPVIET.LIVE</p><h2>Một điểm đến.<br><span>Nhiều câu chuyện.</span></h2><p>Phiên bản GitHub Pages là frontend tĩnh để kiểm tra giao diện và trải nghiệm duyệt thư viện. GitHub Pages chỉ phục vụ giao diện. Video catalog, quyền quản trị và API phát cần Cloudflare Worker cùng KV binding; chỉ nguồn có quyền phân phối mới được xuất bản.</p></section>
   </main>
   <footer><a class="brand footer-brand" href="./"><img src="./clipviet-logo.svg" alt=""><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a><p>© <span id="year"></span> ClipViet.live · Chỉ đăng tải nội dung bạn sở hữu hoặc có quyền phân phối.</p></footer>
   <dialog id="detail-dialog" class="detail-dialog"><button id="close-detail" class="close-button" aria-label="Đóng">×</button><div id="detail-content"></div></dialog>
