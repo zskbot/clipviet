@@ -18,13 +18,18 @@ The review evidence fields are reviewer attestations. They are not proof by them
 
 ## Security
 - The Worker rejects all requests unless `REGISTRY_ENV=preview` and the request host matches the dedicated `clipviet-provider-registry-preview.*.workers.dev` hostname.
-- Three distinct bearer secrets provide Admin, Technical and Legal roles. Keep them in Worker secrets, never in source, frontend bundles, URL parameters or logs.
+- Three distinct bearer secrets provide Admin, Technical and Legal roles. Keep them in Worker secrets, never in source, frontend bundles, URL parameters or logs. This is service-token authentication, not SSO/MFA; do not expose the Worker to browser users until Cloudflare Access (with MFA enforced) or an equivalent verified identity layer is implemented.
+- Browser requests with an Origin header are rejected unless the exact origin is listed in CORS_ALLOWED_ORIGINS. CORS is not authentication; non-browser clients still require a role token.
+- Request body size is capped at 16 KiB; malformed JSON is a 400, oversized input is a 413, and unexpected backend errors return a generic 500 without leaking internal exception text.
+- API credentials must be strings no longer than 4096 characters. Invalid credential types and oversized values are rejected rather than silently truncated.
 - Optional provider API credentials are encrypted with AES-256-GCM before being stored in D1. Supply a base64-encoded 32-byte `REGISTRY_ENCRYPTION_KEY` as a Worker secret. The API never returns ciphertext or plaintext. Credentials are never written to audit metadata. URL query parameters commonly used for secrets are rejected.
 - Provider API/media hosts must be exact valid DNS hostnames; HTTP, userinfo, custom ports, IP literals and local hostnames are rejected.
 - No provider API fetch, scraping, stream proxy or media download is performed by this registry. Optional API credentials are stored only as AES-GCM ciphertext; this is not a dedicated secret manager and key rotation is not implemented.
 - Audit records are append-only through the API and written in the same D1 batch as each state change. The public API has no audit update/delete route.
 - D1 uses parameterized statements. Request bodies are capped at 16 KiB. Responses are no-store.
-- This first version does not implement SSO, MFA, rate limiting, secret-manager integration, encryption-key rotation, DNS resolution/IP egress controls, or independent legal verification. Do not expose it publicly or connect it to playback until those controls are added and reviewed.
+- This first version does not implement SSO, MFA, robust distributed rate limiting, secret-manager integration, encryption-key rotation, DNS resolution/IP egress controls, or independent legal verification. Provider API URLs are stored but never fetched by this Worker; therefore DNS rebinding and outbound SSRF protections are still mandatory before any future server-side provider fetch.
+- The technical and legal evidence values are submitted by role tokens and recorded as attestations. The backend does not independently prove reachability, media ownership, license authenticity, age/consent, or territorial rights.
+- The final APPROVED → ENABLED transition is an administrative state change only. It must remain unavailable operationally until identity/MFA, rate limiting, key rotation, outbound network controls, evidence review and a security test suite have all passed.
 
 ## Preview setup
 1. Create a dedicated D1 database named `clipviet-provider-registry-preview` on the Cloudflare Free plan only; do not upgrade the account. Cloudflare D1 Free includes up to 10 databases, 5 million rows read/day, 100,000 rows written/day and 5 GB total storage across the account. Stop if the account is on a paid plan and the new database would incur any charge.
@@ -34,3 +39,18 @@ The review evidence fields are reviewer attestations. They are not proof by them
 5. Deploy only the separately named Preview Worker. Never change or deploy `clipviet-live`.
 
 No database has been provisioned and no Worker has been deployed by this change.
+
+## Preview security acceptance gate
+
+Do not provision a database, set secrets, deploy the Worker, activate a provider, or connect playback until all of the following are verified:
+- [ ] Cloudflare account is confirmed to remain on a no-payment Free plan, with sufficient D1 daily and aggregate storage headroom.
+- [ ] Dedicated ClipViet-only D1 database is provisioned; no existing project database is reused.
+- [ ] Cloudflare Access/SSO JWT is cryptographically validated by the Worker and MFA is enforced by the Access policy.
+- [ ] Distributed rate limiting is configured and tested without exceeding the D1 Free write quota.
+- [ ] Encryption key identifiers, multi-key decryption and a tested re-encryption/rollback rotation procedure are implemented.
+- [ ] Any future outbound fetch resolves and validates every A/AAAA result, blocks private/reserved/loopback/link-local ranges, rejects redirects, and resists DNS rebinding.
+- [ ] Technical and legal evidence is independently reviewed and retained; role attestations alone are insufficient.
+- [ ] Unit, integration, abuse, authorization, concurrency and migration tests pass on a non-production Preview.
+- [ ] Preview hostname and D1 binding are verified; Production resources remain untouched.
+
+Current implementation status: request validation and CORS-origin checks are hardened in this branch. All unchecked items remain blockers. GitHub Actions runner startup failures previously prevented CI evidence; source syntax checks alone are not a passing test suite.
