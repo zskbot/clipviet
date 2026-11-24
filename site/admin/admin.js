@@ -31,6 +31,7 @@ function safeHttpsUrl(value, allowedHosts = null, label = "URL") {
   if (url.username || url.password) throw new Error("Không nhúng thông tin đăng nhập trong URL.");
   const host = url.hostname.toLowerCase();
   if (allowedHosts && !allowedHosts.has(host)) throw new Error(label + ": host chưa nằm trong allowlist.");
+  if (host.includes(":") || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) throw new Error("Chỉ cho phép hostname, không dùng IP literal.");
   if (url.port) throw new Error("Không cho phép cổng tùy chỉnh.");
   if (host === "localhost" || host.endsWith(".localhost") || host === "::1" ||
       /^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host) ||
