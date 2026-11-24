@@ -1,9 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-const { getQwen25SexProviderStatus } = require("../lib/qwen25-sex-provider.js");
+import { getQwen25SexProviderStatus } from "../lib/qwen25-sex-provider.mjs";
 
 test("Qwen provider stays disabled by default", () => {
   const status = getQwen25SexProviderStatus({});
