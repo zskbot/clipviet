@@ -24,7 +24,8 @@ The official embed hosts enabled by default are `youtube-nocookie.com`, `www.you
 
 - Public Telegram posts remain visible as metadata/source links but their iframe embeds are disabled until rights and safety review is complete.
 - Player iframes are sandboxed without popup or top-navigation permissions and use `no-referrer`.
-- Admin API requests require an exact API host allowlist, omit cookies, and use `redirect: "error"`.
+- Generic provider, official provider, Telegram source, CMS, and Admin API requests reject HTTP redirects; Admin browser requests also omit cookies.
+- Browser-native media playback may follow redirects issued by the allowlisted media host; the player cannot reliably inspect cross-origin redirect targets. A strict redirect guarantee would require a controlled media proxy.
 - Direct media URLs require an exact media host allowlist. HTTPS alone is not sufficient.
 - CMS publishing still requires rights holder, license reference, a future expiry date, and an approved embed URL.
 - External source links require an explicit user click and use safe new-tab rel attributes.
