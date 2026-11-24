@@ -9,6 +9,24 @@ const USER_AGENT = "Mozilla/5.0 (compatible; ClipVietProvider/1.0; +https://clip
 const REQUEST_TIMEOUT_MS = 15000;
 const RETRY_DELAY_MS = 500;
 const CACHE_TTL_SECONDS = 60;
+const providerQueues = new Map();
+const lastProviderRequestAt = new Map();
+async function withProviderThrottle(providerId, operation) {
+  const previous = providerQueues.get(providerId) || Promise.resolve();
+  let release;
+  const current = new Promise(resolve => { release = resolve; });
+  providerQueues.set(providerId, current);
+  await previous;
+  try {
+    const elapsed = Date.now() - (lastProviderRequestAt.get(providerId) || 0);
+    if (elapsed < 200) await new Promise(resolve => setTimeout(resolve, 200 - elapsed));
+    lastProviderRequestAt.set(providerId, Date.now());
+    return await operation();
+  } finally {
+    release();
+    if (providerQueues.get(providerId) === current) providerQueues.delete(providerId);
+  }
+}
 
 export class ProviderError extends Error {
   constructor(providerId, message, status = 502) {
@@ -93,12 +111,12 @@ async function fetchProviderJson(provider, params) {
   let lastError;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const response = await fetch(url.toString(), {
+      const response = await withProviderThrottle(provider.id, () => fetch(url.toString(), {
         method: "GET",
         headers: { "user-agent": USER_AGENT, accept: "application/json" },
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         redirect: "error"
-      });
+      }));
       if (!response.ok) throw new Error("Provider HTTP " + response.status);
       const payload = await response.json();
       if (!payload || Number(payload.code) !== 1 || !Array.isArray(payload.list) && !Array.isArray(payload.class)) {
@@ -157,10 +175,8 @@ export async function checkProviderHealth(providerId) {
   const provider = getProvider(providerId);
   const started = Date.now();
   try {
-    const [categories, page] = await Promise.all([
-      getProviderCategories(providerId),
-      listProviderVideos(providerId, { page: 1 })
-    ]);
+    const categories = await getProviderCategories(providerId);
+    const page = await listProviderVideos(providerId, { page: 1 });
     return {
       id: provider.id, name: provider.name, status: page.items.length > 0 && categories.length > 0 ? "api-ok" : "degraded",
       latencyMs: Date.now() - started, categoryCount: categories.length,
