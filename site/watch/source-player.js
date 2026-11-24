@@ -3,7 +3,7 @@ const params=new URLSearchParams(location.search),sourceId=params.get("sourceId"
 const $=id=>document.getElementById(id),video=$("video"),status=$("status");
 let data=null,lineIndex=0,episodeIndex=0,hls=null,watchdog=null;
 function say(text){status.textContent=text;}
-function destroy(){if(watchdog){clearTimeout(watchdog);watchdog=null;}if(hls){hls.destroy();hls=null;}video.pause();video.removeAttribute("src");video.load();}
+function destroy(){if(watchdog){clearTimeout(watchdog);watchdog=null;}if(hls){hls.destroy();hls=null;}video.onloadeddata=null;video.onplaying=null;video.onerror=null;video.pause();video.removeAttribute("src");video.load();}
 function currentEpisode(){return data?.lines?.[lineIndex]?.episodes?.[episodeIndex]||null;}
 function setLineOptions(){const select=$("line");select.replaceChildren();data.lines.forEach((line,i)=>{const o=document.createElement("option");o.value=String(i);o.textContent=line.lineName;select.append(o);});select.value=String(lineIndex);$("switch").hidden=data.lines.length<2;}
 function renderEpisodes(){const root=$("episodes");root.replaceChildren();const episodes=data.lines[lineIndex]?.episodes||[];episodes.forEach((ep,i)=>{const b=document.createElement("button");b.type="button";b.textContent=ep.name;b.setAttribute("aria-pressed",String(i===episodeIndex));b.addEventListener("click",()=>{episodeIndex=i;renderEpisodes();play();});root.append(b);});}
@@ -16,9 +16,9 @@ function play(){
  let ready=false;
  const markReady=()=>{if(ready)return;ready=true;if(watchdog){clearTimeout(watchdog);watchdog=null;}say("Đường phát đã sẵn sàng. Nhấn Play để xem.");};
  watchdog=setTimeout(()=>{if(video.readyState<2||video.videoWidth===0)fail("Quá 12 giây chưa nhận được khung hình. Thử đổi đường phát.");},12000);
- video.addEventListener("loadeddata",markReady,{once:true});
- video.addEventListener("playing",markReady,{once:true});
- video.addEventListener("error",()=>fail("Trình duyệt không tải được video hoặc segment. Thử đổi đường phát."),{once:true});
+ video.onloadeddata=markReady;
+ video.onplaying=markReady;
+ video.onerror=()=>fail("Trình duyệt không tải được video hoặc segment. Thử đổi đường phát.");
  if(useHls){
   hls=new Hls({enableWorker:true,lowLatencyMode:false,manifestLoadingTimeOut:12000,fragLoadingTimeOut:12000});
   hls.loadSource(ep.url);hls.attachMedia(video);
