@@ -131,6 +131,8 @@ function openDetail(video) {
   detail.querySelector("h2").textContent = video.title;
   detail.querySelector(".description").textContent = video.description;
   detail.querySelector(".meta").textContent = [video.year, video.duration, video.rating, video.country || video.originCountry].filter(Boolean).join(" · ");
+  detail.querySelector(".detail-source").textContent = video.apiManaged ? "Nguồn phát đã đăng ký trong ClipViet API." : "Bản ghi demo, chưa có nguồn phát.";
+  if (video.apiManaged) { const link = detail.querySelector(".watch-link"); link.hidden = false; link.href = "./watch/?id=" + encodeURIComponent(video.id); }
   dialog.showModal();
 }
 
