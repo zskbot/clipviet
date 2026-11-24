@@ -21,10 +21,10 @@ The review evidence fields are reviewer attestations. They are not proof by them
 - Three distinct bearer secrets provide Admin, Technical and Legal roles. Keep them in Worker secrets, never in source, frontend bundles, URL parameters or logs.
 - Optional provider API credentials are encrypted with AES-256-GCM before being stored in D1. Supply a base64-encoded 32-byte `REGISTRY_ENCRYPTION_KEY` as a Worker secret. The API never returns ciphertext or plaintext. Credentials are never written to audit metadata. URL query parameters commonly used for secrets are rejected.
 - Provider API/media hosts must be exact valid DNS hostnames; HTTP, userinfo, custom ports, IP literals and local hostnames are rejected.
-- No provider API fetch, scraping, stream proxy, media download, or secret storage is performed by this registry.
+- No provider API fetch, scraping, stream proxy or media download is performed by this registry. Optional API credentials are stored only as AES-GCM ciphertext; this is not a dedicated secret manager and key rotation is not implemented.
 - Audit records are append-only through the API and written in the same D1 batch as each state change. The public API has no audit update/delete route.
 - D1 uses parameterized statements. Request bodies are capped at 16 KiB. Responses are no-store.
-- This first version does not implement SSO, MFA, rate limiting, secret-vault storage, DNS resolution/IP egress controls, or independent legal verification. Do not expose it publicly or connect it to playback until those controls are added and reviewed.
+- This first version does not implement SSO, MFA, rate limiting, secret-manager integration, encryption-key rotation, DNS resolution/IP egress controls, or independent legal verification. Do not expose it publicly or connect it to playback until those controls are added and reviewed.
 
 ## Preview setup
 1. Create a dedicated D1 database named `clipviet-provider-registry-preview` on the Cloudflare Free plan only; do not upgrade the account. Cloudflare D1 Free includes up to 10 databases, 5 million rows read/day, 100,000 rows written/day and 5 GB total storage across the account. Stop if the account is on a paid plan and the new database would incur any charge.
