@@ -9,10 +9,10 @@ const player = $("#player");
 const playerTitle = $("#player-title");
 const playerState = $("#player-state");
 const playerMessage = $("#player-message");
-
-const savedUrl = localStorage.getItem("clipviet.admin.apiUrl") || "";
+let apiTokenValue = "";
+let savedUrl = "";
+try { savedUrl = localStorage.getItem("clipviet.admin.apiUrl") || ""; } catch { /* storage may be unavailable */ }
 apiUrl.value = savedUrl;
-apiToken.value = sessionStorage.getItem("clipviet.admin.apiToken") || "";
 
 function safeHttpsUrl(value) {
   let url;
@@ -107,11 +107,10 @@ apiForm.addEventListener("submit", async (event) => {
   apiStatus.dataset.state = "loading";
   const token = apiToken.value.trim();
   localStorage.setItem("clipviet.admin.apiUrl", endpoint);
-  if (token) sessionStorage.setItem("clipviet.admin.apiToken", token);
-  else sessionStorage.removeItem("clipviet.admin.apiToken");
+  apiTokenValue = token;
   try {
     const headers = { Accept: "application/json" };
-    if (token) headers.Authorization = "Bearer " + token;
+    if (apiTokenValue) headers.Authorization = "Bearer " + apiTokenValue;
     const response = await fetch(endpoint, { headers, credentials: "omit", redirect: "error", signal: AbortSignal.timeout(15000) });
     if (!response.ok) throw new Error("API trả về HTTP " + response.status + ".");
     const type = response.headers.get("content-type") || "";
