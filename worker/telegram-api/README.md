@@ -49,4 +49,4 @@ Create a dedicated KV namespace for replay protection and bind it as LOGIN_REPLA
 - Rate limiting should be enabled at the Cloudflare edge before public publishing is enabled.
 
 ## Rollout status
-Source-only. No Worker or KV namespace has been created/deployed, and no secrets have been configured. Keep frontend actions disabled until Preview integration tests pass.
+A Preview Worker named clipviet-telegram-api-preview and a dedicated KV namespace have been provisioned in the Cloudflare account that currently holds the active clipviet.live zone. The Worker has no custom domain or DNS route. The account reports usage_model=standard; no plan upgrade or billing action was performed, but this is not proof that future invocations are free. Keep the Worker idle until the account's existing Workers plan and spending limits are confirmed. Bot Token, session secret, Telegram IDs, channel ID, and media-host allowlist are not configured. Frontend actions must remain disabled until a same-site API origin is approved and Preview integration tests pass.
