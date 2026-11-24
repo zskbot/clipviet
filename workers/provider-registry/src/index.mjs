@@ -1,3 +1,4 @@
+import { resolveRole, encryptCredential, rotateCredentials } from "./security.mjs";
 const MAX_BODY = 16 * 1024;
 const STATES = new Set(["PENDING", "VERIFIED", "APPROVED", "ENABLED"]);
 const HOST_RE = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i;
@@ -34,18 +35,6 @@ function equalSecret(a, b) {
   for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
   return diff === 0;
 }
-function roleFor(request, env) {
-  const supplied = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!supplied) return "";
-  for (const [role, key] of [
-    ["admin", env.REGISTRY_ADMIN_TOKEN],
-    ["technical", env.REGISTRY_TECH_TOKEN],
-    ["legal", env.REGISTRY_LEGAL_TOKEN]
-  ]) {
-    if (key && equalSecret(supplied, key)) return role;
-  }
-  return "";
-}
 function validEvidenceUrl(value) {
   const url = safeHttps(value);
   return url ? url.toString() : "";
@@ -75,24 +64,6 @@ export function validateProviderInput(input) {
     distributionRightsAttested: true,
     apiCredential: clean(input.apiCredential, 4096)
   }};
-}
-function base64(bytes) {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
-}
-async function encryptCredential(value, env) {
-  if (!value) return null;
-  const encoded = clean(env.REGISTRY_ENCRYPTION_KEY, 256);
-  if (!encoded) throw new Error("REGISTRY_ENCRYPTION_KEY is required when a provider credential is supplied.");
-  let raw;
-  try { raw = Uint8Array.from(atob(encoded), char => char.charCodeAt(0)); }
-  catch { throw new Error("REGISTRY_ENCRYPTION_KEY must be base64-encoded 32-byte key material."); }
-  if (raw.length !== 32) throw new Error("REGISTRY_ENCRYPTION_KEY must be base64-encoded 32-byte key material.");
-  const key = await crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt"]);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(value));
-  return base64(iv) + "." + base64(new Uint8Array(ciphertext));
 }
 export function transitionAllowed(from, to, role, evidence = {}) {
   if (from === "PENDING" && to === "VERIFIED" && role === "technical") {
@@ -152,8 +123,8 @@ async function listAudit(db) {
   }));
 }
 async function createProvider(db, data, role, env) {
-  const encryptedCredential = await encryptCredential(data.apiCredential, env);
   const id = crypto.randomUUID();
+  const encryptedCredential = await encryptCredential(data.apiCredential, env, id);
   const eventId = crypto.randomUUID();
   const now = new Date().toISOString();
   await db.batch([
@@ -215,7 +186,7 @@ export default {
     };
     if (request.method === "OPTIONS") return new Response(null,{status:204,headers});
     if (!env.PROVIDER_DB) return respond({error:"Preview D1 binding is not configured."},503);
-    const role = roleFor(request,env);
+    const role = await resolveRole(request,env,equalSecret);
     if (!role) return respond({error:"Unauthorized"},401);
     const url = new URL(request.url);
     const parts = url.pathname.replace(/\/+$/,"").split("/").filter(Boolean);
@@ -223,6 +194,15 @@ export default {
       if (request.method === "GET" && parts.length === 1 && parts[0] === "providers") {
         if (!["admin","technical","legal"].includes(role)) return respond({error:"Forbidden"},403);
         return respond({providers:await listProviders(env.PROVIDER_DB)});
+      }
+      if (request.method === "POST" && parts.length === 2 && parts[0] === "maintenance" && parts[1] === "rotate-credentials") {
+        if (role !== "admin") return respond({error:"Admin SSO role required."},403);
+        const body = await readJson(request);
+        const result = await rotateCredentials(env.PROVIDER_DB,env,clean(body.afterId,80));
+        const auditId = crypto.randomUUID();
+        await env.PROVIDER_DB.prepare("INSERT INTO provider_audit (event_id,provider_id,action,actor_role,metadata_json,created_at) VALUES (?,?,?,?,?,?)")
+          .bind(auditId,"SYSTEM","CREDENTIAL_ROTATION_BATCH","admin",JSON.stringify({rotated:result.rotated,nextCursor:result.nextCursor,complete:result.complete}),new Date().toISOString()).run();
+        return respond(result);
       }
       if (request.method === "GET" && parts.length === 1 && parts[0] === "audit") {
         if (role !== "admin") return respond({error:"Forbidden"},403);
