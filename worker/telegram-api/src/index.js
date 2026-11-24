@@ -89,7 +89,7 @@ function mediaHostAllowed(raw, env) {
   let url; try { url = new URL(raw); } catch { return false; }
   if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
   const host = url.hostname.toLowerCase();
-  if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal") || /^\\d{1,3}(\\.\\d{1,3}){3}$/.test(host) || host.includes(":")) return false;
+  if (!host || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(":")) return false;
   const hosts = (env.VIDEO_MEDIA_HOSTS || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
   return hosts.length > 0 && hosts.some(domain => host === domain || host.endsWith("." + domain));
 }
