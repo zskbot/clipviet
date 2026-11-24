@@ -72,10 +72,26 @@ export function transitionAllowed(from, to, role, evidence = {}) {
       evidence.exactHostAllowlist === true && clean(evidence.testRunId, 120).length > 0;
   }
   if (from === "VERIFIED" && to === "APPROVED" && role === "legal") {
-    return evidence.rightsReviewed === true && evidence.ageConsentReviewed === true &&
-      clean(evidence.reviewReference, 240).length > 0;
+    const references = [
+      evidence.distributionPermissionReference,
+      evidence.contentRightsReference,
+      evidence.ageVerificationReference,
+      evidence.consentRecordReference,
+      evidence.complaintsProcessReference,
+      evidence.takedownProcessReference,
+      evidence.reviewReference
+    ];
+    return evidence.distributionPermissionReviewed === true &&
+      evidence.contentRightsReviewed === true &&
+      evidence.performerAgeVerified === true &&
+      evidence.performerConsentVerified === true &&
+      evidence.complaintsProcessVerified === true &&
+      evidence.takedownProcessVerified === true &&
+      references.every(value => clean(value, 240).length > 0);
   }
-  if (from === "APPROVED" && to === "ENABLED" && role === "admin") return true;
+  if (from === "APPROVED" && to === "ENABLED" && role === "admin") {
+    return evidence.explicitEnableConfirmation === true;
+  }
   return false;
 }
 async function readJson(request) {
@@ -142,7 +158,26 @@ async function transitionProvider(db, id, to, role, evidence) {
   const current = await db.prepare("SELECT * FROM provider_registry WHERE id=?").bind(id).first();
   if (!current) return { error: "Provider not found.", status: 404 };
   if (!transitionAllowed(current.status, to, role, evidence)) return { error: "Transition denied: required reviewer role or evidence is missing.", status: 403 };
-  if (to === "ENABLED" && Date.parse(current.license_expires_at) <= Date.now()) return { error: "Cannot enable: distribution license has expired.", status: 409 };
+  if (to === "ENABLED") {
+    const technical = current.technical_evidence_json ? JSON.parse(current.technical_evidence_json) : {};
+    const legal = current.legal_evidence_json ? JSON.parse(current.legal_evidence_json) : {};
+    const legalKeys = ["distributionPermissionReviewed","contentRightsReviewed","performerAgeVerified","performerConsentVerified","complaintsProcessVerified","takedownProcessVerified"];
+    const legalRefs = ["distributionPermissionReference","contentRightsReference","ageVerificationReference","consentRecordReference","complaintsProcessReference","takedownProcessReference","reviewReference"];
+    if (!current.rights_holder || !current.license_reference || !validEvidenceUrl(current.rights_evidence_url) ||
+        !Number.isFinite(Date.parse(current.license_expires_at)) || Date.parse(current.license_expires_at) <= Date.now()) {
+      return { error: "Cannot enable: written distribution license, rights holder and future expiry are required.", status: 409 };
+    }
+    if (!Array.isArray(JSON.parse(current.media_hosts_json || "[]")) || JSON.parse(current.media_hosts_json || "[]").length === 0) {
+      return { error: "Cannot enable: exact media host allowlist is required.", status: 409 };
+    }
+    if (technical.apiReachable !== true || technical.schemaValid !== true || technical.mediaProbePassed !== true ||
+        technical.redirectsRejected !== true || technical.exactHostAllowlist !== true || !clean(technical.testRunId, 120)) {
+      return { error: "Cannot enable: technical verification evidence is incomplete.", status: 409 };
+    }
+    if (!legalKeys.every(key => legal[key] === true) || !legalRefs.every(key => clean(legal[key], 240))) {
+      return { error: "Cannot enable: distribution, content, age, consent, complaint and takedown evidence is incomplete.", status: 409 };
+    }
+  }
   const eventId = crypto.randomUUID();
   const now = new Date().toISOString();
   const technical = to === "VERIFIED" ? JSON.stringify({
@@ -150,7 +185,20 @@ async function transitionProvider(db, id, to, role, evidence) {
     exactHostAllowlist:true,testRunId:clean(evidence.testRunId,120),checkedAt:now
   }) : current.technical_evidence_json;
   const legal = to === "APPROVED" ? JSON.stringify({
-    rightsReviewed:true,ageConsentReviewed:true,reviewReference:clean(evidence.reviewReference,240),reviewedAt:now
+    distributionPermissionReviewed:true,
+    contentRightsReviewed:true,
+    performerAgeVerified:true,
+    performerConsentVerified:true,
+    complaintsProcessVerified:true,
+    takedownProcessVerified:true,
+    distributionPermissionReference:clean(evidence.distributionPermissionReference,240),
+    contentRightsReference:clean(evidence.contentRightsReference,240),
+    ageVerificationReference:clean(evidence.ageVerificationReference,240),
+    consentRecordReference:clean(evidence.consentRecordReference,240),
+    complaintsProcessReference:clean(evidence.complaintsProcessReference,240),
+    takedownProcessReference:clean(evidence.takedownProcessReference,240),
+    reviewReference:clean(evidence.reviewReference,240),
+    reviewedAt:now
   }) : current.legal_evidence_json;
   await db.batch([
     db.prepare(`UPDATE provider_registry SET status=?,technical_evidence_json=?,legal_evidence_json=?,updated_at=?,last_event_id=?
