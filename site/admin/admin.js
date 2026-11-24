@@ -117,8 +117,10 @@ apiForm.addEventListener("submit", async (event) => {
     const apiHosts = parseAllowedHosts(apiAllowedHosts.value);
     if (!apiHosts.size) throw new Error("Cần khai báo VIDEO API host trong allowlist.");
     endpoint = safeHttpsUrl(apiUrl.value.trim(), apiHosts, "API endpoint");
-    localStorage.setItem("clipviet.admin.apiAllowedHosts", apiAllowedHosts.value);
-    localStorage.setItem("clipviet.admin.mediaAllowedHosts", mediaAllowedHosts.value);
+    try {
+      localStorage.setItem("clipviet.admin.apiAllowedHosts", apiAllowedHosts.value);
+      localStorage.setItem("clipviet.admin.mediaAllowedHosts", mediaAllowedHosts.value);
+    } catch { /* local persistence is optional */ }
   }
   catch (error) { apiStatus.textContent = error.message; apiStatus.dataset.state = "error"; return; }
   apiStatus.textContent = "Đang kết nối…";
@@ -148,7 +150,7 @@ apiForm.addEventListener("submit", async (event) => {
 $("#clear-api").addEventListener("click", () => {
   try { localStorage.removeItem("clipviet.admin.apiUrl"); localStorage.removeItem("clipviet.admin.apiAllowedHosts"); localStorage.removeItem("clipviet.admin.mediaAllowedHosts"); } catch { /* storage may be unavailable */ }
   apiTokenValue = "";
-  apiUrl.value = ""; apiToken.value = "";
+  apiUrl.value = ""; apiToken.value = ""; apiAllowedHosts.value = ""; mediaAllowedHosts.value = "";
   apiStatus.textContent = "Đã xóa cấu hình trên thiết bị này.";
   apiStatus.dataset.state = "";
   list.replaceChildren(textElement("p", "Kết nối API JSON để tải danh sách video.", "empty"));
