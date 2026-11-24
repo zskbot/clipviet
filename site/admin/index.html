@@ -7,6 +7,7 @@
   <meta name="robots" content="noindex,nofollow">
   <title>ClipViet.live — Admin Video API</title>
   <link rel="stylesheet" href="./admin.css">
+  <link rel="stylesheet" href="./adultembed.css">
 </head>
 <body>
   <header class="topbar">
@@ -53,6 +54,26 @@
       <p class="notice">Kiểm tra API tối đa 1 MB JSON và 100 bản ghi; kiểm tra tối đa 3 media URL đầu tiên bằng Range request 1 byte. Kết quả phụ thuộc CORS và phản hồi của máy chủ. Đây không phải xác nhận quyền phân phối hay chứng nhận bảo mật.</p>
     </section>
 
+    <section id="adultembed-preview" class="adultembed-panel" aria-labelledby="adultembed-title">
+      <div class="ae-head"><div><p class="eyebrow">PROVIDER REGISTRY / PREVIEW</p><h2 id="adultembed-title">AdultEmbed Adapter</h2><p class="hint">Tìm kiếm và chuẩn hóa metadata trong Preview. Không phát video và không công khai danh sách.</p></div><span class="ae-pill">PENDING · PREVIEW ONLY</span></div>
+      <div class="ae-lock">Chưa xác minh quyền nhúng/phân phối trên clipviet.live, quyền theo từng nội dung, hồ sơ tuổi & đồng thuận, và quy trình khiếu nại/gỡ video. Provider bị khóa ở PENDING.</div>
+      <p class="ae-status">API: <code id="adultembed-api-url"></code></p>
+      <div class="ae-actions"><button id="adultembed-api-check" class="primary" type="button">KIỂM TRA API</button><span id="adultembed-api-status" class="ae-status" role="status">Chưa kiểm tra.</span></div>
+      <form id="adultembed-search-form" class="ae-controls">
+        <input id="adultembed-query" type="search" maxlength="100" placeholder="Từ khóa tìm kiếm API…" aria-label="Từ khóa AdultEmbed">
+        <button id="adultembed-search" class="secondary" type="submit">TÌM & TẢI DANH SÁCH</button>
+      </form>
+      <p id="adultembed-search-status" class="ae-status" role="status">Chưa truy vấn.</p>
+      <div class="ae-video-list" id="adultembed-results"><p class="empty">Danh sách Preview chưa được tải.</p></div>
+      <div class="ae-grid">
+        <section class="ae-box"><h3>JSON MẪU / RESPONSE</h3><pre id="adultembed-json" class="ae-json">Chưa có JSON. Nhấn “Kiểm tra API” hoặc tìm kiếm.</pre></section>
+        <section class="ae-box"><h3>ĐIỀU KIỆN CHUYỂN TRẠNG THÁI</h3><ul class="ae-checks">
+          <li>Văn bản cho phép nhúng/phân phối trên clipviet.live</li><li>Quyền sử dụng nội dung và metadata/thumbnail theo từng nội dung</li><li>Hồ sơ xác minh tuổi và đồng thuận của người xuất hiện</li><li>Quy trình tiếp nhận khiếu nại và xử lý gỡ video (takedown)</li><li>Kiểm tra kỹ thuật, player status, host allowlist và audit</li>
+        </ul></section>
+      </div>
+      <section class="ae-box" style="margin-top:16px"><div class="ae-head"><h3>NHẬT KÝ PHIÊN PREVIEW</h3><button id="adultembed-clear-logs" class="secondary" type="button">XÓA NHẬT KÝ</button></div><ol id="adultembed-logs" class="ae-log-list"></ol></section>
+      <p class="ae-note">Các request chỉ đọc API JSON; không tải file, không proxy media, không nhúng iframe. Nhật ký lưu tạm trong sessionStorage của tab. API có thể trả về hostname player/thumbnail khác theo tài liệu; adapter chỉ chấp nhận adultembed.com và por nalizer.app ở allowlist cố định.</p>
+    </section>
     <section class="panel">
       <div class="panel-head"><div><p class="eyebrow">03 / DIRECT PLAY</p><h2>Phát bằng URL</h2></div></div>
       <form id="direct-form" class="direct-form">
@@ -73,5 +94,6 @@
     <footer><span>CLIPVIET.LIVE / ADMIN PREVIEW</span><span>Không lưu video lên máy chủ · Không thay đổi Production</span></footer>
   </main>
   <script type="module" src="./admin.js"></script>
+  <script type="module" src="./adultembed-admin.mjs"></script>
 </body>
 </html>
