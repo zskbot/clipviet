@@ -166,11 +166,11 @@ async function handle(request, env) {
 
 
   if (path === "/api/providers" && request.method === "GET") {
-    return answer(request, env, { data: listProviders(), count: listProviders().length, protocol: "AppleCMS V10" });
+    return answer(request, env, { data: listProviders(env), count: listProviders(env).length, protocol: "AppleCMS V10" });
   }
   if (path === "/api/providers/health" && request.method === "GET") {
     if (!await adminSession(request, env)) return answer(request, env, { error: "Admin authentication required" }, 401);
-    const providers = await checkAllProviderHealth();
+    const providers = await checkAllProviderHealth(env);
     return answer(request, env, { data: providers, checked_at: new Date().toISOString() });
   }
   if (path === "/api/catalog/categories" && request.method === "GET") {
@@ -179,7 +179,7 @@ async function handle(request, env) {
     let lastError = null;
     for (const providerId of candidates) {
       try {
-        const data = await getProviderCategories(providerId);
+        const data = await getProviderCategories(providerId, env);
         return answer(request, env, { sourceId: providerId, data, count: data.length, failover: !explicitSource && providerId !== "souavzy" });
       } catch (error) {
         lastError = error;
@@ -197,7 +197,7 @@ async function handle(request, env) {
     let lastError = null;
     for (const providerId of candidates) {
       try {
-        const result = await listProviderVideos(providerId, { page, categoryId, keyword });
+        const result = await listProviderVideos(providerId, { page, categoryId, keyword }, env);
         return answer(request, env, { ...result, failover: !explicitSource && providerId !== "souavzy" });
       } catch (error) {
         lastError = error;
@@ -211,18 +211,18 @@ async function handle(request, env) {
     const [, providerId, resource, vodId] = providerRoute;
     try {
       if (resource === "categories") {
-        const data = await getProviderCategories(providerId);
+        const data = await getProviderCategories(providerId, env);
         return answer(request, env, { sourceId: providerId, data, count: data.length });
       }
       if (vodId) {
-        const data = await getProviderVideo(providerId, vodId);
+        const data = await getProviderVideo(providerId, vodId, env);
         return data ? answer(request, env, { data }) : answer(request, env, { error: "Video not found" }, 404);
       }
       const data = await listProviderVideos(providerId, {
         page: url.searchParams.get("page") || "1",
         categoryId: url.searchParams.get("categoryId") || undefined,
         keyword: url.searchParams.get("keyword") || undefined
-      });
+      }, env);
       return answer(request, env, data);
     } catch (error) {
       return answer(request, env, { error: error.message, providerId }, error.status || 502);
