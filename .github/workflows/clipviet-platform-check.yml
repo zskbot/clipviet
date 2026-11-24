@@ -29,6 +29,8 @@ jobs:
               echo "Checking $file"
               node --input-type=module --check < "$file"
             done
+      - name: Run AppleCMS adapter unit tests
+        run: npm --prefix worker/telegram-api run test:providers
       - name: Validate platform routes and required files
         run: |
           set -eu
@@ -41,6 +43,7 @@ jobs:
           test -s site/browse/index.html
           test -s site/browse/browse.js
           test -s worker/telegram-api/src/applecms.js
+          test -s worker/telegram-api/src/applecms.test.mjs
           test -s site/admin/sources/index.html
           test -s site/admin/sources/manager.js
           grep -q '/api/v1/admin/videos' worker/telegram-api/src/index.js
