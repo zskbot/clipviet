@@ -106,7 +106,7 @@ apiForm.addEventListener("submit", async (event) => {
   apiStatus.textContent = "Đang kết nối…";
   apiStatus.dataset.state = "loading";
   const token = apiToken.value.trim();
-  localStorage.setItem("clipviet.admin.apiUrl", endpoint);
+  try { localStorage.setItem("clipviet.admin.apiUrl", endpoint); } catch { /* storage may be unavailable */ }
   apiTokenValue = token;
   try {
     const headers = { Accept: "application/json" };
@@ -128,8 +128,8 @@ apiForm.addEventListener("submit", async (event) => {
 });
 
 $("#clear-api").addEventListener("click", () => {
-  localStorage.removeItem("clipviet.admin.apiUrl");
-  sessionStorage.removeItem("clipviet.admin.apiToken");
+  try { localStorage.removeItem("clipviet.admin.apiUrl"); } catch { /* storage may be unavailable */ }
+  apiTokenValue = "";
   apiUrl.value = ""; apiToken.value = "";
   apiStatus.textContent = "Đã xóa cấu hình trên thiết bị này.";
   apiStatus.dataset.state = "";
