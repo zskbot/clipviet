@@ -16,9 +16,16 @@
     <a class="brand" href="./" aria-label="ClipViet.live trang chủ"><img src="./clipviet-logo.svg" alt=""><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a>
     <nav aria-label="Điều hướng" class="primary-nav"><a href="#catalog">Khám phá</a><a href="#about">Giới thiệu</a><a href="./sources.html">Nguồn liên kết</a></nav>
     <form id="search-form" role="search" aria-label="Tìm kiếm thư viện"><input id="search" type="search" placeholder="Tìm video..." aria-label="Tìm video"><button type="submit">TÌM</button></form>
-    <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Mở menu bộ lọc" aria-expanded="false" aria-controls="filter-menu"><span></span><span></span><span></span></button>
-    <aside id="filter-menu" class="filter-menu" aria-label="Bộ lọc video" hidden>
-      <div class="filter-menu-head"><div><p class="eyebrow">CLIPVIET / FILTERS</p><h2>Bộ lọc video</h2></div><button id="menu-close" class="menu-close" type="button" aria-label="Đóng menu">×</button></div>
+    <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Mở menu điều hướng" aria-expanded="false" aria-controls="filter-menu"><span></span><span></span><span></span></button>
+    <aside id="filter-menu" class="filter-menu" aria-label="Menu điều hướng và bộ lọc" hidden>
+      <div class="filter-menu-head"><div><p class="eyebrow">CLIPVIET / MENU</p><h2>Điều hướng</h2></div><button id="menu-close" class="menu-close" type="button" aria-label="Đóng menu">×</button></div>
+      <nav class="drawer-nav" aria-label="Điều hướng chính">
+        <a href="./"><span class="drawer-nav-icon" aria-hidden="true">⌂</span><span>Trang chủ</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
+        <a href="#catalog"><span class="drawer-nav-icon" aria-hidden="true">⌕</span><span>Khám phá video</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
+        <a href="#about"><span class="drawer-nav-icon" aria-hidden="true">◎</span><span>Giới thiệu</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
+        <a href="./sources.html"><span class="drawer-nav-icon" aria-hidden="true">↗</span><span>Nguồn liên kết</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
+        <a href="./admin/"><span class="drawer-nav-icon" aria-hidden="true">▣</span><span>Quản trị viên</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
+      </nav>
       <section class="filter-group" aria-labelledby="country-filter-title"><h3 id="country-filter-title">QUỐC GIA / KHU VỰC</h3><div id="country-filters" class="drawer-options"></div></section>
       <section class="filter-group" aria-labelledby="genre-filter-title"><h3 id="genre-filter-title">THỂ LOẠI</h3><div id="genre-filters" class="drawer-options"></div></section>
       <div class="filter-menu-foot"><button id="reset-filters" class="reset-filters" type="button">XÓA TẤT CẢ BỘ LỌC</button><p>Chỉ hiển thị nội dung có metadata phù hợp và quyền phân phối được xác minh.</p></div>
