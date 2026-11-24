@@ -80,3 +80,16 @@
  .topbar form{grid-column:1/-1;grid-row:3}
  .filter-menu{position:fixed;top:64px;right:10px;width:min(390px,calc(100vw - 20px));max-height:calc(100dvh - 76px)}
 }
+
+/* Full navigation section inside the top-right drawer. */
+.drawer-nav{display:grid;border-bottom:1px solid var(--line);padding:8px 0 16px;gap:0}
+.drawer-nav a{display:grid;grid-template-columns:22px 1fr 16px;align-items:center;gap:10px;min-height:46px;padding:0 8px;border-bottom:1px solid #ffffff0d;color:#e7e7eb;font-size:12px;font-weight:650;transition:background .15s,color .15s}
+.drawer-nav a:last-child{border-bottom:0}
+.drawer-nav a:hover,.drawer-nav a:focus-visible{background:#ffffff09;color:#fff}
+.drawer-nav-icon{color:var(--red);font-size:17px;text-align:center}
+.drawer-nav-arrow{color:#777;text-align:right;font-size:12px}
+.filter-group{padding-top:18px}
+@media(max-width:700px){
+ .filter-menu{top:64px;right:10px;width:min(390px,calc(100vw - 20px));max-height:calc(100dvh - 76px);padding:18px}
+ .drawer-nav a{min-height:48px}
+}
