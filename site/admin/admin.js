@@ -2,6 +2,8 @@ const $ = (selector) => document.querySelector(selector);
 const apiForm = $("#api-form");
 const apiUrl = $("#api-url");
 const apiToken = $("#api-token");
+const apiAllowedHosts = $("#api-allowed-hosts");
+const mediaAllowedHosts = $("#media-allowed-hosts");
 const apiStatus = $("#api-status");
 const list = $("#video-list");
 const count = $("#video-count");
@@ -13,13 +15,24 @@ let apiTokenValue = "";
 let savedUrl = "";
 try { savedUrl = localStorage.getItem("clipviet.admin.apiUrl") || ""; } catch { /* storage may be unavailable */ }
 apiUrl.value = savedUrl;
+try {
+  apiAllowedHosts.value = localStorage.getItem("clipviet.admin.apiAllowedHosts") || "";
+  mediaAllowedHosts.value = localStorage.getItem("clipviet.admin.mediaAllowedHosts") || "";
+} catch { /* storage may be unavailable */ }
 
-function safeHttpsUrl(value) {
+function parseAllowedHosts(input) {
+  return new Set(String(input || "").split(",").map(host => host.trim().toLowerCase()).filter(Boolean));
+}
+
+function safeHttpsUrl(value, allowedHosts = null, label = "URL") {
   let url;
   try { url = new URL(value); } catch { throw new Error("URL không hợp lệ."); }
   if (url.protocol !== "https:") throw new Error("Chỉ chấp nhận URL HTTPS.");
   if (url.username || url.password) throw new Error("Không nhúng thông tin đăng nhập trong URL.");
   const host = url.hostname.toLowerCase();
+  if (allowedHosts && !allowedHosts.has(host)) throw new Error(label + ": host chưa nằm trong allowlist.");
+  if (host.includes(":") || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) throw new Error("Chỉ cho phép hostname, không dùng IP literal.");
+  if (url.port) throw new Error("Không cho phép cổng tùy chỉnh.");
   if (host === "localhost" || host.endsWith(".localhost") || host === "::1" ||
       /^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host) ||
       host === "0.0.0.0" || host.endsWith(".local")) {
@@ -53,7 +66,7 @@ function textElement(tag, value, className) {
 
 function playMedia(rawUrl, title) {
   let mediaUrl;
-  try { mediaUrl = safeHttpsUrl(rawUrl); }
+  try { mediaUrl = safeHttpsUrl(rawUrl, parseAllowedHosts(mediaAllowedHosts.value), "Media URL"); }
   catch (error) { playerMessage.textContent = error.message; playerState.textContent = "INVALID URL"; return; }
   player.pause();
   player.removeAttribute("src");
@@ -101,7 +114,15 @@ function renderVideos(videos) {
 apiForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   let endpoint;
-  try { endpoint = safeHttpsUrl(apiUrl.value.trim()); }
+  try {
+    const apiHosts = parseAllowedHosts(apiAllowedHosts.value);
+    if (!apiHosts.size) throw new Error("Cần khai báo VIDEO API host trong allowlist.");
+    endpoint = safeHttpsUrl(apiUrl.value.trim(), apiHosts, "API endpoint");
+    try {
+      localStorage.setItem("clipviet.admin.apiAllowedHosts", apiAllowedHosts.value);
+      localStorage.setItem("clipviet.admin.mediaAllowedHosts", mediaAllowedHosts.value);
+    } catch { /* local persistence is optional */ }
+  }
   catch (error) { apiStatus.textContent = error.message; apiStatus.dataset.state = "error"; return; }
   apiStatus.textContent = "Đang kết nối…";
   apiStatus.dataset.state = "loading";
@@ -128,9 +149,9 @@ apiForm.addEventListener("submit", async (event) => {
 });
 
 $("#clear-api").addEventListener("click", () => {
-  try { localStorage.removeItem("clipviet.admin.apiUrl"); } catch { /* storage may be unavailable */ }
+  try { localStorage.removeItem("clipviet.admin.apiUrl"); localStorage.removeItem("clipviet.admin.apiAllowedHosts"); localStorage.removeItem("clipviet.admin.mediaAllowedHosts"); } catch { /* storage may be unavailable */ }
   apiTokenValue = "";
-  apiUrl.value = ""; apiToken.value = "";
+  apiUrl.value = ""; apiToken.value = ""; apiAllowedHosts.value = ""; mediaAllowedHosts.value = "";
   apiStatus.textContent = "Đã xóa cấu hình trên thiết bị này.";
   apiStatus.dataset.state = "";
   list.replaceChildren(textElement("p", "Kết nối API JSON để tải danh sách video.", "empty"));

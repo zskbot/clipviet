@@ -24,10 +24,12 @@
       <div class="panel-head"><div><p class="eyebrow">01 / API CONNECTION</p><h2>Nguồn API JSON</h2></div><span class="local-tag">CẤU HÌNH TRÊN THIẾT BỊ</span></div>
       <form id="api-form" class="form-grid">
         <label class="wide">API endpoint URL<input id="api-url" type="url" inputmode="url" placeholder="https://api.example.com/videos" autocomplete="url" required></label>
+        <label class="wide">Host API được phép <span class="hint">(hostname chính xác, phân tách bằng dấu phẩy · lưu trên thiết bị)</span><input id="api-allowed-hosts" type="text" placeholder="api.example.com" autocomplete="off"></label>
+        <label class="wide">Host media được phép <span class="hint">(hostname chính xác, phân tách bằng dấu phẩy · lưu trên thiết bị)</span><input id="media-allowed-hosts" type="text" placeholder="cdn.example.com,stream.example.net" autocomplete="off"></label>
         <label class="wide">Bearer token <span class="hint">(không bắt buộc · chỉ giữ trong phiên hiện tại)</span><input id="api-token" type="password" placeholder="Dán token nếu API yêu cầu" autocomplete="off"></label>
         <div class="actions wide"><button class="primary" type="submit">LƯU & TẢI DANH SÁCH</button><button class="secondary" id="clear-api" type="button">XÓA CẤU HÌNH</button></div>
       </form>
-      <p class="notice">URL API phải dùng HTTPS và cho phép CORS từ domain Preview. Token chỉ lưu trong session của tab, không gửi về ClipViet và không được ghi vào repository.</p>
+      <p class="notice">Chỉ host khớp chính xác allowlist trên thiết bị mới được kết nối/phát. Request API chặn redirect, không gửi cookie. Allowlist lưu cục bộ; token chỉ giữ trong bộ nhớ tab.</p>
       <p id="api-status" class="status" role="status">Chưa kết nối API.</p>
     </section>
     <section class="panel">
