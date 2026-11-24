@@ -199,9 +199,6 @@ export default {
         if (role !== "admin") return respond({error:"Admin SSO role required."},403);
         const body = await readJson(request);
         const result = await rotateCredentials(env.PROVIDER_DB,env,clean(body.afterId,80));
-        const auditId = crypto.randomUUID();
-        await env.PROVIDER_DB.prepare("INSERT INTO provider_audit (event_id,provider_id,action,actor_role,metadata_json,created_at) VALUES (?,?,?,?,?,?)")
-          .bind(auditId,"SYSTEM","CREDENTIAL_ROTATION_BATCH","admin",JSON.stringify({rotated:result.rotated,nextCursor:result.nextCursor,complete:result.complete}),new Date().toISOString()).run();
         return respond(result);
       }
       if (request.method === "GET" && parts.length === 1 && parts[0] === "audit") {
