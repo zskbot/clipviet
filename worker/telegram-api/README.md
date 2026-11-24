@@ -1,52 +1,99 @@
-# ClipViet Telegram API — Cloudflare Worker
+# ClipViet Cloudflare Worker API
 
-This is a server-side API, separate from the static GitHub Pages frontend. Never commit the bot token, session secret, Telegram user credentials, or production values.
+Server-side API for ClipViet.live. The Worker handles Telegram authentication, channel publishing, the editorial video catalog, and AppleCMS V10 provider adapters. Never commit Telegram tokens, session secrets, user IDs, or production credentials.
 
-## Routes
-- GET /health — configuration presence only.
-- POST /auth/telegram — verifies Telegram Login HMAC, freshness, explicit user allowlist, and KV replay protection; issues a signed HttpOnly session cookie.
-- GET /auth/me — checks the session.
-- POST /auth/logout — clears the session.
-- GET /channel/verify — checks that the signed-in user is a channel administrator and the bot can post.
-- POST /channel/publish — publishes only to the one server-configured channel.\n- GET /api/v1/videos — public metadata catalog.\n- GET /api/v1/videos/:id — public details and approved media URL.\n- GET /api/v1/admin/videos — Telegram-authenticated catalog administration.\n- POST /api/v1/admin/videos — create a draft/published record after rights attestation and media-host allowlist validation.\n- DELETE /api/v1/admin/videos/:id — delete a catalog record.
+## AppleCMS V10 providers
+
+The provider adapter implements one shared AppleCMS V10 contract for five source endpoints. Provider URLs are non-secret Worker variables and must match the exact approved host and path.
+
+| ID | Role | Worker variable | Expected host |
+|---|---|---|---|
+| souavzy | Primary | APPLECMS_SOUAVZY_URL | api.souavzy.vip |
+| apiyutu | Backup 1 | APPLECMS_APIYUTU_URL | apiyutu.com |
+| lbapi9 | Backup 2 | APPLECMS_LBAPI9_URL | lbapi9.com |
+| slapibf | Backup 3 | APPLECMS_SLAPIBF_URL | slapibf.com |
+| jipinvip1 | Backup 4 | APPLECMS_JIPINVIP1_URL | jipinvip1.com |
+
+Each value must be the HTTPS base path `https://<approved-host>/api.php/provide/vod/`. The Worker validates scheme, hostname, path, and absence of embedded credentials/query strings before using it. Three endpoints found unavailable in the supplied probe report (douapi.cc, ddapi.cc, zy.xiaomaomi.cc) are not configured.
+
+The supplied integration report records these source totals at probe time: souavzy 130,740; apiyutu 228,064; lbapi9 340,304; slapibf 265,410; jipinvip1 74,701. These are historical probe figures, not live totals. Run the protected health endpoint to refresh current API status.
+
+### Provider routes
+
+- `GET /api/providers` — provider IDs, roles, protocol, and whether each URL variable is configured.
+- `GET /api/catalog/categories[?sourceId=souavzy]` — leaf categories; default behavior tries primary then backups.
+- `GET /api/catalog/videos?page=1[&sourceId=souavzy][&categoryId=67][&keyword=...]` — paginated video list. If sourceId is omitted, upstream failures trigger ordered failover. A category-filtered request does not fail over because category IDs are source-specific. Empty results are valid and do not trigger failover.
+- `GET /api/providers/{sourceId}/categories` — categories for a specific source.
+- `GET /api/providers/{sourceId}/videos?page=1[&categoryId=...][&keyword=...]` — source-specific list.
+- `GET /api/providers/{sourceId}/videos/{vodId}` — detail and parsed playback lines.
+- `GET /api/providers/health` — Telegram-admin-only active API probe across configured sources. It verifies categories, page-one metadata, pagination, and presence of playback URLs. It does not prove a real browser playback session.
+
+### AppleCMS request and mapping contract
+
+- `ac=list` is used only for `class[]`; categories with children are filtered out, leaving leaf categories based on `type_pid`.
+- `ac=detail&pg=N` retrieves video list data; optional `t` filters by category, `wd` searches, and `ids` retrieves a detail record.
+- The adapter sends a browser-like User-Agent and `Accept: application/json`, uses a 15-second timeout, retries once after 500 ms, caches JSON responses for 60 seconds, and serializes requests with a minimum 200 ms gap per Worker isolate.
+- `limit`, `pagecount`, `page`, and `total` are read from each response. Never assume all providers return 20 items per page.
+- Internal identity is `{sourceId}:{vod_id}` to prevent collisions between provider catalogs.
+- Important field mappings include `vod_name → title`, `vod_pic → poster`, `vod_year → year`, `vod_area → area`, `vod_actor → actors`, `vod_director → director`, `vod_content → description` with `vod_blurb` fallback, `vod_time → updatedAt`, and `vod_play_url → lines`.
+- Playback parsing is strictly `$$$` (line) → `#` (episode) → `lastIndexOf("$")` (episode name and URL). Do not replace lastIndexOf with indexOf.
+- Only HTTPS episode URLs without embedded username/password are exposed to the player.
+
+### Playback topology
+
+- Browser → Worker: JSON catalog and detail requests, avoiding upstream CORS restrictions.
+- Browser → source CDN: HLS manifest and TS segments directly. The Worker does not proxy or relay video bytes.
+- iPhone/iPad: native HLS. Desktop: HLS.js 1.5.18 when Media Source Extensions are supported.
+- Player destroys the previous HLS instance when switching episodes or leaving the page; a 12-second readiness watchdog offers line switching and an external link.
+- API health is not a playback guarantee. Acceptance requires a real browser test with `readyState >= 2` and `videoWidth > 0`, including mobile Safari.
+
+## Existing Telegram and catalog routes
+
+- GET /health
+- POST /auth/telegram
+- GET /auth/me
+- POST /auth/logout
+- GET /channel/verify
+- POST /channel/publish
+- GET /api/v1/videos
+- GET /api/v1/videos/{id}
+- GET /api/v1/admin/videos
+- POST /api/v1/admin/videos
+- DELETE /api/v1/admin/videos/{id}
 
 ## Cloudflare configuration
 
-Secrets (Worker Secrets only):
-- TELEGRAM_BOT_TOKEN
-- SESSION_SECRET (random, at least 32 characters)
+Worker Secrets:
+- `TELEGRAM_BOT_TOKEN`
+- `SESSION_SECRET` (random, at least 32 characters)
 
 Non-secret Worker variables:
-- ALLOWED_ORIGIN = https://clipviet.live (for a separate Preview Worker, use only its exact Preview origin)
-- TELEGRAM_BOT_USERNAME (without @)
-- TELEGRAM_BOT_ID (numeric bot user ID)
-- TELEGRAM_CHANNEL_ID (one approved channel ID or @username)
-- TELEGRAM_ALLOWED_USER_IDS (comma-separated numeric user IDs)
-- MEDIA_HOST_ALLOWLIST (comma-separated exact media hostnames)
+- `ALLOWED_ORIGIN=https://clipviet.live`
+- `TELEGRAM_BOT_USERNAME`
+- `TELEGRAM_BOT_ID`
+- `TELEGRAM_CHANNEL_ID`
+- `TELEGRAM_ALLOWED_USER_IDS`
+- `MEDIA_HOST_ALLOWLIST` (for Telegram sendVideo)
+- `VIDEO_MEDIA_HOSTS` (for editorial catalog media and posters)
+- `APPLECMS_SOUAVZY_URL`
+- `APPLECMS_APIYUTU_URL`
+- `APPLECMS_LBAPI9_URL`
+- `APPLECMS_SLAPIBF_URL`
+- `APPLECMS_JIPINVIP1_URL`
 
-Create dedicated KV namespaces and bind them separately: LOGIN_REPLAY for one-time Telegram login hashes, VIDEO_CATALOG for catalog JSON. Do not share either namespace with unrelated applications. Set VIDEO_MEDIA_HOSTS to a comma-separated allowlist of exact HTTPS hostnames approved for distribution. The video catalog routes also require VIDEO_CATALOG (a dedicated KV namespace).
+KV bindings:
+- `LOGIN_REPLAY` — Telegram login replay protection.
+- `VIDEO_CATALOG` — separately managed editorial catalog.
 
-## Login setup
-1. Create/select the bot in BotFather and configure the approved site domain for Telegram Login.
-2. Add the Telegram Login Widget to the frontend. Its callback must POST the complete verified widget payload as JSON to /auth/telegram with credentials: include.
-3. The Worker validates the Telegram HMAC using SHA-256(bot token), rejects payloads older than five minutes, enforces the configured Telegram user ID allowlist, and stores each hash in KV for ten minutes.
-4. The Worker issues an eight-hour Secure, HttpOnly, SameSite=Strict cookie. Never trust a browser-supplied Telegram ID without a valid widget signature.
+The AppleCMS adapters do not require KV for provider catalogs; they fetch JSON on demand and use the Worker Cache API for short-lived response caching. Do not reuse KV namespaces from unrelated projects.
 
-## Video catalog API\n\nThe public catalog exposes metadata for records with status=published. A detail endpoint returns the approved media URL. Admin list/create/delete routes require the same signed Telegram session and TELEGRAM_ALLOWED_USER_IDS allowlist. Media and poster URLs must use HTTPS and match VIDEO_MEDIA_HOSTS. The API stores at most 1,000 records in one KV JSON value for this initial preview; this is a prototype catalog, not a high-write CMS.\n\n## Publishing controls
-- Only the server-configured TELEGRAM_CHANNEL_ID can receive posts.
-- The signed-in user must be allowlisted and currently a channel creator/administrator.
-- The bot must be a channel creator/administrator with can_post_messages.
-- Video URLs must be HTTPS and match MEDIA_HOST_ALLOWLIST (exact host or subdomain).
-- The request must include rights_confirmed: true. This is an attestation, not legal verification.
-- Telegram fetches the media URL through sendVideo; the URL must be reachable by Telegram and meet Bot API media requirements.
-- No arbitrary channel ID, arbitrary Bot API method, public proxy, stream relay, or download endpoint is exposed.
+## Security and rollout
 
-## Security
-- Exact Origin validation and credentialed CORS.
-- HMAC-signed session in Secure HttpOnly cookie.
-- KV-backed one-time login replay prevention.
-- Secrets are never returned or logged.
-- Rate limiting should be enabled at the Cloudflare edge before public publishing is enabled.\n- Video playback currently uses direct approved HTTPS media URLs. No generic media proxy/relay endpoint is implemented or enabled.
+- Provider base URLs are fixed to the five approved HTTPS hostnames and the AppleCMS path; requests cannot supply arbitrary upstream URLs.
+- Video playlists and segments are returned as direct HTTPS URLs; no generic proxy, scraping, download, or stream relay route exists.
+- Admin source health requires the signed Telegram session and Telegram user allowlist.
+- Public provider browsing is read-only.
+- Rate limiting should also be configured at Cloudflare edge before public traffic is scaled; the per-isolate request queue is a best-effort upstream courtesy throttle, not a global rate limiter.
+- The source probe report records permission confirmation from the site operator. Provider API health and real playback still need re-verification before production rollout.
 
-## Rollout status
-A Worker named clipviet-telegram-api-preview and a dedicated KV namespace have been provisioned in the Cloudflare account that currently holds the active clipviet.live zone. The Worker has workers.dev disabled and has no custom domain or DNS route, so it is not publicly exposed. The account reports usage_model=standard (Workers Paid model); no plan upgrade or billing action was performed. Keep it disabled until the account's existing Workers plan and spending limits are confirmed. Bot Token, session secret, Telegram IDs, channel ID, and media-host allowlist are not configured. Frontend actions must remain disabled until a same-site API origin is approved and Preview integration tests pass.
+No Cloudflare Worker deployment, DNS change, billing action, merge, or Production change is performed by this source-only branch.

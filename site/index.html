@@ -14,14 +14,14 @@
 <body>
   <header class="topbar">
     <a class="brand" href="./" aria-label="ClipViet.live trang chủ"><img src="./clipviet-logo.svg" alt=""><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a>
-    <nav aria-label="Điều hướng" class="primary-nav"><a href="#catalog">Khám phá</a><a href="#about">Giới thiệu</a><a href="./watch/">Trình phát</a><a href="./api-docs/">API Docs</a><a href="./sources.html">Nguồn liên kết</a></nav>
+    <nav aria-label="Điều hướng" class="primary-nav"><a href="./browse/">Khám phá video</a><a href="#catalog">Demo</a><a href="#about">Giới thiệu</a><a href="./watch/">Trình phát</a><a href="./api-docs/">API Docs</a><a href="./sources.html">Nguồn liên kết</a></nav>
     <form id="search-form" role="search" aria-label="Tìm kiếm thư viện"><input id="search" type="search" placeholder="Tìm video..." aria-label="Tìm video"><button type="submit">TÌM</button></form>
     <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Mở menu điều hướng" aria-expanded="false" aria-controls="filter-menu"><span></span><span></span><span></span></button>
     <aside id="filter-menu" class="filter-menu" aria-label="Menu điều hướng và bộ lọc" hidden>
       <div class="filter-menu-head"><div><p class="eyebrow">CLIPVIET / MENU</p><h2>Điều hướng</h2></div><button id="menu-close" class="menu-close" type="button" aria-label="Đóng menu">×</button></div>
       <nav class="drawer-nav" aria-label="Điều hướng chính">
         <a href="./"><span class="drawer-nav-icon" aria-hidden="true">⌂</span><span>Trang chủ</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
-        <a href="#catalog"><span class="drawer-nav-icon" aria-hidden="true">⌕</span><span>Khám phá video</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
+        <a href="./browse/"><span class="drawer-nav-icon" aria-hidden="true">⌕</span><span>Khám phá video · Nguồn thật</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
         <a href="#about"><span class="drawer-nav-icon" aria-hidden="true">◎</span><span>Giới thiệu</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
         <a href="./sources.html"><span class="drawer-nav-icon" aria-hidden="true">↗</span><span>Nguồn liên kết</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
         <a href="./api-docs/"><span class="drawer-nav-icon" aria-hidden="true">⌘</span><span>API Documentation</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
@@ -37,7 +37,7 @@
   </header>
   <main>
     <section class="hero" id="hero" aria-labelledby="hero-title">
-      <div class="hero-copy"><p class="eyebrow">CLIPVIET.LIVE / VIDEO LIBRARY</p><h1 id="hero-title">Khám phá.<br><span>Kết nối.</span></h1><p class="hero-description">Thư viện video được tuyển chọn. Tìm kiếm theo tên, thể loại và khám phá nội dung mới.</p><a class="primary-link" href="#catalog">KHÁM PHÁ THƯ VIỆN <span>↗</span></a></div>
+      <div class="hero-copy"><p class="eyebrow">CLIPVIET.LIVE / VIDEO LIBRARY</p><h1 id="hero-title">Khám phá.<br><span>Kết nối.</span></h1><p class="hero-description">Thư viện video được tuyển chọn. Tìm kiếm theo tên, thể loại và khám phá nội dung mới.</p><a class="primary-link" href="./browse/">KHÁM PHÁ THƯ VIỆN <span>↗</span></a></div>
       <div class="hero-art" aria-hidden="true"><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="art-mark">C<span>▶</span></div><p>CLIPVIET / 001</p></div>
     </section>
     <section class="catalog" id="catalog" aria-labelledby="catalog-title">
@@ -46,7 +46,7 @@
       <div class="filters"><div id="categories" class="category-list" aria-label="Lọc thể loại"></div><label class="sort-label">SẮP XẾP <select id="sort"><option value="new">Mới nhất</option><option value="title">Tên A–Z</option></select></label></div>
       <div id="video-grid" class="video-grid" aria-live="polite"></div>
       <p id="empty-state" class="empty-state" hidden>Không tìm thấy video phù hợp.</p>
-      <p class="data-note">CATALOG API ĐANG CHỜ WORKER CONFIGURATION · VIDEO DEMO KHÔNG CÓ STREAM</p>
+      <p class="data-note">APPLECMS V10 · 5 PROVIDER · MỞ KHÁM PHÁ ĐỂ DUYỆT NGUỒN</p>
     </section>
     <section class="about" id="about"><p class="eyebrow">ABOUT CLIPVIET.LIVE</p><h2>Một điểm đến.<br><span>Nhiều câu chuyện.</span></h2><p>Phiên bản GitHub Pages là frontend tĩnh để kiểm tra giao diện và trải nghiệm duyệt thư viện. GitHub Pages chỉ phục vụ giao diện. Video catalog, quyền quản trị và API phát cần Cloudflare Worker cùng KV binding; chỉ nguồn có quyền phân phối mới được xuất bản.</p></section>
   </main>
