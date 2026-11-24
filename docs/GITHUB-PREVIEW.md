@@ -2,9 +2,9 @@
 
 ## Static-site mode
 
-The deployable frontend is the plain HTML/CSS/JavaScript website in `site/`. The `site/.nojekyll` marker disables Jekyll processing when GitHub Pages publishes this folder. Pages serves the files as static assets; it does not execute Next.js, Node.js, PHP, API routes, or server-side authentication.
+The deployable frontend is the plain HTML/CSS/JavaScript website in `site/`. Both `.nojekyll` at the repository root and `site/.nojekyll` are present so either a root-branch source or a `/site` source bypasses Jekyll processing. The root `index.html` is only a redirect to `site/`; the actual application entry is `site/index.html`.
 
-Keep relative asset paths (for example `./styles.css`, `./app.js`, and `./admin/`) so the site works from a project subpath as well as a custom domain.
+Pages serves these files as static assets; it does not execute Next.js, Node.js, PHP, API routes, or server-side authentication. Keep relative asset paths (for example `./styles.css`, `./app.js`, and `./admin/`) so the site works from a project subpath as well as a custom domain.
 
 ## Preview workflow
 
@@ -12,7 +12,7 @@ The **GitHub Preview Artifact** workflow creates a short-lived artifact from `si
 
 To inspect it, open the workflow run, download `clipviet-github-preview`, extract it, and open `index.html`. This is a package for local inspection, not a hosted Preview URL.
 
-GitHub Pages has a single configured site/environment for this repository. Publishing a branch to that Pages environment would replace the currently published site, so this change does not enable or trigger a Pages deployment. The repository's Pages source and HTTPS state still need to be verified in Settings before any future publication.
+The repository also has a manual-only workflow named **Deploy ClipViet.live static site to GitHub Pages**. It requires a manual dispatch and publishes `site/` to the configured GitHub Pages environment. Do not dispatch it during Preview work: it is the publication path, not a non-production Preview. GitHub Pages has a single configured site/environment for this repository. The current Pages source and HTTPS state must be checked in Settings before any future publication.
 
 ## Video sources and admin
 
