@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthorized } from "@/lib/admin-cms";
-import { getOcodejsOverview } from "@/lib/ocodejs-control";
+import { getOcodejsOverview } from "@/lib/ocodejs-control.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
