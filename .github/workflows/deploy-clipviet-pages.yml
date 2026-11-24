@@ -1,7 +1,11 @@
-name: Deploy ClipViet.live static site to GitHub Pages
+name: Deploy ClipViet.live to GitHub Pages
 
 on:
-  # Manual publication only; no automatic production deploy on push or PR.
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/deploy-clipviet-pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -15,6 +19,7 @@ concurrency:
 
 jobs:
   deploy:
+    name: Publish site/ to GitHub Pages
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -24,20 +29,27 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Validate static site artifact
+      - name: Validate static site
         run: |
+          set -eu
           test -s site/index.html
           test -s site/styles.css
           test -s site/app.js
           test -s site/data.js
-          echo "Static site files are present."
-          echo "Files to publish:"
-          find site -maxdepth 2 -type f -print | sort
+          test -s site/admin/index.html
+          test -s site/admin/admin.js
+          test "$(cat site/CNAME)" = "clipviet.live"
+          test ! -e site/package.json
+          find site -type f \( -name '*.js' -o -name '*.mjs' \) -print0 |
+            while IFS= read -r -d '' file; do
+              echo "Checking $file"
+              node --input-type=module --check < "$file"
+            done
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload site directory
+      - name: Upload only site/
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./site
