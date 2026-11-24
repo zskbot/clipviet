@@ -1,5 +1,7 @@
 "use client";
 
+import AdminVideoApiPlayer from "@/components/AdminVideoApiPlayer";
+
 import { useEffect, useState } from "react";
 
 const initialForm = { title: "", description: "", category: "Giải trí", poster_url: "", embed_url: "", rights_holder: "", license_reference: "", license_expires_at: "" };
@@ -77,6 +79,8 @@ export default function AdminPage() {
       <div><p className="text-xs font-bold uppercase tracking-[.25em] text-red-400">TX.TOP / PREVIEW</p><h1 className="mt-2 text-3xl font-black">Admin CMS</h1><p className="mt-2 text-sm text-zinc-500">Quản lý nguồn video công khai và nội dung được cấp quyền.</p></div>
       <a href="/providers" className="text-sm text-zinc-400 hover:text-white">← Provider Sandbox</a>
     </div>
+
+    <AdminVideoApiPlayer />
 
     <section className="mb-8 rounded-2xl border border-white/10 bg-white/[.03] p-5 sm:p-6">
       <div className="mb-5"><p className="text-xs font-bold uppercase tracking-[.2em] text-red-400">TELEGRAM / PUBLIC SOURCES</p><h2 className="mt-2 text-xl font-black">Nguồn video công khai</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">Nhập link kênh Telegram công khai. TX.TOP chỉ lấy thông tin bài đăng và nhúng trình phát Telegram; không tải hoặc lưu tệp video. Với nhóm, bot cần quyền quản trị để nhận bài đăng mới.</p></div>
