@@ -109,7 +109,7 @@ if (root) {
     $("#adultembed-search-status").textContent = "Đang truy vấn API…";
     try {
       const url = new URL(buildAdultEmbedSearchUrl($("#adultembed-query").value, 1, 12));
-      const path = url.pathname + url.search;
+      const path = "/search" + url.search;
       const payload = await adultEmbedRequest(path);
       const normalized = normalizeAdultEmbedSearch(payload);
       videos = normalized.results;
