@@ -175,36 +175,41 @@ export default {
     headers.set("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS");
     headers.set("Access-Control-Allow-Headers", "Authorization,Content-Type");
     headers.set("Access-Control-Max-Age", "600");
+    const respond = (data, status = 200) => {
+      const response = json(data, status);
+      headers.forEach((value, key) => response.headers.set(key, value));
+      return response;
+    };
     if (request.method === "OPTIONS") return new Response(null,{status:204,headers});
-    if (!env.PROVIDER_DB) return json({error:"Preview D1 binding is not configured."},503);
+    if (!env.PROVIDER_DB) return respond({error:"Preview D1 binding is not configured."},503);
     const role = roleFor(request,env);
-    if (!role) return json({error:"Unauthorized"},401);
+    if (!role) return respond({error:"Unauthorized"},401);
     const url = new URL(request.url);
     const parts = url.pathname.replace(/\/+$/,"").split("/").filter(Boolean);
     try {
       if (request.method === "GET" && parts.length === 1 && parts[0] === "providers") {
-        if (!["admin","technical","legal"].includes(role)) return json({error:"Forbidden"},403);
-        return json({providers:await listProviders(env.PROVIDER_DB)});
+        if (!["admin","technical","legal"].includes(role)) return respond({error:"Forbidden"},403);
+        return respond({providers:await listProviders(env.PROVIDER_DB)});
       }
       if (request.method === "GET" && parts.length === 1 && parts[0] === "audit") {
         if (role !== "admin") return json({error:"Forbidden"},403);
-        return json({events:await listAudit(env.PROVIDER_DB)});
+        return respond({events:await listAudit(env.PROVIDER_DB)});
       }
       if (request.method === "POST" && parts.length === 1 && parts[0] === "providers") {
-        if (role !== "admin") return json({error:"Admin role required."},403);
+        if (role !== "admin") return respond({error:"Admin role required."},403);
         const parsed = validateProviderInput(await readJson(request));
-        if (parsed.error) return json({error:parsed.error},400);
-        return json({provider:await createProvider(env.PROVIDER_DB,parsed.data,role)},201);
+        if (parsed.error) return respond({error:parsed.error},400);
+        return respond({provider:await createProvider(env.PROVIDER_DB,parsed.data,role)},201);
       }
       if (request.method === "PATCH" && parts.length === 3 && parts[0] === "providers" && parts[2] === "transition") {
         const body = await readJson(request);
         const result = await transitionProvider(env.PROVIDER_DB,parts[1],clean(body.to,20),role,body.evidence || {});
-        if (result.error) return json({error:result.error},result.status);
-        return json({provider:result.provider});
+        if (result.error) return respond({error:result.error},result.status);
+        return respond({provider:result.provider});
       }
-      return json({error:"Not found"},404);
+      return respond({error:"Not found"},404);
     } catch (error) {
-      return json({error:error instanceof Error ? error.message : "Registry request failed."},400);
+      return respond({error:error instanceof Error ? error.message : "Registry request failed."},400);
     }
   }
 };
