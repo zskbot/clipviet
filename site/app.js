@@ -131,18 +131,28 @@ function openDetail(video) {
   dialog.showModal();
 }
 
-function closeMenu() {
+function closeMenu({ returnFocus = false } = {}) {
   menu.hidden = true;
   menuToggle.setAttribute("aria-expanded", "false");
-  menuToggle.setAttribute("aria-label", "Mở menu bộ lọc");
+  menuToggle.setAttribute("aria-label", "Mở menu điều hướng");
+  if (returnFocus) menuToggle.focus();
 }
 menuToggle.addEventListener("click", () => {
-  menu.hidden = !menu.hidden;
-  menuToggle.setAttribute("aria-expanded", String(!menu.hidden));
-  menuToggle.setAttribute("aria-label", menu.hidden ? "Mở menu bộ lọc" : "Đóng menu bộ lọc");
+  const opening = menu.hidden;
+  menu.hidden = !opening;
+  menuToggle.setAttribute("aria-expanded", String(opening));
+  menuToggle.setAttribute("aria-label", opening ? "Đóng menu điều hướng" : "Mở menu điều hướng");
+  if (opening) menu.querySelector(".drawer-nav a")?.focus();
 });
-document.querySelector("#menu-close").addEventListener("click", closeMenu);
-document.addEventListener("keydown", (event) => { if (event.key === "Escape") closeMenu(); });
+document.querySelector("#menu-close").addEventListener("click", () => closeMenu({ returnFocus: true }));
+menu.querySelectorAll(".drawer-nav a").forEach((link) => link.addEventListener("click", () => closeMenu()));
+document.addEventListener("pointerdown", (event) => {
+  if (menu.hidden || menu.contains(event.target) || menuToggle.contains(event.target)) return;
+  closeMenu();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !menu.hidden) closeMenu({ returnFocus: true });
+});
 document.querySelector("#reset-filters").addEventListener("click", () => {
   activeCountry = "";
   activeGenre = "";
