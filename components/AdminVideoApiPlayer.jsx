@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function safeHttps(value, allowedHosts, label = "URL") {
   let url;
@@ -43,12 +43,14 @@ export default function AdminVideoApiPlayer() {
   const [busy, setBusy] = useState(false);
   const [allowlist, setAllowlist] = useState({ apiHosts: [], mediaHosts: [] });
 
-  useState(() => {
+  useEffect(() => {
+    let active = true;
     fetch("/api/security/allowlist", { cache: "no-store" })
       .then(response => response.ok ? response.json() : Promise.reject(new Error("Không tải được allowlist.")))
-      .then(data => setAllowlist({ apiHosts: data.apiHosts || [], mediaHosts: data.mediaHosts || [] }))
-      .catch(() => setAllowlist({ apiHosts: [], mediaHosts: [] }));
-  });
+      .then(data => { if (active) setAllowlist({ apiHosts: data.apiHosts || [], mediaHosts: data.mediaHosts || [] }); })
+      .catch(() => { if (active) setAllowlist({ apiHosts: [], mediaHosts: [] }); });
+    return () => { active = false; };
+  }, []);
 
   async function connect(event) {
     event.preventDefault();
