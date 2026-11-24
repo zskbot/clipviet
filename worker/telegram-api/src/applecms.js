@@ -177,9 +177,9 @@ export async function getProviderVideo(providerId, vodId, env) {
   return row ? mapVideo(provider, row) : null;
 }
 export async function checkProviderHealth(providerId, env) {
-  const provider = getProvider(providerId, env);
   const started = Date.now();
   try {
+    const provider = getProvider(providerId, env);
     const categories = await getProviderCategories(providerId, env);
     const page = await listProviderVideos(providerId, { page: 1 }, env);
     return {
@@ -188,8 +188,9 @@ export async function checkProviderHealth(providerId, env) {
       pageCount: page.pageCount, total: page.total, sampleCount: page.items.length,
       playbackUrlsPresent: page.items.some(item => item.lines.some(line => line.episodes.length > 0))
     };
-  } catch {
-    return { id: provider.id, name: provider.name, status: "offline", latencyMs: Date.now() - started };
+  } catch (error) {
+    const provider = PROVIDERS.find(item => item.id === providerId);
+    return { id: providerId, name: provider?.name || providerId, status: error?.status === 503 ? "not-configured" : "offline", latencyMs: Date.now() - started };
   }
 }
 export async function checkAllProviderHealth(env) {
