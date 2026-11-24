@@ -41,3 +41,19 @@ test("only reviewer roles can advance their exact state transition", () => {
   assert.equal(transitionAllowed("APPROVED","ENABLED","admin",{}),true);
   assert.equal(transitionAllowed("PENDING","ENABLED","admin",{}),false);
 });
+
+test("rejects malformed or oversized API credentials instead of silently truncating", () => {
+  assert.ok(validateProviderInput({...valid,apiCredential:{token:"secret"}}).error);
+  assert.ok(validateProviderInput({...valid,apiCredential:"x".repeat(4097)}).error);
+});
+test("rejects local and IP-based media hostnames", () => {
+  assert.ok(validateProviderInput({...valid,mediaHosts:["127.0.0.1"]}).error);
+  assert.ok(validateProviderInput({...valid,mediaHosts:["metadata.internal"]}).error);
+  assert.ok(validateProviderInput({...valid,mediaHosts:["[::1]"]}).error);
+});
+test("requires explicit evidence for every state transition", () => {
+  assert.equal(transitionAllowed("PENDING","VERIFIED","technical",{}),false);
+  assert.equal(transitionAllowed("VERIFIED","APPROVED","legal",{}),false);
+  assert.equal(transitionAllowed("APPROVED","ENABLED","admin",{}),true);
+  assert.equal(transitionAllowed("ENABLED","APPROVED","admin",{}),false);
+});

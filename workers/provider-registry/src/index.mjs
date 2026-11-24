@@ -52,6 +52,9 @@ function validEvidenceUrl(value) {
 }
 export function validateProviderInput(input) {
   if (!input || typeof input !== "object" || Array.isArray(input)) return { error: "A JSON object is required." };
+  if (input.apiCredential !== undefined && (typeof input.apiCredential !== "string" || input.apiCredential.length > 4096)) {
+    return { error: "API credential must be a string no longer than 4096 characters." };
+  }
   const name = clean(input.name, 100);
   const apiBaseUrl = safeHttps(input.apiBaseUrl);
   const rightsHolder = clean(input.rightsHolder, 180);
@@ -108,8 +111,16 @@ async function readJson(request) {
   const declared = Number(request.headers.get("content-length") || 0);
   if (declared > MAX_BODY) throw new Error("Request body too large.");
   const raw = await request.text();
-  if (raw.length > MAX_BODY) throw new Error("Request body too large.");
-  try { return JSON.parse(raw || "{}"); } catch { throw new Error("Invalid JSON body."); }
+  if (raw.length > MAX_BODY) {
+    const error = new Error("Request body too large.");
+    error.status = 413;
+    throw error;
+  }
+  try { return JSON.parse(raw || "{}"); } catch {
+    const error = new Error("Invalid JSON body.");
+    error.status = 400;
+    throw error;
+  }
 }
 function previewRequest(request, env) {
   const host = new URL(request.url).hostname.toLowerCase();
@@ -188,6 +199,7 @@ export default {
     if (!previewRequest(request, env)) return json({ error: "Preview-only registry is disabled." }, 404);
     const allowedOrigins = (env.CORS_ALLOWED_ORIGINS || "").split(",").map(v => v.trim()).filter(Boolean);
     const origin = request.headers.get("origin") || "";
+    if (origin && !allowedOrigins.includes(origin)) return json({error:"Origin not allowed."},403);
     const headers = new Headers();
     if (origin && allowedOrigins.includes(origin)) {
       headers.set("Access-Control-Allow-Origin", origin);
@@ -230,7 +242,9 @@ export default {
       }
       return respond({error:"Not found"},404);
     } catch (error) {
-      return respond({error:error instanceof Error ? error.message : "Registry request failed."},400);
+      const status = Number.isInteger(error?.status) ? error.status : 500;
+      const message = status < 500 && error instanceof Error ? error.message : "Internal registry error.";
+      return respond({error:message},status);
     }
   }
 };
