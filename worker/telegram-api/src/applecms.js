@@ -49,7 +49,7 @@ function getProvider(id, env) {
   if (url.protocol !== "https:" || url.hostname.toLowerCase() !== configured.host || url.pathname !== "/api.php/provide/vod/" || url.username || url.password || url.search || url.hash) throw new ProviderError(configured.id, "Provider URL does not match the approved AppleCMS endpoint", 503);
   return { ...configured, baseUrl: url.toString() };
 }
-function parsePlayUrls(raw, playFrom) {
+export function parsePlayUrls(raw, playFrom) {
   if (!raw) return [];
   const froms = String(playFrom || "").split("$$$");
   return String(raw).split("$$$").map((line, li) => ({
@@ -67,7 +67,7 @@ function parsePlayUrls(raw, playFrom) {
     }).filter(ep => ep.url)
   })).filter(line => line.episodes.length);
 }
-function mapVideo(provider, row) {
+export function mapVideo(provider, row) {
   const sourceId = String(row.vod_id ?? "");
   if (!sourceId) return null;
   const rawDescription = String(row.vod_content || "");
