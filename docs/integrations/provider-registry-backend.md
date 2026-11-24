@@ -18,16 +18,18 @@ The review evidence fields are reviewer attestations. They are not proof by them
 
 ## Security
 - The Worker rejects all requests unless `REGISTRY_ENV=preview` and the request host matches the dedicated `clipviet-provider-registry-preview.*.workers.dev` hostname.
-- Three distinct bearer secrets provide Admin, Technical and Legal roles. Keep them in Worker secrets, never in source, frontend bundles, URL parameters or logs. This is service-token authentication, not SSO/MFA; do not expose the Worker to browser users until Cloudflare Access (with MFA enforced) or an equivalent verified identity layer is implemented.
+- Admin access requires a Cloudflare Access JWT in `Cf-Access-Jwt-Assertion`, validated by signature against the team-domain JWKS, exact issuer, configured audience, expiry and not-before claims. Admin/Technical/Legal roles map to Access group IDs. Technical and Legal may additionally use separate service bearer tokens; there is no Admin bearer-token fallback.
+- Enforce MFA in the Cloudflare Access application policy for every Admin group member. The Worker validates identity and group membership; the Access policy is responsible for MFA enforcement and must be reviewed before deployment. This is service-token authentication, not SSO/MFA; do not expose the Worker to browser users until Cloudflare Access (with MFA enforced) or an equivalent verified identity layer is implemented.
 - Browser requests with an Origin header are rejected unless the exact origin is listed in CORS_ALLOWED_ORIGINS. CORS is not authentication; non-browser clients still require a role token.
 - Request body size is capped at 16 KiB; malformed JSON is a 400, oversized input is a 413, and unexpected backend errors return a generic 500 without leaking internal exception text.
 - API credentials must be strings no longer than 4096 characters. Invalid credential types and oversized values are rejected rather than silently truncated.
-- Optional provider API credentials are encrypted with AES-256-GCM before being stored in D1. Supply a base64-encoded 32-byte `REGISTRY_ENCRYPTION_KEY` as a Worker secret. The API never returns ciphertext or plaintext. Credentials are never written to audit metadata. URL query parameters commonly used for secrets are rejected.
+- Optional provider API credentials use AES-256-GCM envelope format `v1:kid:iv:ciphertext`, with provider-specific additional authenticated data. Supply `REGISTRY_ENCRYPTION_KEYS` as a Worker secret containing JSON `{ "activeKid": "k2", "keys": { "k1": "BASE64_OLD_32_BYTE_KEY", "k2": "BASE64_NEW_32_BYTE_KEY" } }`. Keep old keys until every row has been rotated and verified. The API never returns ciphertext or plaintext. URL query parameters commonly used for secrets are rejected.
+- Admin-only `POST /maintenance/rotate-credentials` rotates at most 25 records per call and returns a cursor. Continue with `{ "afterId": "<nextCursor>" }` until `complete:true`. Each changed record and batch is audited. Keep the old key in the ring during migration; remove it only after a full backup/restore test and verification that no ciphertext uses the old key. Legacy PR #48 ciphertext can be decrypted with `REGISTRY_ENCRYPTION_KEY` during the migration window.
 - Provider API/media hosts must be exact valid DNS hostnames; HTTP, userinfo, custom ports, IP literals and local hostnames are rejected.
 - No provider API fetch, scraping, stream proxy or media download is performed by this registry. Optional API credentials are stored only as AES-GCM ciphertext; this is not a dedicated secret manager and key rotation is not implemented.
 - Audit records are append-only through the API and written in the same D1 batch as each state change. The public API has no audit update/delete route.
 - D1 uses parameterized statements. Request bodies are capped at 16 KiB. Responses are no-store.
-- This first version does not implement SSO, MFA, robust distributed rate limiting, secret-manager integration, encryption-key rotation, DNS resolution/IP egress controls, or independent legal verification. Provider API URLs are stored but never fetched by this Worker; therefore DNS rebinding and outbound SSRF protections are still mandatory before any future server-side provider fetch.
+- This branch adds Cloudflare Access JWT validation and versioned key rotation helpers. MFA still must be enforced in the Cloudflare Access policy; robust distributed rate limiting, DNS resolution/IP egress controls, and independent legal verification remain incomplete. Provider API URLs are stored but never fetched by this Worker; therefore DNS rebinding and outbound SSRF protections are still mandatory before any future server-side provider fetch.
 - The technical and legal evidence values are submitted by role tokens and recorded as attestations. The backend does not independently prove reachability, media ownership, license authenticity, age/consent, or territorial rights.
 - The final APPROVED → ENABLED transition is an administrative state change only. It must remain unavailable operationally until identity/MFA, rate limiting, key rotation, outbound network controls, evidence review and a security test suite have all passed.
 
@@ -54,3 +56,13 @@ Do not provision a database, set secrets, deploy the Worker, activate a provider
 - [ ] Preview hostname and D1 binding are verified; Production resources remain untouched.
 
 Current implementation status: request validation and CORS-origin checks are hardened in this branch. All unchecked items remain blockers. GitHub Actions runner startup failures previously prevented CI evidence; source syntax checks alone are not a passing test suite.
+
+## Required Preview-only secrets and variables
+
+Set only after the no-payment Free account is confirmed and the dedicated Preview Worker is approved for deployment:
+- Variables: `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`, `ACCESS_ADMIN_GROUP_ID`, `ACCESS_TECH_GROUP_ID`, `ACCESS_LEGAL_GROUP_ID`, `REGISTRY_ENV=preview`, exact `CORS_ALLOWED_ORIGINS`.
+- Secrets: `REGISTRY_TECH_TOKEN`, `REGISTRY_LEGAL_TOKEN`, `REGISTRY_ENCRYPTION_KEYS`; retain `REGISTRY_ENCRYPTION_KEY` temporarily only if migrating legacy ciphertext.
+- Cloudflare Access policy: require MFA and restrict the Admin application to the intended Admin group. Do not rely on CORS for authorization.
+- Do not place tokens or encryption material in GitHub source, repository variables, frontend code, or chat.
+
+The screenshots supplied for the current mobile site show a legacy unstyled feed with default blue underlined links, excessive vertical spacing and broken/short thumbnail strips. The updated static frontend uses a responsive dark card catalog, compact horizontally scrollable category filters, accessible focus states and reduced-motion handling. It does not scrape or embed the external page shown in the screenshots.
