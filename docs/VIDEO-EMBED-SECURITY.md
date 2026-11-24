@@ -29,6 +29,8 @@ The official embed hosts enabled by default are `youtube-nocookie.com`, `www.you
 - CMS publishing still requires rights holder, license reference, a future expiry date, and an approved embed URL.
 - External source links require an explicit user click and use safe new-tab rel attributes.
 
+The static GitHub Pages admin uses device-local exact host lists in browser storage; it does not inherit server environment variables. Its API/media allowlists must be entered explicitly on that device. This is a local safety gate, not proof of content rights.
+
 ## Verification
 
 Run `npm test` and `npm run lint`. CI/Preview status must be checked independently; a green unit test does not prove provider rights or production playback.
