@@ -188,3 +188,29 @@ render();
     if (note) note.textContent = "CATALOG CHƯA ĐỒNG BỘ · " + error.message;
   }
 })();
+
+// Community suggestions: validate official HTTPS URL and copy a review-ready payload.
+const suggestionForm = $("#suggestion-form");
+suggestionForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const title = $("#suggest-title").value.trim();
+  const rawUrl = $("#suggest-url").value.trim();
+  const reason = $("#suggest-reason").value.trim();
+  const status = $("#suggestion-status");
+  let url;
+  try { url = new URL(rawUrl); } catch { url = null; }
+  if (!title || !url || url.protocol !== "https:") {
+    status.textContent = "Vui lòng nhập tên video và URL HTTPS hợp lệ.";
+    status.dataset.state = "error";
+    return;
+  }
+  const payload = ["ĐỀ XUẤT VIDEO CLIPVIET", "Tên: " + title, "URL nguồn chính thức: " + url.href, "Lý do: " + (reason || "Chưa cung cấp"), "Lưu ý: Chờ kiểm tra thủ công quyền phân phối."].join("\n");
+  try {
+    await navigator.clipboard.writeText(payload);
+    status.textContent = "Đã sao chép nội dung đề xuất. Chưa gửi lên máy chủ; cần gửi qua kênh tiếp nhận chính thức.";
+    status.dataset.state = "success";
+  } catch {
+    status.textContent = "Trình duyệt không cho phép sao chép. Hãy kiểm tra lại URL và thử trên HTTPS.";
+    status.dataset.state = "error";
+  }
+});
