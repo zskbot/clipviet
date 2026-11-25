@@ -1,5 +1,23 @@
 import { mkdir, writeFile } from "node:fs/promises";
 
+// Bulk catalog ingestion is disabled unless distribution rights are explicitly verified.
+// The homepage reads the read-only Cloudflare Preview API directly; this build step must
+// not crawl provider catalogs or copy playback URLs into a static artifact by default.
+if (process.env.CATALOG_DISTRIBUTION_AUTHORIZED !== "true") {
+  await mkdir("site/data", { recursive: true });
+  await writeFile("site/data/catalog.json", JSON.stringify({
+    schemaVersion: 1,
+    updatedAt: new Date().toISOString(),
+    refreshHours: 6,
+    pageSize: 30,
+    providers: [],
+    categories: [],
+    videos: []
+  }));
+  console.log("Catalog bulk sync skipped: distribution authorization has not been verified.");
+  process.exit(0);
+}
+
 const providers = [
   { id: "souavzy", name: "Souavzy · Main", baseUrl: "https://api.souavzy.vip/api.php/provide/vod/" },
   { id: "apiyutu", name: "ApiYutu · Backup 1", baseUrl: "https://apiyutu.com/api.php/provide/vod/" },
@@ -8,7 +26,9 @@ const providers = [
   { id: "jipinvip1", name: "JipinVIP1 · Backup 4", baseUrl: "https://jipinvip1.com/api.php/provide/vod/" }
 ];
 
-const maxPages = Math.max(1, Math.min(5, Number(process.env.CATALOG_PAGES_PER_PROVIDER || 5)));
+const maxPages = Math.max(1, Math.min(50, Number(process.env.CATALOG_PAGES_PER_PROVIDER || 20)));
+const targetVideoCount = Math.max(1, Math.min(1000, Number(process.env.CATALOG_TARGET_VIDEOS || 1000)));
+// Keep declarations on real source lines; escaped newline literals break Node.js parsing.
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const safeUrl = (value) => {
   if (typeof value !== "string" || value.length > 2048) return "";
@@ -66,11 +86,16 @@ function parseLines(raw, playFrom) {
   });
 }
 
+const excludedAdultLabels = /(?:học\s*sinh|nữ\s*sinh|nam\s*sinh|underage|minor|loli|shota|school\s*(?:girl|boy|student)|teen\s*(?:girl|boy))/i;
+const normalizeKey = (value) => String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+function isExcludedAgeLabel(item) { return excludedAdultLabels.test([item.vod_name,item.vod_title,item.vod_class,item.type_name,item.vod_content,item.vod_blurb,item.vod_actor].filter(Boolean).join(" ")); }
+function videoFingerprint(video) { return [normalizeKey(video.title),normalizeKey(video.year),normalizeKey(video.area),normalizeKey(video.duration)].join("|"); }
+
 function normalize(item, provider) {
   if (!item || typeof item !== "object") return null;
   const sourceItemId = String(item.vod_id ?? "").trim();
   const title = String(item.vod_name || item.vod_title || "").trim();
-  if (!sourceItemId || !title) return null;
+  if (!sourceItemId || !title || isExcludedAgeLabel(item)) return null;
   const lines = parseLines(item.vod_play_url, item.vod_play_from);
   return {
     uid: provider.id + ":" + sourceItemId,
@@ -145,7 +170,14 @@ for (const provider of providers) {
   await pause(200);
 }
 
-const videos = results.flatMap((result) => result.videos);
+const collectedVideos = results.flatMap((result) => result.videos);
+const deduplicated = new Map();
+for (const video of collectedVideos) {
+  const key = videoFingerprint(video);
+  const existing = deduplicated.get(key);
+  if (!existing || (!existing.hasPlayback && video.hasPlayback) || (!existing.poster && video.poster) || (!existing.description && video.description)) deduplicated.set(key, video);
+}
+const videos = [...deduplicated.values()].slice(0, targetVideoCount);
 const payload = {
   schemaVersion: 1,
   updatedAt: new Date().toISOString(),
@@ -165,6 +197,8 @@ await writeFile("site/data/catalog.json", JSON.stringify(payload));
 console.log(JSON.stringify({
   updatedAt: payload.updatedAt,
   providers: payload.providers,
+  targetVideos: targetVideoCount,
+  targetReached: videos.length >= targetVideoCount,
   totalVideos: videos.length,
   playableVideos: videos.filter((video) => video.hasPlayback).length
 }, null, 2));
@@ -172,3 +206,5 @@ console.log(JSON.stringify({
 if (!videos.length) {
   throw new Error("All AppleCMS providers returned no video records; refusing to publish an empty catalogue.");
 }
+
+// Preview deployment trigger after enabling this branch.

@@ -69,18 +69,20 @@ async function handle(request, env) {
   if(path.startsWith("/api/admin/")&&!origin) return json({error:"Origin required"},403);
   if(request.method==="OPTIONS") return new Response(null,{status:204,headers});
   if(path==="/api/admin/login"&&request.method==="POST") {
+    if(!env.ADMIN_PIN || !/^\d{6}$/.test(String(env.ADMIN_PIN))) return json({error:"Admin PIN is not configured as a six-digit Worker Secret."},503,headers);
     const ip=request.headers.get("CF-Connecting-IP")||"unknown";
-    const now=Date.now(), entry=failedLogins.get(ip)||{count:0,until:now+600000};
-    if(now>entry.until){entry.count=0;entry.until=now+600000;}
-    if(entry.count>=5) return json({error:"Quá nhiều lần đăng nhập sai. Thử lại sau 10 phút."},429,headers);
-    let body={}; try{body=await request.json();}catch{return json({error:"Dữ liệu đăng nhập không hợp lệ."},400,headers);}
-    const password=typeof body.password==="string"?body.password:"";
-    if(!env.ADMIN_PASSWORD||!env.ADMIN_SESSION_SECRET) return json({error:"Admin authentication secrets are not configured."},503,headers);
-    if(!password||password.length>256||!safeSecretCompare(password,env.ADMIN_PASSWORD)) {
-      entry.count++; failedLogins.set(ip,entry);
-      return json({error:"Tài khoản hoặc mật khẩu không chính xác."},401,headers);
+    const now=Date.now(), attempt=failedLogins.get(ip)||{count:0,first:now,blockedUntil:0};
+    if(attempt.blockedUntil>now) return json({error:"Too many attempts. Try again later."},429,{"retry-after":String(Math.ceil((attempt.blockedUntil-now)/1000)),...headers});
+    let body={}; try { body=await request.json(); } catch { return json({error:"Invalid request."},400,headers); }
+    const pin=String(body.pin||"");
+    if(!/^\d{6}$/.test(pin)||!safeSecretCompare(pin,env.ADMIN_PIN)) {
+      const next=attempt.first+900000<now?{count:1,first:now,blockedUntil:0}:{...attempt,count:attempt.count+1};
+      if(next.count>=5) next.blockedUntil=now+900000;
+      failedLogins.set(ip,next);
+      return json({error:next.blockedUntil>now?"Too many attempts. Try again in 15 minutes.":"Incorrect PIN."},next.blockedUntil>now?429:401,headers);
     }
     failedLogins.delete(ip);
+    if(!env.ADMIN_SESSION_SECRET) return json({error:"Admin session signing secret is not configured."},503,headers);
     return json({ok:true,token:await issueSession(env),expiresIn:14400},200,headers);
   }
   if(path==="/api/admin/session"&&request.method==="GET") {

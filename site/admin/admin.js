@@ -1,28 +1,8 @@
 const ADMIN_API = "https://clipviet-catalog-api-preview.huynhthuongg2505-f9b.workers.dev";
-const ADMIN_SESSION_KEY = "clipviet.admin.session.v1";
-const authForm = document.querySelector("#admin-login-form");
-const authPassword = document.querySelector("#admin-password");
-const authStatus = document.querySelector("#admin-auth-status");
-const authState = document.querySelector("#admin-auth-state");
-const authSubmit = document.querySelector("#admin-login-submit");
-const authLogout = document.querySelector("#admin-logout");
-const protectedPanels = [...document.querySelectorAll("[data-admin-protected]")];
 let adminToken = "";
-function setAdminAccess(allowed, message) {
-  protectedPanels.forEach(node => {
-    node.inert = !allowed;
-    node.setAttribute("aria-disabled", String(!allowed));
-    node.classList.toggle("admin-locked", !allowed);
-  });
-  authState.textContent = allowed ? "ADMIN ĐÃ ĐĂNG NHẬP" : "CHẾ ĐỘ XEM";
-  authLogout.hidden = !allowed;
-  authSubmit.hidden = allowed;
-  authPassword.disabled = allowed;
-  authStatus.textContent = message;
-  window.dispatchEvent(new CustomEvent("clipviet-admin-auth", { detail: { allowed } }));
-}
 async function adminRequest(path, options = {}) {
   const response = await fetch(ADMIN_API + path, {
+    credentials: "omit",
     ...options,
     headers: { "content-type": "application/json", ...(adminToken ? { authorization: "Bearer " + adminToken } : {}), ...(options.headers || {}) },
     cache: "no-store"
@@ -32,36 +12,15 @@ async function adminRequest(path, options = {}) {
   return data;
 }
 window.clipvietAdminRequest = adminRequest;
-try {
-  adminToken = sessionStorage.getItem(ADMIN_SESSION_KEY) || "";
-} catch { adminToken = ""; }
-setAdminAccess(false, "Bạn đang ở chế độ xem công khai. Đăng nhập khi cần quản lý.");
-if (adminToken) {
-  adminRequest("/api/admin/session").then(() => setAdminAccess(true, "Phiên Admin hợp lệ. Các công cụ quản lý đã được mở khóa."))
-    .catch(() => { adminToken = ""; try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch {} });
+function setAdminAccess(allowed, message) {
+  document.querySelectorAll("[data-admin-protected]").forEach(node => {
+    node.inert = false;
+    node.removeAttribute("aria-disabled");
+    node.classList.remove("admin-locked");
+  });
+  window.dispatchEvent(new CustomEvent("clipviet-admin-auth", { detail: { allowed: true } }));
 }
-authForm.addEventListener("submit", async event => {
-  event.preventDefault();
-  const password = authPassword.value;
-  if (!password) return;
-  authSubmit.disabled = true;
-  authStatus.textContent = "Đang xác thực...";
-  try {
-    const data = await adminRequest("/api/admin/login", { method: "POST", body: JSON.stringify({ password }) });
-    adminToken = data.token;
-    try { sessionStorage.setItem(ADMIN_SESSION_KEY, adminToken); } catch {}
-    authPassword.value = "";
-    setAdminAccess(true, "Đăng nhập thành công. Phiên có hiệu lực tối đa 4 giờ; đăng xuất sẽ xóa phiên trên trình duyệt này.");
-  } catch (error) {
-    authStatus.textContent = error.message;
-  } finally { authSubmit.disabled = false; }
-});
-authLogout.addEventListener("click", async () => {
-  try { await adminRequest("/api/admin/logout", { method: "POST", body: "{}" }); } catch {}
-  adminToken = "";
-  try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch {}
-  setAdminAccess(false, "Đã đăng xuất. Trang vẫn xem được; thao tác quản lý đã khóa.");
-});
+setAdminAccess(true, "Admin workspace đã mở.");
 const $ = (selector) => document.querySelector(selector);
 const apiForm = $("#api-form");
 const apiUrl = $("#api-url");
