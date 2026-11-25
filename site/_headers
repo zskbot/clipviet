@@ -3,3 +3,4 @@
   Referrer-Policy: strict-origin-when-cross-origin
 
 # Cloudflare Pages Preview deployment configuration
+# Static site root: site/; production deployments disabled.
