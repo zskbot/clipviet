@@ -35,7 +35,7 @@ async function rangeProbe(url,label){
  const contentRange=response.headers.get("content-range")||"";
  const contentLength=response.headers.get("content-length")||"";
  const acceptRanges=response.headers.get("accept-ranges")||"not exposed";
- const rangeValid=/^bytes\\s+0-0\\/(?:[1-9]\\d*|\\*)$/i.test(contentRange);
+ const rangeValid=/^bytes\s+0-0\/(?:[1-9]\d*|\*)$/i.test(contentRange);
  const lengthValid=contentLength==="1"||rangeValid;
  if(response.body)await response.body.cancel().catch(()=>{});
  const pass=status===206&&cors&&rangeValid&&lengthValid;
@@ -124,7 +124,7 @@ async function runChecks(){
    const response=await requestJson("/api/providers/"+encodeURIComponent(item.sourceId)+"/videos/"+encodeURIComponent(item.id),"Video detail");
    const episodes=(response.data?.lines||[]).flatMap(line=>line.episodes||[]);
    if(!samples.hls)samples.hls=episodes.find(ep=>/\.m3u8(?:$|[?#])/i.test(ep.url||""))||null;
-   if(!samples.mp4)samples.mp4=episodes.find(ep=>{try{return /\\.mp4$/i.test(new URL(ep.url,location.href).pathname);}catch{return false;}})||null;
+   if(!samples.mp4)samples.mp4=episodes.find(ep=>{try{return /\.mp4$/i.test(new URL(ep.url,location.href).pathname);}catch{return false;}})||null;
    if(samples.hls&&samples.mp4)break;
   }
   if(!samples.hls&&!samples.mp4)throw new Error("10 video đầu không có MP4/HLS URL hợp lệ");
