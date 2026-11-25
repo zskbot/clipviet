@@ -2,6 +2,7 @@ import { videos as demoVideos } from "./data.js";
 
 const $ = (selector) => document.querySelector(selector);
 const grid = $("#video-grid");
+const featuredRoot = $("#featured-video");
 const count = $("#result-count");
 const empty = $("#empty-state");
 const search = $("#search");
@@ -97,6 +98,37 @@ function render() {
   }
 }
 
+
+let featuredVideos = [];
+let featuredIndex = 0;
+let featuredTimer = null;
+function renderFeatured() {
+  if (!featuredRoot || !featuredVideos.length) return;
+  const video = featuredVideos[featuredIndex % featuredVideos.length];
+  const image = $("#featured-image");
+  image.src = video.poster || "./poster-fallback.svg";
+  image.alt = video.title || "Video nổi bật";
+  image.onerror = () => { image.src = "./poster-fallback.svg"; };
+  $("#featured-title").textContent = video.title || "Video nổi bật";
+  $("#featured-meta").textContent = [video.year, video.duration, video.country, video.category].filter(Boolean).join(" · ");
+  $("#featured-description").textContent = video.description || "Khám phá video đang được quan tâm trên ClipViet.";
+  $("#featured-index").textContent = String(featuredIndex + 1).padStart(2, "0");
+  $("#featured-open").onclick = () => openDetail(video);
+  $("#featured-watch").onclick = () => openDetail(video);
+}
+function setFeaturedVideos(items) {
+  const blocked = /underage|minor|loli|shota|school\\s?(girl|boy|student)|teen\\s?(girl|boy)|học sinh|nữ sinh|nam sinh|thiếu nhi/i;
+  featuredVideos = items.filter((video) => !blocked.test([video.title, video.category, video.description, video.genre].filter(Boolean).join(" ")));
+  featuredVideos.sort((a, b) => (b.trendingScore - a.trendingScore) || (b.views - a.views) || (b.playCount - a.playCount) || (Number(b.year || 0) - Number(a.year || 0)));
+  featuredIndex = 0;
+  renderFeatured();
+  if (featuredTimer) clearInterval(featuredTimer);
+  if (featuredVideos.length > 1) featuredTimer = setInterval(() => {
+    featuredIndex = (featuredIndex + 1) % featuredVideos.length;
+    renderFeatured();
+  }, 10000);
+}
+
 function openDetail(video) {
   detail.innerHTML = '<div class="detail-inner"><img alt=""><div><p class="eyebrow"></p><h2></h2><p class="description"></p><p class="meta"></p><p class="detail-source"></p><a class="primary-link watch-link" hidden>PHÁT VIDEO <span>↗</span></a></div></div>';
   const img = detail.querySelector("img");
@@ -177,9 +209,12 @@ render();
       id: item.id, sourceId: item.sourceId, sourceName: item.sourceName,
       title: item.title, category: item.categoryName || "Khác", genre: item.categoryName || "",
       year: item.year, duration: item.duration, rating: "18+", description: item.description,
-      poster: item.poster, country: item.area, apiManaged: true
+      poster: item.poster, country: item.area, apiManaged: true,
+      views: Number(item.views || item.viewCount || item.hits || 0),
+      playCount: Number(item.playCount || 0), trendingScore: Number(item.trendingScore || 0)
     }));
     renderCategories(["Tất cả", ...new Set(videos.map((item) => item.category).filter(Boolean))]);
+    setFeaturedVideos(videos);
     render();
     const note = document.querySelector(".data-note");
     if (note) note.textContent = "GITHUB PAGES CATALOG · " + videos.length + " VIDEO · CẬP NHẬT " + new Date(catalog.updatedAt).toLocaleString("vi-VN");
