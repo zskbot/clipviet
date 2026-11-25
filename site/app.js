@@ -44,8 +44,8 @@ function filterButton(label, root, current, setValue) {
   });
   root.append(button);
 }
-["Việt Nam", "Hàn Quốc", "Trung Quốc", "Thái Lan", "Nhật Bản"].forEach((v) => filterButton(v, countryRoot, () => activeCountry, (v) => { activeCountry = v; }));
-["JAV", "VLXX", "18+"].forEach((v) => filterButton(v, genreRoot, () => activeGenre, (v) => { activeGenre = v; }));
+
+
 
 let activeCategoryId = "";
 let activeCategoryName = "";
