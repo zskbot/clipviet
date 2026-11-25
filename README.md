@@ -48,3 +48,11 @@ Provider responses are cached for 60 seconds. The browser refreshes the feed eve
 ## OCodeJS Admin Control
 
 A read-only monitoring workspace is available at `/admin/ocodejs`. Configure `OCODEJS_API_BASE_URL` and `OCODEJS_API_TOKEN` as server-side hosting secrets, plus the existing `ADMIN_CMS_TOKEN`. See [the integration roadmap](docs/OCODEJS-ADMIN-ROADMAP.md) for rollout boundaries and remaining backend verification.
+
+## Clipform video suggestions
+
+The community video-suggestion form is hosted in Clipform:
+- Public form: https://clipform.io/3d76a8c57
+- Responses dashboard: https://app.clipform.io/ce617e6d-4c43-475b-9c9d-d7ee953e3181/forms/3c0b50ba-72f3-426e-a489-36325e012907/responses
+- Embedded on the static and Next.js homepages and Admin screens.
+- Suggestions are reviewed manually. Submission does not grant distribution rights and does not publish or ingest media automatically.
