@@ -5,7 +5,7 @@ const form=$("#cms-form"),list=$("#cms-list"),message=$("#cms-status-message");
 let rows=[];
 function token(){try{return sessionStorage.getItem(KEY)||""}catch{return ""}}
 async function request(path,options={}){
- const t=token(); if(!t) throw new Error("Vui lòng đăng nhập Admin.");
+ const t=token(); if(!t) throw new Error("Dashboard đã bỏ màn PIN. API D1 vẫn giữ quyền ghi ở máy chủ; cần cơ chế quản trị hợp lệ để tạo, sửa hoặc xóa bài viết.");
  const response=await fetch(API+path,{...options,headers:{"content-type":"application/json",authorization:"Bearer "+t,...(options.headers||{})},cache:"no-store"});
  const data=await response.json().catch(()=>({}));
  if(!response.ok) throw new Error(data.error||"CMS request failed");
