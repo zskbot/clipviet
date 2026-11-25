@@ -86,7 +86,8 @@ const sampleVideo = {
   rating: "Mọi lứa tuổi",
   description: "Video mẫu có thể phát để kiểm thử trình phát ClipViet. © Blender Foundation; được cấp phép CC BY 3.0. Giữ nguyên nội dung và credit cuối phim.",
   poster: "https://i.ytimg.com/vi/OHOpb2fS-cM/hqdefault.jpg",
-  embedUrl: "https://www.youtube-nocookie.com/embed/OHOpb2fS-cM",
+  videoUrl: "https://archive.org/download/Tears-of-Steel/tears_of_steel_720p.mp4",
+  originalUrl: "https://www.youtube.com/watch?v=OHOpb2fS-cM",
   sourceName: "Blender Foundation",
   isSample: true
 };
@@ -259,7 +260,11 @@ function renderFeatured() {
   const image = $("#featured-image");
   const player = $("#featured-player");
   const playButton = $("#featured-play");
-  if (player) { player.hidden = true; player.src = ""; }
+  if (player) { player.pause?.(); player.removeAttribute("src"); player.load?.(); player.hidden = true; }
+  const playerStatus = $("#featured-player-status");
+  const playerFallback = $("#featured-player-fallback");
+  if (playerStatus) { playerStatus.hidden = true; playerStatus.textContent = ""; }
+  if (playerFallback) playerFallback.hidden = true;
   if (image) image.hidden = false;
   if (playButton) playButton.hidden = false;
 
@@ -298,11 +303,32 @@ function playSampleVideo() {
   const player = $("#featured-player");
   const image = $("#featured-image");
   const playButton = $("#featured-play");
-  if (!player) return;
-  player.src = sampleVideo.embedUrl + "?autoplay=1&rel=0";
+  const status = $("#featured-player-status");
+  const fallback = $("#featured-player-fallback");
+  if (!player || !sampleVideo.videoUrl) return;
+
   player.hidden = false;
   image.hidden = true;
   playButton.hidden = true;
+  if (status) { status.hidden = true; status.textContent = ""; }
+  if (fallback) fallback.hidden = true;
+
+  // Native H.264/AAC MP4 playback is more reliable on iPhone Safari than
+  // an autoplaying third-party iframe. Keep play() inside the user gesture.
+  if (player.src !== sampleVideo.videoUrl) player.src = sampleVideo.videoUrl;
+  player.load();
+  const attempt = player.play();
+  if (attempt && typeof attempt.catch === "function") {
+    attempt.catch((error) => {
+      if (status) {
+        status.textContent = error?.name === "NotAllowedError"
+          ? "Safari đang chặn tự phát. Hãy nhấn nút Play trong thanh điều khiển video."
+          : "Không tải được video từ máy chủ nguồn. Bạn có thể mở bản gốc.";
+        status.hidden = false;
+      }
+      if (fallback) fallback.hidden = false;
+    });
+  }
 }
 
 function renderSampleVideo(reason) {
@@ -356,10 +382,10 @@ function openDetail(video) {
   detail.querySelector(".detail-source").textContent = video.isSample
     ? "Nguồn: Blender Foundation · CC BY 3.0 · " + "https://creativecommons.org/licenses/by/3.0/"
     : video.apiManaged ? "Nguồn: " + (video.sourceName || video.sourceId) : "Bản ghi demo.";
-  if (video.isSample && video.embedUrl) {
+  if (video.isSample && video.videoUrl) {
     const link = detail.querySelector(".watch-link");
     link.hidden = false;
-    link.href = "https://www.youtube.com/watch?v=OHOpb2fS-cM";
+    link.href = video.originalUrl || "https://www.youtube.com/watch?v=OHOpb2fS-cM";
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.textContent = "PHÁT VIDEO GỐC ↗";
