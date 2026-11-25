@@ -58,8 +58,8 @@ function play() {
   $("external").hidden = false;
   $("external").href = episode.url;
   say("Đang tải video trực tiếp từ CDN nguồn…");
-  const nativeHls = video.canPlayType("application/vnd.apple.mpegurl") !== "";
-  const useHlsJs = !nativeHls && window.Hls && window.Hls.isSupported();
+  const isSafari = /Safari/i.test(navigator.userAgent) && !/(Chrome|CriOS|Edg|OPR|Firefox)/i.test(navigator.userAgent);
+  const useHlsJs = !isSafari && window.Hls && window.Hls.isSupported();
   let ready = false;
   const markReady = () => {
     if (ready) return;
