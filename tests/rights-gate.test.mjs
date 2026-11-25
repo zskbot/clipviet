@@ -54,3 +54,11 @@ test("playback requires enabled provider, approved per-clip rights, licensed use
   assert.equal(playbackDecision({provider:{...provider,status:"APPROVED"},content,requestedUse:"official_embed",region:"VN"}).reason,"provider_not_enabled");
   assert.equal(playbackDecision({provider,content:{...content,status:"PENDING"},requestedUse:"official_embed",region:"VN"}).reason,"content_rights_not_approved");
 });
+
+
+test("redistribution requires an owner-hosted connector mode", () => {
+  const provider = {status:"ENABLED",license_expires_at:"2099-01-01T00:00:00.000Z",playback_mode:"official_embed"};
+  const content = {status:"APPROVED",license_expires_at:"2099-01-01T00:00:00.000Z",permitted_uses_json:'["redistribute"]',regions_json:'["VN"]',source_verified:1,ownership_verified:1,performer_age_verified:1,performer_consent_verified:1,source_url:"https://creator.example.com/video/1"};
+  assert.equal(playbackDecision({provider,content,requestedUse:"redistribute",region:"VN"}).reason,"connector_redistribution_mode_mismatch");
+  assert.equal(playbackDecision({provider:{...provider,playback_mode:"owner_hosted_stream"},content,requestedUse:"redistribute",region:"VN"}).allowed,true);
+});
