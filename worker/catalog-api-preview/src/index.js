@@ -62,7 +62,7 @@ async function validSession(request, env) {
 }
 const failedLogins=new Map();
 const ADMIN_EMAIL = "nvht25052002@gmail.com";
-const ADMIN_APP_URL = "https://preview-cms-preview-fix.clipviet-live-preview.pages.dev/admin/";
+const ADMIN_APP_URL = "https://preview-google-oauth-admin.clipviet-live-preview.pages.dev/admin/";
 const OAUTH_REDIRECT_URI = "https://clipviet-catalog-api-preview.huynhthuongg2505-f9b.workers.dev/api/admin/google/callback";
 function cookieValue(request, name) {
   const raw=request.headers.get("Cookie")||"";
