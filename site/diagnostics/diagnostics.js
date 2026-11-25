@@ -32,9 +32,22 @@ async function rangeProbe(url,label){
  const type=(response.headers.get("content-type")||"").split(";")[0].trim().toLowerCase();
  const cors=corsState(response);
  const status=response.status;
+ const contentRange=response.headers.get("content-range")||"";
+ const contentLength=response.headers.get("content-length")||"";
+ const acceptRanges=response.headers.get("accept-ranges")||"not exposed";
+ const rangeValid=/^bytes\s+0-0\/(?:[1-9]\d*|\*)$/i.test(contentRange);
+ const lengthValid=!contentLength||contentLength==="1";
  if(response.body)await response.body.cancel().catch(()=>{});
- const pass=status===206&&cors;
- return {pass,status,type,cors,acceptRanges:response.headers.get("accept-ranges")||"not exposed"};
+ const pass=status===206&&cors&&rangeValid&&lengthValid;
+ return {pass,status,type,cors,contentRange,contentLength,rangeValid,acceptRanges};
+}
+async function resourceProbe(url){
+ const response=await fetch(url,{headers:{Accept:"*/*"},mode:"cors",credentials:"omit",redirect:"error",cache:"no-store"});
+ const type=(response.headers.get("content-type")||"").split(";")[0].trim().toLowerCase();
+ const cors=corsState(response);
+ const status=response.status;
+ if(response.body)await response.body.cancel().catch(()=>{});
+ return {pass:(status===200||status===206)&&cors,type,status,cors};
 }
 async function firstHlsSegment(manifestUrl){
  let url=manifestUrl;
@@ -60,18 +73,18 @@ async function inspectMedia(url,label){
  if(isHls){
   try{
    const segment=await firstHlsSegment(url);
-   const probe=await rangeProbe(segment.url,label+" HLS segment");
+   const probe=await resourceProbe(segment.url);
    add(label+" HLS manifest","pass",segment.manifestType);
    const segmentMimeOk=probe.type==="video/mp2t"||probe.type==="video/mp4"||probe.type==="application/mp4"||probe.type==="application/octet-stream";
    add(label+" HLS segment MIME",segmentMimeOk?"pass":"fail",probe.type||"missing");
-   add(label+" HLS segment Range",probe.pass?"pass":"fail","HTTP "+probe.status+" · "+probe.type+" · CORS "+(probe.cors?"OK":"FAIL")+" · Accept-Ranges "+probe.acceptRanges);
+   add(label+" HLS segment HTTP/CORS",probe.pass?"pass":"fail","HTTP "+probe.status+" · "+probe.type+" · CORS "+(probe.cors?"OK":"FAIL"));
   }catch(error){add(label+" HLS manifest/segment","fail",error.message||String(error));}
  }else{
   try{
    const probe=await rangeProbe(url,label+" MP4");
    const mimeOk=probe.type==="video/mp4"||probe.type==="application/mp4";
    add(label+" MP4 MIME",mimeOk?"pass":"fail",probe.type||"missing");
-   add(label+" MP4 byte-range + CORS",probe.pass?"pass":"fail","HTTP "+probe.status+" · CORS "+(probe.cors?"OK":"FAIL")+" · Accept-Ranges "+probe.acceptRanges);
+   add(label+" MP4 byte-range + CORS",probe.pass?"pass":"fail","HTTP "+probe.status+" · CORS "+(probe.cors?"OK":"FAIL")+" · Content-Range "+(probe.contentRange||"missing")+" · Content-Length "+(probe.contentLength||"not exposed")+" · Accept-Ranges "+probe.acceptRanges);
   }catch(error){add(label+" MP4 range/CORS","fail",error.message||String(error));}
  }
 }
@@ -89,8 +102,35 @@ async function testPlayer(url,isHls,label){
   add(label+" player frame",video.readyState>=2&&video.videoWidth>0?"pass":"fail","readyState="+video.readyState+" · "+video.videoWidth+"×"+video.videoHeight);
  }catch(error){add(label+" player frame","fail",error.message||String(error));}
 }
+async function checkAdminAccess(){
+ try{
+  const response=await fetch(new URL("../admin/",location.href),{method:"GET",credentials:"omit",redirect:"manual",cache:"no-store"});
+  const locationHeader=response.headers.get("location")||"";
+  const redirected=response.status>=300&&response.status<400;
+  const looksLikeAccess=/cloudflareaccess|access\.cloudflare|cdn-cgi\/access/i.test(locationHeader);
+  if(looksLikeAccess)add("Admin Access gate","pass","HTTP "+response.status+" · chuyển hướng Cloudflare Access");
+  else if(redirected)add("Admin Access gate","warn","Admin chuyển hướng HTTP "+response.status+" nhưng chưa xác định được Cloudflare Access");
+  else if(response.ok)add("Admin Access gate","warn","/admin/ trả HTTP "+response.status+"; cần kiểm tra đăng nhập Admin phía API");
+  else add("Admin Access gate","warn","/admin/ trả HTTP "+response.status+"; kiểm tra policy và API đăng nhập");
+ }catch(error){add("Admin Access gate","warn","Không thể xác minh bằng fetch: "+(error.message||String(error))+" · mở /admin/ trong tab mới để xác nhận");}
+}
+
+async function checkAdminApi(){
+ try{
+  const session=await fetch(API+"/api/admin/session",{headers:{Accept:"application/json"},credentials:"omit",redirect:"error",cache:"no-store"});
+  if(session.status===401||session.status===403)add("Admin session API","pass","Không có token hợp lệ · HTTP "+session.status);
+  else if(session.status===404)add("Admin session API","fail","Endpoint /api/admin/session chưa được triển khai (404)");
+  else if(session.ok)add("Admin session API","fail","API chấp nhận phiên không có token (HTTP "+session.status+")");
+  else add("Admin session API","warn","HTTP "+session.status+" · cần kiểm tra phản hồi");
+  const login=await fetch(API+"/api/admin/login",{method:"POST",headers:{Accept:"application/json","Content-Type":"text/plain"},body:"{}",credentials:"omit",redirect:"error",cache:"no-store"});
+  if(login.status===400||login.status===422)add("Admin login API","pass","Endpoint tồn tại và kiểm tra payload · HTTP "+login.status);
+  else if(login.status===404||login.status===405)add("Admin login API","fail","Endpoint đăng nhập chưa được triển khai hoặc POST bị từ chối · HTTP "+login.status);
+  else if(login.status===401)add("Admin login API","pass","Endpoint từ chối payload không hợp lệ · HTTP 401");
+  else add("Admin login API","warn","HTTP "+login.status+" · cần kiểm tra phản hồi");
+ }catch(error){add("Admin auth API","fail","Không thể gọi API đăng nhập/phiên: "+(error.message||String(error)));}
+}
 async function runChecks(){
- run.disabled=true;run.textContent="ĐANG KIỂM TRA…";results.replaceChildren();checks.length=0;video.removeAttribute("src");video.load();
+ run.disabled=true;run.textContent="ĐANG KIỂM TRA…";results.replaceChildren();checks.length=0;video.removeAttribute("src");video.load();await checkAdminAccess();await checkAdminApi();
  try{
   const health=await requestJson("/health","Health");
   add("Worker health",health.ok?"pass":"fail",health.service+" · "+health.environment);
@@ -107,7 +147,7 @@ async function runChecks(){
    const response=await requestJson("/api/providers/"+encodeURIComponent(item.sourceId)+"/videos/"+encodeURIComponent(item.id),"Video detail");
    const episodes=(response.data?.lines||[]).flatMap(line=>line.episodes||[]);
    if(!samples.hls)samples.hls=episodes.find(ep=>/\.m3u8(?:$|[?#])/i.test(ep.url||""))||null;
-   if(!samples.mp4)samples.mp4=episodes.find(ep=>/\\.mp4(?:$|[?#])/i.test(ep.url||""))||null;
+   if(!samples.mp4)samples.mp4=episodes.find(ep=>{try{return /\.mp4$/i.test(new URL(ep.url,location.href).pathname);}catch{return false;}})||null;
    if(samples.hls&&samples.mp4)break;
   }
   if(!samples.hls&&!samples.mp4)throw new Error("10 video đầu không có MP4/HLS URL hợp lệ");
