@@ -8,7 +8,9 @@ const providers = [
   { id: "jipinvip1", name: "JipinVIP1 · Backup 4", baseUrl: "https://jipinvip1.com/api.php/provide/vod/" }
 ];
 
-const maxPages = Math.max(1, Math.min(50, Number(process.env.CATALOG_PAGES_PER_PROVIDER || 20)));\nconst targetVideoCount = Math.max(1, Math.min(1000, Number(process.env.CATALOG_TARGET_VIDEOS || 1000)));
+const maxPages = Math.max(1, Math.min(50, Number(process.env.CATALOG_PAGES_PER_PROVIDER || 20)));
+const targetVideoCount = Math.max(1, Math.min(1000, Number(process.env.CATALOG_TARGET_VIDEOS || 1000)));
+// Keep declarations on real source lines; escaped newline literals break Node.js parsing.
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const safeUrl = (value) => {
   if (typeof value !== "string" || value.length > 2048) return "";
@@ -177,7 +179,9 @@ await writeFile("site/data/catalog.json", JSON.stringify(payload));
 console.log(JSON.stringify({
   updatedAt: payload.updatedAt,
   providers: payload.providers,
-  targetVideos: targetVideoCount,\n  targetReached: videos.length >= targetVideoCount,\n  totalVideos: videos.length,
+  targetVideos: targetVideoCount,
+  targetReached: videos.length >= targetVideoCount,
+  totalVideos: videos.length,
   playableVideos: videos.filter((video) => video.hasPlayback).length
 }, null, 2));
 
