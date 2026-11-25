@@ -79,7 +79,7 @@ function loadVideos() {
 
 $("filters").addEventListener("submit", (event) => { event.preventDefault(); page = 1; categoryId = $("category").value; keyword = $("keyword").value.trim(); loadVideos(); });
 $("source").addEventListener("change", () => { activeProvider = $("source").value; categoryId = ""; $("category").value = ""; populateCategories(); page = 1; loadVideos(); });
-$("category").addEventListener("change", () => { categoryId = $("category").value; page = 1; loadVideos(); });
+$("category").addEventListener("change", () => {\n  const selected = $("category").value;\n  if (selected) {\n    const [source, ...parts] = selected.split(":");\n    activeProvider = source;\n    $("source").value = source;\n    categoryId = parts.join(":");\n    populateCategories();\n    $("category").value = selected;\n  } else { categoryId = ""; }\n  page = 1;\n  loadVideos();\n});
 $("prev").addEventListener("click", () => { if (page > 1) { page -= 1; loadVideos(); } });
 $("next").addEventListener("click", () => { if (page < pageCount) { page += 1; loadVideos(); } });
 
