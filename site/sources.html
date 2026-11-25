@@ -45,11 +45,11 @@
       <h2>Kiến trúc tích hợp</h2>
       <ul>
         <li><strong><code>site/</code></strong> là frontend tĩnh: chỉ hiển thị thư viện, registry và admin thử API trên trình duyệt.</li>
-        <li><strong>Next.js + <code>app/api/</code></strong> là backend/API runtime; không được giả định GitHub Pages có thể chạy server routes.</li>
+        <li><strong>Next.js và các server routes trong repository không thuộc target triển khai của GitHub Pages.</li>
         <li><strong>Provider adapter</strong> phải chuẩn hóa metadata, kiểm tra HTTPS, allowlist embed host, timeout và giới hạn dữ liệu.</li>
-        <li><strong>Player</strong> chỉ phát URL media/embed đã được cấp phép và cho phép; registry này không cung cấp stream URL.</li>
+        <li><strong>Player</strong> phát URL media HTTPS từ catalog đã đồng bộ trực tiếp trên trình duyệt; không proxy stream.</li>
       </ul>
-      <p>Admin hiện tại là công cụ thử API phía trình duyệt, chưa phải hệ thống quản trị có đăng nhập/phân quyền server-side.</p>
+      <p>ClipViet GitHub Pages sử dụng catalog JSON tĩnh được đồng bộ bởi GitHub Actions; trang quản lý nguồn chỉ đọc trạng thái đồng bộ.</p>
     </section>
   </main>
   <footer><a class="brand footer-brand" href="./"><img src="./clipviet-logo.svg" alt=""><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a><p>© <span id="year"></span> ClipViet.live · Chỉ phát nội dung có quyền phân phối.</p></footer>
