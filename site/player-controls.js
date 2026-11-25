@@ -71,7 +71,7 @@ function setHlsQualityLevels(levels) {
   if (!qualitySelect) return;
   const sorted = levels.map((level, index) => ({ ...level, index }))
     .filter((level) => Number(level.height) > 0)
-    .sort((a, b) => a.height - b.height || a.bitrate - b.bitrate);
+    .sort((a, b) => a.height - b.height || b.bitrate - a.bitrate);
   qualitySelect.replaceChildren();
   const auto = document.createElement("option");
   auto.value = "-1";
