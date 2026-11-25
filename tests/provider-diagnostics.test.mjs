@@ -41,7 +41,7 @@ test("diagnostic validates AppleCMS JSON but never probes an unapproved media ho
     assert.equal(run.checks.mediaHosts.status,"FAIL");
     assert.equal(run.checks.mime.status,"UNVERIFIED");
     assert.equal(run.checks.range.status,"UNVERIFIED");
-    assert.equal(calls.length,1,"only provider API is fetched");
+    assert.equal(run.checks.pagination.secondPage,"PASS");\n    assert.equal(calls.length,2,"only the two provider API pages are fetched; media is not probed");
     assert.equal(calls[0].init.redirect,"error");
     assert.equal(db.saved.length,1);
     assert.equal((await listProviderDiagnostics(db,"souavzy")).length,1);
