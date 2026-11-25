@@ -67,4 +67,4 @@ Configure these as Cloudflare Worker Secrets on `clipviet-catalog-api-preview`:
 - `ADMIN_PIN`: exactly six digits. The initial owner-selected value is set outside Git as a Worker Secret.
 - `ADMIN_SESSION_SECRET`: unique random secret of at least 32 bytes.
 
-The Worker issues a signed 4-hour bearer session. The browser stores it in `sessionStorage`. The login endpoint applies a best-effort per-isolate limit of five failed attempts followed by a 15-minute cooldown; configure Cloudflare edge rate limiting for durable distributed enforcement before Production use. Never commit the PIN or signing secret.
+The Worker issues a signed 4-hour bearer session. The six-digit PIN is never embedded in the static site or repository. The browser stores it in `sessionStorage`. The login endpoint applies a best-effort per-isolate limit of five failed attempts followed by a 15-minute cooldown; configure Cloudflare edge rate limiting for durable distributed enforcement before Production use. Never commit the PIN or signing secret.
