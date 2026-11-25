@@ -89,7 +89,7 @@ export default {
         const now = new Date().toISOString(), eventId = crypto.randomUUID();
         await db.batch([
           db.prepare("UPDATE provider_connectors SET status='APPROVED',evidence_reference=?,updated_at=? WHERE provider_id=? AND status='PENDING'").bind(evidenceReference,now,parts[1]),
-          db.prepare("INSERT INTO provider_audit (event_id,provider_id,action,from_status,to_status,actor_role,metadata_json,created_at) VALUES (?,?,?,?,?,?,?,?)").bind(eventId,parts[1],"CONNECTOR_APPROVED","PENDING","APPROVED",role,JSON.stringify({connectorId:connector.connector_id,evidenceReference}),now)
+          db.prepare("INSERT INTO provider_audit (event_id,provider_id,action,from_status,to_status,actor_role,metadata_json,created_at) SELECT ?,?,?,?, ?,?,?,? WHERE EXISTS (SELECT 1 FROM provider_connectors WHERE provider_id=? AND status='APPROVED' AND updated_at=?)").bind(eventId,parts[1],"CONNECTOR_APPROVED","PENDING","APPROVED",role,JSON.stringify({connectorId:connector.connector_id,evidenceReference}),now,parts[1],now)
         ]);
         const updated = await db.prepare("SELECT * FROM provider_connectors WHERE provider_id=?").bind(parts[1]).first();
         if (!updated || updated.status !== "APPROVED") return json({ error: "Connector approval failed or conflicted." },409,cors);
@@ -141,8 +141,8 @@ export default {
         await db.batch([
           db.prepare("UPDATE provider_content_rights SET status='APPROVED',legal_evidence_json=?,updated_at=? WHERE id=? AND provider_id=? AND status='PENDING'")
             .bind(legalEvidence,now,parts[3],parts[1]),
-          db.prepare("INSERT INTO provider_audit (event_id,provider_id,action,from_status,to_status,actor_role,metadata_json,created_at) VALUES (?,?,?,?,?,?,?,?)")
-            .bind(eventId,parts[1],"CONTENT_RIGHTS_APPROVED","PENDING","APPROVED",role,JSON.stringify({contentRightsId:parts[3],evidenceRecorded:true}),now)
+          db.prepare("INSERT INTO provider_audit (event_id,provider_id,action,from_status,to_status,actor_role,metadata_json,created_at) SELECT ?,?,?,?, ?,?,?,? WHERE EXISTS (SELECT 1 FROM provider_content_rights WHERE id=? AND provider_id=? AND status='APPROVED' AND updated_at=?)")
+            .bind(eventId,parts[1],"CONTENT_RIGHTS_APPROVED","PENDING","APPROVED",role,JSON.stringify({contentRightsId:parts[3],evidenceRecorded:true}),now,parts[3],parts[1],now)
         ]);
         const updated = await db.prepare("SELECT * FROM provider_content_rights WHERE id=? AND provider_id=?").bind(parts[3],parts[1]).first();
         if (!updated || updated.status !== "APPROVED") return json({ error: "Concurrent update or approval failed." }, 409, cors);
