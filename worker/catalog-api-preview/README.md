@@ -50,3 +50,9 @@ Bind the Preview database to the Worker as `DB`. The CMS supports:
 - Maximum content size: 50 KB; list APIs are capped to 100 public / 200 Admin records.
 
 Do not bind a Production database to this Preview Worker. Do not apply migrations to Production. The Admin page renders article text as text (not executable HTML).
+
+
+### Live Preview resource status
+- Cloudflare D1 Preview database: `clipviet-cms-preview` (`1e613e7b-5aa3-4927-bf78-552f383c9dce`, APAC).
+- Migration `0001_create_articles.sql` has been applied and the table/indexes verified.
+- Worker Preview has the `DB` binding. Admin secrets remain intentionally unconfigured until entered as Cloudflare Worker Secrets by the account owner.

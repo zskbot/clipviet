@@ -17,4 +17,4 @@ APPLECMS_JIPINVIP1_URL = "https://jipinvip1.com/api.php/provide/vod/"
 [[d1_databases]]
 binding = "DB"
 database_name = "clipviet-cms-preview"
-database_id = "REPLACE_WITH_PREVIEW_DATABASE_ID"
+database_id = "1e613e7b-5aa3-4927-bf78-552f383c9dce"
