@@ -158,6 +158,10 @@ async function transitionProvider(db, id, to, role, evidence) {
   const current = await db.prepare("SELECT * FROM provider_registry WHERE id=?").bind(id).first();
   if (!current) return { error: "Provider not found.", status: 404 };
   if (!transitionAllowed(current.status, to, role, evidence)) return { error: "Transition denied: required reviewer role or evidence is missing.", status: 403 };
+  if (to === "VERIFIED") {
+    const diagnostic = await db.prepare("SELECT status FROM provider_diagnostic_runs WHERE id=? AND provider_id=?").bind(clean(evidence.testRunId,120),id).first();
+    if (!diagnostic || diagnostic.status !== "PASS") return { error: "Cannot verify: a persisted PASS diagnostic run for this provider is required.", status: 409 };
+  }
   if (to === "ENABLED") {
     const technical = current.technical_evidence_json ? JSON.parse(current.technical_evidence_json) : {};
     const legal = current.legal_evidence_json ? JSON.parse(current.legal_evidence_json) : {};
