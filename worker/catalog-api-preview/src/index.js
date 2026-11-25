@@ -31,6 +31,11 @@ function safeSecretCompare(candidate, expected) {
   let diff=0; for(let i=0;i<a.length;i++) diff|=a[i]^b[i];
   return diff===0;
 }
+function b64url(bytes) {
+  let binary="";
+  for(let i=0;i<bytes.length;i++) binary+=String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");
+}
 async function signSession(payload, secret) {
   const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
   return b64url(new Uint8Array(await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(payload))));
