@@ -24,7 +24,7 @@ function populateCategories() {
   select.replaceChildren(option("Tất cả danh mục", ""));
   catalog.categories
     .filter((item) => !activeProvider || item.sourceId === activeProvider)
-    .forEach((item) => select.append(option(item.name, item.id)));
+    .forEach((item) => select.append(option(item.sourceName + " · " + item.name, item.sourceId + ":" + item.id)));
   if ([...select.options].some((item) => item.value === current)) select.value = current;
 }
 
@@ -74,12 +74,52 @@ function loadVideos() {
   items = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   $("count").dataset.total = String(total);
   render();
-  status("Catalog tĩnh từ GitHub Pages · " + providerRows() + " · Cập nhật " + new Date(catalog.updatedAt).toLocaleString("vi-VN"));
+  status("Catalog tĩnh GitHub Pages · " + providerRows() + " · Cập nhật " + new Date(catalog.updatedAt).toLocaleString("vi-VN"));
 }
 
-$("filters").addEventListener("submit", (event) => { event.preventDefault(); page = 1; categoryId = $("category").value; keyword = $("keyword").value.trim(); loadVideos(); });
-$("source").addEventListener("change", () => { activeProvider = $("source").value; categoryId = ""; $("category").value = ""; populateCategories(); page = 1; loadVideos(); });
-$("category").addEventListener("change", () => {\n  const selected = $("category").value;\n  if (selected) {\n    const [source, ...parts] = selected.split(":");\n    activeProvider = source;\n    $("source").value = source;\n    categoryId = parts.join(":");\n    populateCategories();\n    $("category").value = selected;\n  } else { categoryId = ""; }\n  page = 1;\n  loadVideos();\n});
+$("filters").addEventListener("submit", (event) => {
+  event.preventDefault();
+  page = 1;
+  const selected = $("category").value;
+  if (selected) {
+    const [source, ...parts] = selected.split(":");
+    activeProvider = source;
+    $("source").value = source;
+    categoryId = parts.join(":");
+  } else {
+    categoryId = "";
+  }
+  keyword = $("keyword").value.trim();
+  populateCategories();
+  if (selected) $("category").value = selected;
+  loadVideos();
+});
+
+$("source").addEventListener("change", () => {
+  activeProvider = $("source").value;
+  categoryId = "";
+  $("category").value = "";
+  populateCategories();
+  page = 1;
+  loadVideos();
+});
+
+$("category").addEventListener("change", () => {
+  const selected = $("category").value;
+  if (selected) {
+    const [source, ...parts] = selected.split(":");
+    activeProvider = source;
+    $("source").value = source;
+    categoryId = parts.join(":");
+    populateCategories();
+    $("category").value = selected;
+  } else {
+    categoryId = "";
+  }
+  page = 1;
+  loadVideos();
+});
+
 $("prev").addEventListener("click", () => { if (page > 1) { page -= 1; loadVideos(); } });
 $("next").addEventListener("click", () => { if (page < pageCount) { page += 1; loadVideos(); } });
 
