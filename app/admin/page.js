@@ -80,6 +80,11 @@ export default function AdminPage() {
       <a href="/providers" className="text-sm text-zinc-400 hover:text-white">← Provider Sandbox</a>
     </div>
 
+    <section className="mb-8 border border-white/10 bg-white/[.025] p-5 sm:p-6">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-red-400">COMMUNITY / CLIPFORM</p><h2 className="mt-2 text-xl font-black">Đề xuất video</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">Xem biểu mẫu gửi đề xuất. Phản hồi được quản lý trong Clipform; không tự động xuất bản vào danh mục.</p></div><a href="https://app.clipform.io/ce617e6d-4c43-475b-9c9d-d7ee953e3181/forms/3c0b50ba-72f3-426e-a489-36325e012907/responses" target="_blank" rel="noopener noreferrer" className="border border-red-500 px-4 py-3 text-xs font-bold text-white">QUẢN LÝ PHẢN HỒI ↗</a></div>
+      <iframe title="Biểu mẫu đề xuất video ClipViet.live" src="https://clipform.io/3d76a8c57" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" className="h-[780px] w-full border border-white/10 bg-black" />
+    </section>
+
     <section className="mb-8 rounded-2xl border border-white/10 bg-white/[.03] p-5 sm:p-6">
       <div className="mb-5"><p className="text-xs font-bold uppercase tracking-[.2em] text-red-400">TELEGRAM / PUBLIC SOURCES</p><h2 className="mt-2 text-xl font-black">Nguồn video công khai</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">Nhập link kênh Telegram công khai. TX.TOP chỉ lấy thông tin bài đăng và nhúng trình phát Telegram; không tải hoặc lưu tệp video. Với nhóm, bot cần quyền quản trị để nhận bài đăng mới.</p></div>
       <form onSubmit={addSource} className="flex flex-col gap-3 sm:flex-row">
