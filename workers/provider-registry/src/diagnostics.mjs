@@ -71,7 +71,22 @@ export async function runProviderDiagnostic(db, provider) {
           const rows = Array.isArray(payload.list) ? payload.list : [];
           const page = Number(payload.page), pageCount = Number(payload.pagecount), total = Number(payload.total), limit = Number(payload.limit);
           result.checks.json.status = Number(payload.code) === 1 && Array.isArray(payload.list) ? "PASS":"FAIL";
-          result.checks.pagination = {status:Number.isFinite(page) && page >= 1 && Number.isFinite(pageCount) && pageCount >= 0 && Number.isFinite(total) && total >= 0 ? "PASS":"FAIL",page:Number.isFinite(page)?page:null,pageCount:Number.isFinite(pageCount)?pageCount:null,total:Number.isFinite(total)?total:null,limit:Number.isFinite(limit)?limit:null};
+          let paginationStatus = Number.isFinite(page) && page === 1 && Number.isFinite(pageCount) && pageCount >= 0 && Number.isFinite(total) && total >= 0 ? "PASS":"FAIL";
+          let secondPage = "NOT_REQUIRED";
+          if (paginationStatus === "PASS" && pageCount > 1) {
+            try {
+              const pageTwoUrl = new URL(provider.api_base_url);
+              pageTwoUrl.searchParams.set("ac","detail"); pageTwoUrl.searchParams.set("pg","2");
+              const pageTwoResponse = await fetch(pageTwoUrl.toString(), {redirect:"error", signal:AbortSignal.timeout(TIMEOUT_MS), headers:{accept:"application/json"}});
+              if (!pageTwoResponse.ok) { paginationStatus = "FAIL"; secondPage = "HTTP_" + pageTwoResponse.status; await pageTwoResponse.body?.cancel(); }
+              else {
+                const pageTwo = JSON.parse(await readLimited(pageTwoResponse,MAX_API_BYTES));
+                secondPage = Array.isArray(pageTwo.list) && Number(pageTwo.page) === 2 && Number(pageTwo.code) === 1 ? "PASS" : "FAIL";
+                if (secondPage !== "PASS") paginationStatus = "FAIL";
+              }
+            } catch { paginationStatus = "UNVERIFIED"; secondPage = "UNVERIFIED"; }
+          }
+          result.checks.pagination = {status:paginationStatus,page:Number.isFinite(page)?page:null,pageCount:Number.isFinite(pageCount)?pageCount:null,total:Number.isFinite(total)?total:null,limit:Number.isFinite(limit)?limit:null,secondPage};
           const first = rows[0] || {};
           const fields = ["vod_id","vod_name","vod_pic","vod_content","vod_year","vod_duration","vod_play_from","vod_play_url"];
           const present = fields.filter(key => first[key] !== undefined && first[key] !== null && String(first[key]) !== "");
