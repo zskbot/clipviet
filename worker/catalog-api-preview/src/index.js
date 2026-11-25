@@ -42,6 +42,7 @@ async function issueSession(env) {
   return "v1."+payload+"."+await signSession(payload,env.ADMIN_SESSION_SECRET);
 }
 async function validSession(request, env) {
+  if(!env.ADMIN_SESSION_SECRET) return false;
   const header=request.headers.get("Authorization")||"";
   const token=header.startsWith("Bearer ")?header.slice(7):"";
   const parts=token.split(".");
