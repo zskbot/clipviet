@@ -316,3 +316,5 @@ body.menu-open{overflow:hidden;touch-action:none}
 .poster{aspect-ratio:16/9;background:#050609}
 .poster img{object-fit:contain;object-position:center;transform:none!important;filter:none}
 .video-card:hover .poster img{transform:none}
+
+/* Trigger Preview build for corrected thumbnail framing. */
