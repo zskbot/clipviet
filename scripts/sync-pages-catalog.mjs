@@ -8,7 +8,7 @@ const providers = [
   { id: "jipinvip1", name: "JipinVIP1 · Backup 4", baseUrl: "https://jipinvip1.com/api.php/provide/vod/" }
 ];
 
-const maxPages = Math.max(1, Math.min(5, Number(process.env.CATALOG_PAGES_PER_PROVIDER || 3)));
+const maxPages = Math.max(1, Math.min(5, Number(process.env.CATALOG_PAGES_PER_PROVIDER || 5)));
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const safeUrl = (value) => {
   if (typeof value !== "string" || value.length > 2048) return "";
