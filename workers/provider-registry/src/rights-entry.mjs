@@ -3,6 +3,7 @@ import { resolveRole } from "./security.mjs";
 import { validateConnectorContract, validateContentRights, canApproveContentRights, playbackDecision } from "./rights-gate.mjs";
 import { runProviderDiagnostic, listProviderDiagnostics } from "./diagnostics.mjs";
 import { adminPage } from "./admin-ui.mjs";
+import { handleAuth } from "./auth.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...headers }
@@ -40,7 +41,8 @@ export default {
     const url = new URL(request.url);
     const parts = url.pathname.replace(/\/+$/, "").split("/").filter(Boolean);
     const rightsRoute = (parts[0] === "providers" && (parts[2] === "content-rights" || parts[2] === "connector" || parts[2] === "diagnostics")) ||
-      (parts.length === 1 && (parts[0] === "admin" || parts[0] === "health")) ||
+      (parts.length === 1 && (parts[0] === "admin" || parts[0] === "health" || parts[0] === "login")) ||
+      (parts[0] === "auth") ||
       (parts[0] === "playback" && parts[1] === "authorize");
     if (!rightsRoute) return registry.fetch(request, env, ctx);
     if (env.REGISTRY_ENV !== "preview" || !previewOnly(request)) return json({ error: "Preview-only registry is disabled." }, 404);
@@ -55,8 +57,10 @@ export default {
     cors["Access-Control-Allow-Headers"] = "Authorization,Content-Type";
     cors["Access-Control-Max-Age"] = "600";
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+    if (parts[0] === "login" || parts[0] === "auth") return handleAuth(request, env);
 
-    const role = await resolveRole(request, env, equalSecret, ctx);
+    const role = await resolveRole(request, env, equalSecret);
+    if (!role && parts.length === 1 && parts[0] === "admin") return Response.redirect(new URL("/login", url).toString(), 302);
     if (!role) return json({ error: "Unauthorized" }, 401, cors);
     if (!env.PROVIDER_DB) return json({ error: "Preview D1 binding is not configured." }, 503, cors);
     const db = env.PROVIDER_DB;

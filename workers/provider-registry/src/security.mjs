@@ -1,3 +1,4 @@
+import { sessionRole } from "./auth.mjs";
 let jwksCache={keys:[],expiresAt:0};
 const enc=new TextEncoder();
 function b64u(s){const v=s.replace(/-/g,"+").replace(/_/g,"/");return Uint8Array.from(atob(v+"=".repeat((4-v.length%4)%4)),c=>c.charCodeAt(0));}
@@ -35,8 +36,9 @@ export async function accessRole(request,env,ctx){
   if(env.ACCESS_LEGAL_GROUP_ID&&groups.includes(env.ACCESS_LEGAL_GROUP_ID))return "legal";
  }catch{return "";}return "";
 }
-export async function resolveRole(request,env,equalSecret,ctx){
- const role=await accessRole(request,env,ctx);if(role)return role;
+export async function resolveRole(request,env,equalSecret){
+ const session=await sessionRole(request,env);if(session)return session;
+ const role=await accessRole(request,env);if(role)return role;
  const supplied=(request.headers.get("authorization")||"").replace(/^Bearer\s+/i,"");
  if(!supplied)return "";
  for(const [r,k] of [["technical",env.REGISTRY_TECH_TOKEN],["legal",env.REGISTRY_LEGAL_TOKEN]])if(k&&equalSecret(supplied,k))return r;
