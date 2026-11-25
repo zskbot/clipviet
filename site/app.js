@@ -113,8 +113,17 @@ function render() {
 
 function renderPagination(totalPages) {
   pagination.replaceChildren();
-  if (totalPages <= 1) { pagination.hidden = true; return; }
+  if (totalPages < 1) { pagination.hidden = true; return; }
   pagination.hidden = false;
+
+  const goToPage = (page) => {
+    if (!Number.isInteger(page) || page < 1 || page > totalPages || page === currentPage) return;
+    currentPage = page;
+    render();
+    const target = document.querySelector("#catalog .section-heading");
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const addButton = (label, page, { active = false, disabled = false, title = "" } = {}) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -123,31 +132,74 @@ function renderPagination(totalPages) {
     button.disabled = disabled;
     button.setAttribute("aria-label", title || ("Trang " + page));
     if (active) button.setAttribute("aria-current", "page");
-    button.addEventListener("click", () => {
-      if (page === currentPage || disabled) return;
-      currentPage = page;
-      render();
-      const target = document.querySelector("#catalog .section-heading");
-      target?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    button.addEventListener("click", () => goToPage(page));
     pagination.append(button);
   };
-  if (currentPage > 1) addButton("◀", currentPage - 1, { title: "Trang trước" });
-  const windowSize = 10;
-  const startPage = Math.max(1, Math.min(currentPage - 4, totalPages - windowSize + 1));
+
+  addButton("« Đầu", 1, { disabled: currentPage === 1, title: "Trang đầu" });
+  addButton("‹ Trước", currentPage - 1, { disabled: currentPage === 1, title: "Trang trước" });
+
+  const windowSize = 7;
+  const startPage = Math.max(1, Math.min(currentPage - 3, totalPages - windowSize + 1));
   const endPage = Math.min(totalPages, startPage + windowSize - 1);
-  for (let page = startPage; page <= endPage; page++) {
-    addButton(String(page), page, { active: page === currentPage });
+  if (startPage > 1) {
+    addButton("1", 1, { title: "Trang 1" });
+    if (startPage > 2) {
+      const leading = document.createElement("span");
+      leading.className = "page-ellipsis";
+      leading.textContent = "…";
+      leading.setAttribute("aria-hidden", "true");
+      pagination.append(leading);
+    }
+  }
+  for (let page = startPage; page <= endPage; page += 1) {
+    addButton(String(page), page, { active: page === currentPage, title: "Trang " + page });
   }
   if (endPage < totalPages) {
-    const last = document.createElement("span");
-    last.className = "page-ellipsis";
-    last.setAttribute("aria-hidden", "true");
-    last.textContent = "…";
-    pagination.append(last);
-    addButton("…" + totalPages, totalPages, { title: "Đến trang cuối: " + totalPages });
+    if (endPage < totalPages - 1) {
+      const trailing = document.createElement("span");
+      trailing.className = "page-ellipsis";
+      trailing.textContent = "…";
+      trailing.setAttribute("aria-hidden", "true");
+      pagination.append(trailing);
+    }
+    addButton(String(totalPages), totalPages, { title: "Trang cuối: " + totalPages });
   }
-  if (currentPage < totalPages) addButton("▶", currentPage + 1, { title: "Trang tiếp theo" });
+
+  const jumpForm = document.createElement("form");
+  jumpForm.className = "page-jump";
+  jumpForm.setAttribute("aria-label", "Đi đến trang");
+  const jumpLabel = document.createElement("label");
+  jumpLabel.textContent = "Đến trang";
+  const jumpInput = document.createElement("input");
+  jumpInput.type = "number";
+  jumpInput.inputMode = "numeric";
+  jumpInput.min = "1";
+  jumpInput.max = String(totalPages);
+  jumpInput.step = "1";
+  jumpInput.placeholder = String(currentPage);
+  jumpInput.value = String(currentPage);
+  jumpInput.setAttribute("aria-label", "Nhập số trang từ 1 đến " + totalPages);
+  const jumpButton = document.createElement("button");
+  jumpButton.type = "submit";
+  jumpButton.textContent = "Đi";
+  jumpForm.append(jumpLabel, jumpInput, jumpButton);
+  jumpForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const page = Number(jumpInput.value);
+    if (!Number.isInteger(page) || page < 1 || page > totalPages) {
+      jumpInput.setCustomValidity("Nhập số trang từ 1 đến " + totalPages + ".");
+      jumpInput.reportValidity();
+      return;
+    }
+    jumpInput.setCustomValidity("");
+    goToPage(page);
+  });
+  jumpInput.addEventListener("input", () => jumpInput.setCustomValidity(""));
+  pagination.append(jumpForm);
+
+  addButton("Tiếp »", currentPage + 1, { disabled: currentPage === totalPages, title: "Trang tiếp theo" });
+  addButton("Cuối »", totalPages, { disabled: currentPage === totalPages, title: "Trang cuối" });
 }
 
 let featuredVideos = [];

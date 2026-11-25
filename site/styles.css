@@ -460,3 +460,15 @@ body.menu-open{overflow:hidden;touch-action:none}
 @media(prefers-reduced-motion:reduce){
  .topbar .primary-nav a,.home-category-card,.video-card,.footer-search-tags a{transition:none}
 }
+
+/* Data-driven pagination with first/last controls and direct page jump. */
+.video-pagination{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:7px;margin:30px auto 8px;max-width:100%}
+.page-button{min-height:38px;min-width:38px;padding:0 10px;border:1px solid var(--line);background:#101219;color:#d7d8de;font-size:11px;font-weight:750;cursor:pointer}
+.page-button:hover:not(:disabled),.page-button.is-active{border-color:var(--red);background:#ef334018;color:#fff}
+.page-button:disabled{opacity:.38;cursor:not-allowed}
+.page-ellipsis{color:#85868f;padding:0 2px}
+.page-jump{display:flex;align-items:center;gap:6px;margin:0 4px}
+.page-jump label{font-size:9px;color:#9698a2;white-space:nowrap}
+.page-jump input{width:76px;height:38px;padding:0 8px;border:1px solid var(--line);background:#08090d;color:#fff;font-size:12px;border-radius:0}
+.page-jump button{height:38px;padding:0 12px;border:1px solid var(--red);background:var(--red);color:#fff;font-size:10px;font-weight:850;cursor:pointer}
+@media(max-width:520px){.video-pagination{gap:5px}.page-button{min-width:34px;min-height:36px;padding:0 7px;font-size:10px}.page-jump{order:2;width:100%;justify-content:center;margin-top:6px}.page-jump input{width:88px}}
