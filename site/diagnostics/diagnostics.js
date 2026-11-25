@@ -41,6 +41,14 @@ async function rangeProbe(url,label){
  const pass=status===206&&cors&&rangeValid&&lengthValid;
  return {pass,status,type,cors,contentRange,contentLength,rangeValid,acceptRanges};
 }
+async function resourceProbe(url){
+ const response=await fetch(url,{headers:{Accept:"*/*"},mode:"cors",credentials:"omit",redirect:"error",cache:"no-store"});
+ const type=(response.headers.get("content-type")||"").split(";")[0].trim().toLowerCase();
+ const cors=corsState(response);
+ const status=response.status;
+ if(response.body)await response.body.cancel().catch(()=>{});
+ return {pass:(status===200||status===206)&&cors,type,status,cors};
+}
 async function firstHlsSegment(manifestUrl){
  let url=manifestUrl;
  for(let depth=0;depth<2;depth++){
@@ -65,11 +73,11 @@ async function inspectMedia(url,label){
  if(isHls){
   try{
    const segment=await firstHlsSegment(url);
-   const probe=await rangeProbe(segment.url,label+" HLS segment");
+   const probe=await resourceProbe(segment.url);
    add(label+" HLS manifest","pass",segment.manifestType);
    const segmentMimeOk=probe.type==="video/mp2t"||probe.type==="video/mp4"||probe.type==="application/mp4"||probe.type==="application/octet-stream";
    add(label+" HLS segment MIME",segmentMimeOk?"pass":"fail",probe.type||"missing");
-   add(label+" HLS segment Range",probe.pass?"pass":"fail","HTTP "+probe.status+" · "+probe.type+" · CORS "+(probe.cors?"OK":"FAIL")+" · Accept-Ranges "+probe.acceptRanges);
+   add(label+" HLS segment HTTP/CORS",probe.pass?"pass":"fail","HTTP "+probe.status+" · "+probe.type+" · CORS "+(probe.cors?"OK":"FAIL"));
   }catch(error){add(label+" HLS manifest/segment","fail",error.message||String(error));}
  }else{
   try{
@@ -106,8 +114,23 @@ async function checkAdminAccess(){
   else add("Admin Access gate","warn","/admin/ trả HTTP "+response.status+"; kiểm tra policy và API đăng nhập");
  }catch(error){add("Admin Access gate","warn","Không thể xác minh bằng fetch: "+(error.message||String(error))+" · mở /admin/ trong tab mới để xác nhận");}
 }
+
+async function checkAdminApi(){
+ try{
+  const session=await fetch(API+"/api/admin/session",{headers:{Accept:"application/json"},credentials:"omit",redirect:"error",cache:"no-store"});
+  if(session.status===401||session.status===403)add("Admin session API","pass","Không có token hợp lệ · HTTP "+session.status);
+  else if(session.status===404)add("Admin session API","fail","Endpoint /api/admin/session chưa được triển khai (404)");
+  else if(session.ok)add("Admin session API","fail","API chấp nhận phiên không có token (HTTP "+session.status+")");
+  else add("Admin session API","warn","HTTP "+session.status+" · cần kiểm tra phản hồi");
+  const login=await fetch(API+"/api/admin/login",{method:"POST",headers:{Accept:"application/json","Content-Type":"text/plain"},body:"{}",credentials:"omit",redirect:"error",cache:"no-store"});
+  if(login.status===400||login.status===422)add("Admin login API","pass","Endpoint tồn tại và kiểm tra payload · HTTP "+login.status);
+  else if(login.status===404||login.status===405)add("Admin login API","fail","Endpoint đăng nhập chưa được triển khai hoặc POST bị từ chối · HTTP "+login.status);
+  else if(login.status===401)add("Admin login API","pass","Endpoint từ chối payload không hợp lệ · HTTP 401");
+  else add("Admin login API","warn","HTTP "+login.status+" · cần kiểm tra phản hồi");
+ }catch(error){add("Admin auth API","fail","Không thể gọi API đăng nhập/phiên: "+(error.message||String(error)));}
+}
 async function runChecks(){
- run.disabled=true;run.textContent="ĐANG KIỂM TRA…";results.replaceChildren();checks.length=0;video.removeAttribute("src");video.load();await checkAdminAccess();
+ run.disabled=true;run.textContent="ĐANG KIỂM TRA…";results.replaceChildren();checks.length=0;video.removeAttribute("src");video.load();await checkAdminAccess();await checkAdminApi();
  try{
   const health=await requestJson("/health","Health");
   add("Worker health",health.ok?"pass":"fail",health.service+" · "+health.environment);
