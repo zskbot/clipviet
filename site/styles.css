@@ -227,3 +227,17 @@
 }
 
 /* Preview build trigger for compact homepage spacing refinement. */
+
+/* HeoVL-inspired category discovery, implemented in ClipViet design language */
+.home-category-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 16px}
+.home-category-card{display:grid;grid-template-columns:34px minmax(0,1fr) 12px;align-items:center;gap:8px;min-width:0;min-height:58px;padding:8px;border:1px solid var(--line);border-radius:0;background:var(--panel);color:var(--fg);text-decoration:none;transition:border-color .16s,background .16s}
+.home-category-card:hover,.home-category-card:focus-visible{border-color:var(--red);background:#ef334010;outline:1px solid var(--red);outline-offset:1px}
+.home-category-mark{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:0;background:#08090d;color:var(--red);font-size:10px;font-weight:800;letter-spacing:.5px}
+.home-category-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.home-category-copy strong{overflow:hidden;color:var(--fg);font-size:clamp(10px,1.15vw,13px);font-weight:800;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
+.home-category-copy small{overflow:hidden;color:var(--muted);font-size:8px;font-weight:700;letter-spacing:.55px;text-overflow:ellipsis;white-space:nowrap}
+.home-category-arrow{color:var(--muted);font-size:13px;text-align:right}
+@media(max-width:700px){.home-category-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0 14px}.home-category-card{grid-template-columns:26px minmax(0,1fr);gap:6px;min-height:54px;padding:6px}.home-category-mark{width:26px;height:26px;font-size:8px}.home-category-copy strong{font-size:10px}.home-category-copy small{font-size:7px;letter-spacing:.25px}.home-category-arrow{display:none}}
+@media(max-width:360px){.home-category-grid{gap:5px}.home-category-card{grid-template-columns:22px minmax(0,1fr);gap:5px;padding:5px;min-height:50px}.home-category-mark{width:22px;height:22px;font-size:7px}.home-category-copy strong{font-size:9px}.home-category-copy small{font-size:6px}}
+
+/* Preview trigger: category discovery hub. */
