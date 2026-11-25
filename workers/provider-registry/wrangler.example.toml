@@ -1,5 +1,5 @@
 name = "clipviet-provider-registry-preview"
-main = "src/index.mjs"
+main = "src/rights-entry.mjs"
 compatibility_date = "2026-11-24"
 workers_dev = true
 preview_urls = false
