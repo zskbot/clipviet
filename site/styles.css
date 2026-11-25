@@ -122,3 +122,12 @@
 @keyframes featured-countdown{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media(max-width:700px){.featured-video{padding:26px 14px 34px}.featured-layout{grid-template-columns:1fr;gap:14px}.featured-poster{aspect-ratio:16/9}.featured-copy h2{font-size:27px}.featured-description{min-height:0}.featured-rotation{margin-top:16px}}
 @media(prefers-reduced-motion:reduce){.featured-progress i{animation:none;transform:scaleX(1)}}
+
+/* Compact mobile homepage: primary links live in the hamburger drawer. */
+@media(max-width:700px){
+  .topbar{grid-template-columns:1fr auto;row-gap:10px}
+  .topbar .primary-nav{display:none}
+  .topbar form{grid-column:1/-1;grid-row:2}
+  .menu-toggle{grid-column:2;grid-row:1}
+  .featured-video{margin-top:0}
+}
