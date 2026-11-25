@@ -40,6 +40,25 @@
   <main>
     <!-- Intro hero moved out of the homepage; discovery remains in the navigation drawer. -->
 
+    <section class="live-featured" id="featured-video" aria-labelledby="featured-heading">
+      <div class="live-featured-copy">
+        <p class="eyebrow">CLIPVIET / MỚI CẬP NHẬT</p>
+        <h1 id="featured-heading">Video mới<br><span>từ thư viện</span></h1>
+        <h2 id="featured-title" class="live-featured-title">Đang tải video…</h2>
+        <p id="featured-description" class="live-featured-description">Đang tải video mới nhất từ nguồn dữ liệu được kết nối…</p>
+        <p id="featured-meta" class="live-featured-meta">CLOUDFLARE CATALOG API</p>
+        <div class="live-featured-actions">
+          <button id="featured-watch" class="primary-button" type="button">XEM VIDEO <span>↗</span></button>
+          <button id="featured-open" class="secondary-button" type="button">CHI TIẾT</button>
+        </div>
+        <p class="live-featured-counter">VIDEO NỔI BẬT <span id="featured-index">01</span></p>
+      </div>
+      <button id="featured-poster" class="live-featured-poster" type="button" aria-label="Mở video nổi bật">
+        <img id="featured-image" src="./poster-fallback.svg" alt="Video nổi bật đang tải" loading="eager">
+        <span class="live-featured-play" aria-hidden="true">▶</span>
+      </button>
+    </section>
+
     <section class="catalog" id="catalog" aria-labelledby="catalog-title">
       <div class="section-heading"><div><p class="eyebrow">THƯ VIỆN</p><h2 id="catalog-title">Danh sách video</h2></div><span id="result-count">0 VIDEO</span></div>
       <div class="home-category-grid" aria-label="Khám phá danh mục video">
