@@ -331,6 +331,23 @@ function playSampleVideo() {
   }
 }
 
+const featuredNativePlayer = $("#featured-player");
+featuredNativePlayer?.addEventListener("error", () => {
+  const status = $("#featured-player-status");
+  const fallback = $("#featured-player-fallback");
+  if (status) {
+    status.textContent = "Nguồn MP4 không phản hồi hoặc định dạng không được hỗ trợ. Mở video gốc để tiếp tục.";
+    status.hidden = false;
+  }
+  if (fallback) fallback.hidden = false;
+});
+featuredNativePlayer?.addEventListener("playing", () => {
+  const status = $("#featured-player-status");
+  const fallback = $("#featured-player-fallback");
+  if (status) status.hidden = true;
+  if (fallback) fallback.hidden = true;
+});
+
 function renderSampleVideo(reason) {
   grid.replaceChildren();
   setFeaturedVideos([sampleVideo]);
