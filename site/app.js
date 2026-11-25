@@ -106,7 +106,7 @@ function render() {
       grid.replaceChildren();
       count.textContent = totalResults.toLocaleString("vi-VN") + " VIDEO";
       empty.hidden = pageItems.length > 0;
-      if (pageItems.length) setFeaturedVideos(pageItems);
+      setFeaturedVideos(pageItems);
       renderPagination(totalPages);
       activeFiltersRoot.replaceChildren();
       if (activeCategoryName) {
@@ -240,8 +240,21 @@ let featuredVideos = [];
 let featuredIndex = 0;
 let featuredTimer = null;
 function renderFeatured() {
-  if (!featuredRoot || !featuredVideos.length) return;
+  if (!featuredRoot) return;
+  if (!featuredVideos.length) {
+    $("#featured-title")?.replaceChildren();
+    $("#featured-description").textContent = "Chưa có video đủ điều kiện hiển thị từ nguồn API. Vui lòng thử tải lại sau.";
+    $("#featured-meta").textContent = "CATALOG ĐANG TRỐNG HOẶC NGUỒN TẠM THỜI KHÔNG KHẢ DỤNG";
+    $("#featured-image").src = "./poster-fallback.svg";
+    $("#featured-image").alt = "Chưa có video nổi bật";
+    $("#featured-index").textContent = "—";
+    $("#featured-watch").disabled = true;
+    $("#featured-open").disabled = true;
+    return;
+  }
   const video = featuredVideos[featuredIndex % featuredVideos.length];
+  $("#featured-watch").disabled = false;
+  $("#featured-open").disabled = false;
   const image = $("#featured-image");
   image.src = video.poster || "./poster-fallback.svg";
   image.alt = video.title || "Video nổi bật";
@@ -252,6 +265,7 @@ function renderFeatured() {
   $("#featured-index").textContent = String(featuredIndex + 1).padStart(2, "0");
   $("#featured-open").onclick = () => openDetail(video);
   $("#featured-watch").onclick = () => openDetail(video);
+  $("#featured-poster").onclick = () => openDetail(video);
 }
 function setFeaturedVideos(items) {
   if (!featuredRoot) return;
