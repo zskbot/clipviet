@@ -6,6 +6,13 @@ const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(b
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...headers }
 });
 const clean = (value, max = 240) => typeof value === "string" ? value.trim().slice(0, max) : "";
+function equalSecret(a, b) {
+  const x = new TextEncoder().encode(a || ""), y = new TextEncoder().encode(b || "");
+  if (!x.length || x.length !== y.length) return false;
+  let difference = 0;
+  for (let i = 0; i < x.length; i++) difference |= x[i] ^ y[i];
+  return difference === 0;
+}
 async function readJson(request) {
   const length = Number(request.headers.get("content-length") || 0);
   if (length > 16 * 1024) return { error: "Request body too large.", status: 413 };
@@ -45,7 +52,7 @@ export default {
     cors["Access-Control-Max-Age"] = "600";
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
 
-    const role = await resolveRole(request, env);
+    const role = await resolveRole(request, env, equalSecret);
     if (!role) return json({ error: "Unauthorized" }, 401, cors);
     if (!env.PROVIDER_DB) return json({ error: "Preview D1 binding is not configured." }, 503, cors);
     const db = env.PROVIDER_DB;
@@ -131,7 +138,7 @@ export default {
         if (!row) return json({ error: "Content rights record not found." }, 404, cors);
         if (!canApproveContentRights(row, role, evidence)) return json({ error: "Approval denied: provenance, consent, license expiry or legal evidence is incomplete." }, 409, cors);
         const provider = await db.prepare("SELECT id,status,license_expires_at FROM provider_registry WHERE id=?").bind(parts[1]).first();
-        if (!provider || !Number.isFinite(Date.parse(provider.license_expires_at)) || Date.parse(provider.license_expires_at) <= Date.now()) return json({ error: "Provider-level license is missing or expired." }, 409, cors);
+        if (!provider || !["VERIFIED","APPROVED","ENABLED"].includes(provider.status) || !Number.isFinite(Date.parse(provider.license_expires_at)) || Date.parse(provider.license_expires_at) <= Date.now()) return json({ error: "Provider must be technically verified and have a current provider-level license." }, 409, cors);
         const eventId = crypto.randomUUID(), now = new Date().toISOString();
         const legalEvidence = JSON.stringify({
           permissionReference:clean(evidence.permissionReference), ownershipReference:clean(evidence.ownershipReference),
