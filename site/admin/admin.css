@@ -23,3 +23,35 @@
 
 /* Keep the Admin workspace hidden until the server verifies the PIN. */
 #admin-workspace.admin-locked{display:none}
+
+
+/* Full-screen admin workspace */
+:root{--bg:#07080b;--panel:#101218;--line:#282b34;--red:#e53946}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{min-height:100vh}
+.topbar{height:58px;padding:0 24px;gap:18px}
+.top-label{margin-right:auto}
+.back{margin-left:0}
+.admin-nav{position:fixed;left:0;top:58px;bottom:0;width:224px;padding:22px 14px;background:#0b0d12;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:4px;overflow:auto;z-index:2}
+.admin-nav .nav-caption{font-size:9px;letter-spacing:1.8px;font-weight:800;color:var(--red);padding:0 10px;margin:0 0 10px}
+.admin-nav a{display:block;padding:12px 10px;border:1px solid transparent;color:#b9bbc4;font-size:12px;line-height:1.2}
+.admin-nav a:hover,.admin-nav a:focus{border-color:#3b3e49;background:#151821;color:#fff;outline:none}
+main{max-width:none;width:calc(100% - 224px);margin:0 0 0 224px;padding:24px clamp(16px,2.5vw,42px) 32px}
+.intro{padding:10px 0 18px}
+.intro h1{font-size:clamp(28px,4vw,44px);letter-spacing:-2px;margin:8px 0}
+.intro>p:last-child{margin:0}
+.panel,.clipform-suggestion,.adultembed-panel{margin-bottom:14px}
+.panel{padding:20px}
+.panel-head{margin-bottom:16px}
+.admin-auth-panel{display:none!important}
+#admin-workspace{display:block!important;opacity:1!important;filter:none!important;pointer-events:auto!important}
+#admin-workspace [data-admin-protected]{opacity:1;filter:none;pointer-events:auto}
+#admin-workspace.admin-locked{display:block!important}
+footer{padding:18px 0}
+@media(max-width:760px){
+ .topbar{padding:0 12px;gap:10px}.top-label{font-size:7px;letter-spacing:1px;padding-left:10px}.back{font-size:7px;letter-spacing:.8px}
+ .admin-nav{position:sticky;top:58px;width:100%;height:auto;bottom:auto;display:flex;flex-direction:row;gap:6px;padding:8px 10px;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap}
+ .admin-nav .nav-caption{display:none}.admin-nav a{flex:none;padding:9px 11px;border:1px solid var(--line);font-size:10px}
+ main{width:100%;margin:0;padding:18px 12px 26px}
+ .panel{padding:15px}.intro{padding:8px 0 16px}
+}
