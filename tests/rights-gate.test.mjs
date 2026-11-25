@@ -48,6 +48,7 @@ test("playback requires enabled provider, approved per-clip rights, licensed use
   const provider = {status:"ENABLED",license_expires_at:"2099-01-01T00:00:00.000Z",playback_mode:"official_embed"};
   const content = {status:"APPROVED",license_expires_at:"2099-01-01T00:00:00.000Z",permitted_uses_json:'["official_embed"]',regions_json:'["VN","KR"]',source_verified:1,ownership_verified:1,performer_age_verified:1,performer_consent_verified:1,source_url:"https://youtube.com/watch?v=1"};
   assert.equal(playbackDecision({provider,content,requestedUse:"official_embed",region:"VN"}).allowed,true);
+  assert.equal(playbackDecision({provider:{...provider,playback_mode:"metadata_only"},content,requestedUse:"official_embed",region:"VN"}).reason,"connector_does_not_support_playback");
   assert.equal(playbackDecision({provider,content,requestedUse:"owner_hosted_stream",region:"VN"}).reason,"requested_use_not_licensed");
   assert.equal(playbackDecision({provider,content,requestedUse:"official_embed",region:"CN"}).reason,"territory_not_licensed");
   assert.equal(playbackDecision({provider:{...provider,status:"APPROVED"},content,requestedUse:"official_embed",region:"VN"}).reason,"provider_not_enabled");
