@@ -584,7 +584,7 @@ body.menu-open{overflow:hidden;touch-action:none}
   position: absolute;
   left: 10px;
   right: 10px;
-  bottom: 10px;
+  bottom: 42px;
   z-index: 2;
   padding: 9px 11px;
   background: #08090df2;
@@ -594,8 +594,15 @@ body.menu-open{overflow:hidden;touch-action:none}
   line-height: 1.5;
 }
 .featured-player-fallback {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 3;
   display: block;
-  margin: 10px 0 0;
+  padding: 7px 9px;
+  margin: 0;
+  background: #08090df2;
+  border: 1px solid #ffffff40;
   color: #ff9ba1;
   font-size: 11px;
   line-height: 1.5;
