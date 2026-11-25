@@ -5,6 +5,8 @@ const MAX_PAGES = 1000;
 let catalog = { videos: [], categories: [], providers: [] };
 let page = 1, pageCount = 1, activeProvider = "", categoryId = "", keyword = "", country = "", duration = "";
 let items = [], trendingTimer = null, trendingIndex = 0, trendingItems = [], quickCategory = "";
+const initialQuickCategory = new URLSearchParams(location.search).get("quick") || "";
+if (["jav","china","europe","vietnam","vietsub","south-asia"].includes(initialQuickCategory)) quickCategory = initialQuickCategory;
 
 const gate = $("age-gate");
 try { if (sessionStorage.getItem("clipviet-age-confirmed") === "yes") gate.hidden = true; } catch {}
@@ -120,6 +122,8 @@ function loadVideos() {
   status("Catalog đồng bộ · "+providerRows()+" · "+total.toLocaleString("vi-VN")+" kết quả · tối đa 1.000 trang · "+new Date(catalog.updatedAt).toLocaleString("vi-VN"));
 }
 document.querySelectorAll(".category-chip").forEach(button=>{
+  button.classList.toggle("is-active",button.dataset.category===quickCategory);
+  button.setAttribute("aria-pressed",String(button.dataset.category===quickCategory));
   button.addEventListener("click",()=>{
     quickCategory=button.dataset.category===quickCategory?"":button.dataset.category;
     document.querySelectorAll(".category-chip").forEach(chip=>{
