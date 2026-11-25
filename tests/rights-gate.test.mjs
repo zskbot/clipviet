@@ -51,6 +51,7 @@ test("playback requires enabled provider, approved per-clip rights, licensed use
   assert.equal(playbackDecision({provider:{...provider,playback_mode:"metadata_only"},content,requestedUse:"official_embed",region:"VN"}).reason,"connector_does_not_support_playback");
   assert.equal(playbackDecision({provider,content,requestedUse:"owner_hosted_stream",region:"VN"}).reason,"requested_use_not_licensed");
   assert.equal(playbackDecision({provider,content,requestedUse:"official_embed",region:"CN"}).reason,"territory_not_licensed");
+  assert.equal(playbackDecision({provider:{...provider,connector_regions:["VN"]},content,requestedUse:"official_embed",region:"KR"}).reason,"connector_region_not_supported");
   assert.equal(playbackDecision({provider:{...provider,status:"APPROVED"},content,requestedUse:"official_embed",region:"VN"}).reason,"provider_not_enabled");
   assert.equal(playbackDecision({provider,content:{...content,status:"PENDING"},requestedUse:"official_embed",region:"VN"}).reason,"content_rights_not_approved");
 });
