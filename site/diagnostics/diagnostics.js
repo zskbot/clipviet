@@ -56,7 +56,7 @@ async function firstHlsSegment(manifestUrl){
  throw new Error("Không tìm thấy segment trong HLS playlist");
 }
 async function inspectMedia(url,label){
- const isHls=/\\.m3u8(?:$|[?#])/i.test(url);
+ const isHls=/\.m3u8(?:$|[?#])/i.test(url);
  if(isHls){
   try{
    const segment=await firstHlsSegment(url);
@@ -106,7 +106,7 @@ async function runChecks(){
   for(const item of list.items.slice(0,10)){
    const response=await requestJson("/api/providers/"+encodeURIComponent(item.sourceId)+"/videos/"+encodeURIComponent(item.id),"Video detail");
    const episodes=(response.data?.lines||[]).flatMap(line=>line.episodes||[]);
-   if(!samples.hls)samples.hls=episodes.find(ep=>/\\.m3u8(?:$|[?#])/i.test(ep.url||""))||null;
+   if(!samples.hls)samples.hls=episodes.find(ep=>/\.m3u8(?:$|[?#])/i.test(ep.url||""))||null;
    if(!samples.mp4)samples.mp4=episodes.find(ep=>/\\.mp4(?:$|[?#])/i.test(ep.url||""))||null;
    if(samples.hls&&samples.mp4)break;
   }
