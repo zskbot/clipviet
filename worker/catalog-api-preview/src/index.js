@@ -61,39 +61,6 @@ async function validSession(request, env) {
   return diff===0;
 }
 const failedLogins=new Map();
-const ADMIN_EMAIL = "nvht25052002@gmail.com";
-const ADMIN_APP_URL = "https://preview-google-oauth-admin.clipviet-live-preview.pages.dev/admin/";
-const OAUTH_REDIRECT_URI = "https://clipviet-catalog-api-preview.huynhthuongg2505-f9b.workers.dev/api/admin/google/callback";
-function cookieValue(request, name) {
-  const raw=request.headers.get("Cookie")||"";
-  for(const part of raw.split(";")) { const [key,...value]=part.trim().split("="); if(key===name) return value.join("="); }
-  return "";
-}
-function redirect(url, headers={}) { return new Response(null,{status:302,headers:{location:url,"cache-control":"no-store",...headers}}); }
-function safeRedirectError(code) { return redirect(ADMIN_APP_URL+"?auth_error="+encodeURIComponent(code)); }
-async function googleOAuthStart(env) {
-  if(!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET||!env.ADMIN_SESSION_SECRET) return safeRedirectError("oauth_not_configured");
-  const state=b64url(crypto.getRandomValues(new Uint8Array(32)));
-  const query=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:OAUTH_REDIRECT_URI,response_type:"code",scope:"openid email profile",state,prompt:"select_account"});
-  return redirect("https://accounts.google.com/o/oauth2/v2/auth?"+query.toString(),{"set-cookie":"cv_google_oauth_state="+state+"; Path=/api/admin/google/callback; HttpOnly; Secure; SameSite=Lax; Max-Age=600"});
-}
-async function googleOAuthCallback(request,env) {
-  const url=new URL(request.url), state=url.searchParams.get("state")||"", cookie=cookieValue(request,"cv_google_oauth_state");
-  const clearState="cv_google_oauth_state=; Path=/api/admin/google/callback; HttpOnly; Secure; SameSite=Lax; Max-Age=0";
-  if(!state||!cookie||!safeSecretCompare(state,cookie)) return safeRedirectError("oauth_state_invalid");
-  if(url.searchParams.has("error")||!url.searchParams.get("code")) return safeRedirectError("google_login_cancelled");
-  if(!env.GOOGLE_CLIENT_ID||!env.GOOGLE_CLIENT_SECRET||!env.ADMIN_SESSION_SECRET) return safeRedirectError("oauth_not_configured");
-  const tokenResponse=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({code:url.searchParams.get("code"),client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET,redirect_uri:OAUTH_REDIRECT_URI,grant_type:"authorization_code"})});
-  if(!tokenResponse.ok) return safeRedirectError("google_token_exchange_failed");
-  const tokenData=await tokenResponse.json();
-  if(typeof tokenData.access_token!=="string") return safeRedirectError("google_token_missing");
-  const profileResponse=await fetch("https://openidconnect.googleapis.com/v1/userinfo",{headers:{authorization:"Bearer "+tokenData.access_token}});
-  if(!profileResponse.ok) return safeRedirectError("google_profile_failed");
-  const profile=await profileResponse.json();
-  if(profile.email!==ADMIN_EMAIL||profile.email_verified!==true) return safeRedirectError("google_account_not_allowed");
-  const token=await issueSession(env);
-  return redirect(ADMIN_APP_URL+"#admin_session="+encodeURIComponent(token),{"set-cookie":clearState});
-}
 async function handle(request, env) {
   const url=new URL(request.url), path=url.pathname.replace(/\/$/,"")||"/";
   const origin=allowedOrigin(request,env);
@@ -101,7 +68,23 @@ async function handle(request, env) {
   const headers=corsHeaders(origin);
   if(path.startsWith("/api/admin/")&&!origin) return json({error:"Origin required"},403);
   if(request.method==="OPTIONS") return new Response(null,{status:204,headers});
-  if(path==="/api/admin/login"&&request.method==="POST") return json({error:"Password login is disabled. Use Google OAuth."},410,headers);
+  if(path==="/api/admin/login"&&request.method==="POST") {
+    if(!env.ADMIN_PIN || !/^\d{6}$/.test(String(env.ADMIN_PIN))) return json({error:"Admin PIN is not configured as a six-digit Worker Secret."},503,headers);
+    const ip=request.headers.get("CF-Connecting-IP")||"unknown";
+    const now=Date.now(), attempt=failedLogins.get(ip)||{count:0,first:now,blockedUntil:0};
+    if(attempt.blockedUntil>now) return json({error:"Too many attempts. Try again later."},429,{"retry-after":String(Math.ceil((attempt.blockedUntil-now)/1000)),...headers});
+    let body={}; try { body=await request.json(); } catch { return json({error:"Invalid request."},400,headers); }
+    const pin=String(body.pin||"");
+    if(!/^\d{6}$/.test(pin)||!safeSecretCompare(pin,env.ADMIN_PIN)) {
+      const next=attempt.first+900000<now?{count:1,first:now,blockedUntil:0}:{...attempt,count:attempt.count+1};
+      if(next.count>=5) next.blockedUntil=now+900000;
+      failedLogins.set(ip,next);
+      return json({error:next.blockedUntil>now?"Too many attempts. Try again in 15 minutes.":"Incorrect PIN."},next.blockedUntil>now?429:401,headers);
+    }
+    failedLogins.delete(ip);
+    if(!env.ADMIN_SESSION_SECRET) return json({error:"Admin session signing secret is not configured."},503,headers);
+    return json({ok:true,token:await issueSession(env),expiresIn:14400},200,headers);
+  }
   if(path==="/api/admin/session"&&request.method==="GET") {
     return await validSession(request,env)?json({ok:true,role:"admin"},200,headers):json({error:"Admin session required"},401,headers);
   }
