@@ -35,6 +35,7 @@ jobs:
           node --input-type=module --check < scripts/sync-pages-catalog.mjs
           node --input-type=module --check < workers/provider-registry/src/index.mjs
           node --input-type=module --check < workers/provider-registry/src/security.mjs
+          node --input-type=module --check < workers/provider-registry/src/auth.mjs
           node --input-type=module --check < workers/provider-registry/src/rights-gate.mjs
           node --input-type=module --check < workers/provider-registry/src/rights-entry.mjs
           node --input-type=module --check < workers/provider-registry/src/diagnostics.mjs
