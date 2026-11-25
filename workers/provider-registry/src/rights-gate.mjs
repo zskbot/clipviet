@@ -84,6 +84,7 @@ export function playbackDecision({ provider, content, requestedUse, region, now 
   if (requestedUse === "redistribute" && provider.playback_mode !== "owner_hosted_stream") return deny("connector_redistribution_mode_mismatch");
   const target = clean(region, 8).toUpperCase();
   if (!target || !(regions.includes("GLOBAL") || regions.includes(target))) return deny("territory_not_licensed");
+  if (Array.isArray(provider.connector_regions) && !(provider.connector_regions.includes("GLOBAL") || provider.connector_regions.includes(target))) return deny("connector_region_not_supported");
   if (content.source_verified !== 1 || content.ownership_verified !== 1 || content.performer_age_verified !== 1 || content.performer_consent_verified !== 1) return deny("provenance_or_consent_incomplete");
   return { allowed: true, use: requestedUse, region: target, sourceUrl: content.source_url, playbackMode: provider.playback_mode || "metadata_only" };
 }
