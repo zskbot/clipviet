@@ -154,3 +154,5 @@ $("next").addEventListener("click",()=>{if(page<pageCount){page++;loadVideos();w
 })();
 
 // Preview acceptance: trending order uses provider popularity fields when supplied; never invents metrics.
+
+// Quick category chips are Preview-tested independently from the homepage.
