@@ -198,10 +198,10 @@ export default {
         const region = clean(url.searchParams.get("region"),8);
         if (!providerId || !contentId || !requestedUse || !region) return json({ allowed:false,reason:"missing_policy_input" },400,cors);
         const provider = await db.prepare("SELECT status,license_expires_at FROM provider_registry WHERE id=?").bind(providerId).first();
-        const connector = await db.prepare("SELECT status,playback_mode FROM provider_connectors WHERE provider_id=?").bind(providerId).first();
+        const connector = await db.prepare("SELECT status,playback_mode,regions_json FROM provider_connectors WHERE provider_id=?").bind(providerId).first();
         const content = await db.prepare("SELECT * FROM provider_content_rights WHERE id=? AND provider_id=?").bind(contentId,providerId).first();
         if (!connector || connector.status !== "APPROVED") return json({allowed:false,reason:"connector_not_approved"},403,cors);
-        const decision = playbackDecision({provider:{...provider,playback_mode:connector.playback_mode},content,requestedUse,region});
+        const decision = playbackDecision({provider:{...provider,playback_mode:connector.playback_mode,connector_regions:JSON.parse(connector.regions_json)},content,requestedUse,region});
         return json(decision, decision.allowed ? 200 : 403, cors);
       }
 
