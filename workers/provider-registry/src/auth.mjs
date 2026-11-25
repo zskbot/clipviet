@@ -1,7 +1,7 @@
 const enc = new TextEncoder();
 const ITERATIONS = 310000;
 const SESSION_SECONDS = 60 * 60 * 12;
-const EMAIL_RE = /^[a-z0-9._%+-]+@gmail\\.com$/i;
+const EMAIL_RE = /^[a-z0-9._%+-]+@gmail\.com$/i;
 const json = (data, status=200, headers={}) => new Response(JSON.stringify(data), {
   status, headers: { "content-type":"application/json; charset=utf-8", "cache-control":"no-store", "x-content-type-options":"nosniff", ...headers }
 });
@@ -26,7 +26,7 @@ async function readBody(request) {
 }
 function sameOrigin(request) { const origin=request.headers.get("origin"); return !origin || origin===new URL(request.url).origin; }
 async function newSession(db,userId) {
-  const token=b64(random(32)).replace(/=/g,"").replace(/\\+/g,"-").replace(/\\//g,"_");
+  const token=b64(random(32)).replace(/=/g,"").replace(/\+/g,"-").replace(/\//g,"_");
   const now=new Date(), expires=new Date(now.getTime()+SESSION_SECONDS*1000).toISOString();
   await db.prepare("INSERT INTO auth_sessions(token_hash,user_id,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?)")
     .bind(await digest(token),userId,expires,now.toISOString(),now.toISOString()).run();
