@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#08090d">
   <meta name="robots" content="noindex,nofollow">
-  <title>ClipViet.live — Admin Video API</title>
+  <title>ClipViet.live — Admin Workspace</title>
   <link rel="stylesheet" href="./admin.css">
   <link rel="stylesheet" href="./adultembed.css">
   <link rel="stylesheet" href="../clipform.css">
@@ -14,26 +14,17 @@
   <header class="topbar">
     <a class="brand" href="../"><span class="mark">C<span>▶</span></span><span>Clip<span class="accent">Viet</span><small>.live</small></span></a>
     <span class="top-label">ADMIN / VIDEO API</span>
-    <a class="back" href="./sources/">SOURCE MANAGER</a><a class="back" href="../api-docs/">API DOCS</a><a class="back" href="../">← TRANG CHỦ</a>
+    <a class="back" href="../api-docs/">API DOCS</a><a class="back" href="../">← TRANG CHỦ</a>
   </header>
+  <nav class="admin-nav" aria-label="Điều hướng quản trị"><p class="nav-caption">WORKSPACE</p><a href="#overview">Tổng quan</a><a href="#clipform-inbox">Đề xuất video</a><a href="#api-connection">Nguồn API</a><a href="#provider-validator">Kiểm tra nguồn</a><a href="#adultembed-preview">Provider Preview</a><a href="#direct-play">Phát bằng URL</a><a href="#library">Thư viện API</a><a href="#preview-player">Trình phát</a><a href="#cms-panel">Quản lý bài viết</a><a href="./sources/">Source Manager ↗</a></nav>
   <main>
-    <section class="intro">
+    <section class="intro" id="overview">
       <p class="eyebrow">VIDEO SOURCE CONTROL</p>
       <h1>API Video <span>Player</span></h1>
       <p>Kết nối JSON API của bạn hoặc dán URL phát trực tiếp để kiểm tra video ngay trên trình duyệt.</p>
     </section>
-    <section class="admin-auth-panel" id="admin-auth" aria-labelledby="admin-auth-title">
-      <div class="panel-head"><div><p class="eyebrow">ADMIN ACCESS / PIN</p><h2 id="admin-auth-title">Mở khóa quản trị</h2></div><span id="admin-auth-state" class="local-tag">CHƯA XÁC THỰC</span></div>
-      <p class="hint block">Trang Admin chỉ mở các công cụ quản lý sau khi xác minh mã PIN 6 chữ số.</p>
-      <form id="admin-login-form" class="admin-login-form">
-        <label for="admin-pin">MÃ PIN 6 SỐ</label>
-        <input id="admin-pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="current-password" placeholder="••••••" aria-label="Mã PIN 6 chữ số" required>
-        <div class="actions"><button class="primary" id="admin-login-submit" type="submit">MỞ KHÓA ADMIN</button><button class="secondary" id="admin-logout" type="button" hidden>KHÓA ADMIN</button></div>
-      </form>
-      <p id="admin-auth-status" class="status" role="status" aria-live="polite">Nhập mã PIN 6 chữ số để mở khóa.</p>
-    </section>
-    <div id="admin-workspace" data-admin-protected inert aria-disabled="true">
-    <section class="clipform-suggestion" aria-labelledby="clipform-admin-title">
+    <div id="admin-workspace">\n
+    <section class="clipform-suggestion" id="clipform-inbox" aria-labelledby="clipform-admin-title">
       <div class="clipform-suggestion-head"><div><p class="eyebrow">COMMUNITY / INBOX</p><h2 id="clipform-admin-title">Biểu mẫu đề xuất video</h2><p>Xem các phản hồi trong Clipform workspace. Đề xuất không được tự động nhập vào thư viện hoặc phát công khai.</p></div><a class="clipform-open" href="https://clipform.io/3d76a8c57" target="_blank" rel="noopener noreferrer">MỞ BIỂU MẪU ↗</a></div>
       <iframe title="Biểu mẫu đề xuất video ClipViet.live" src="https://clipform.io/3d76a8c57" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
       <p class="hint block">Quản lý phản hồi: <span data-admin-protected inert aria-disabled="true"><a href="https://app.clipform.io/ce617e6d-4c43-475b-9c9d-d7ee953e3181/forms/3c0b50ba-72f3-426e-a489-36325e012907/responses" target="_blank" rel="noopener noreferrer">Clipform Responses ↗</a></span></p>
@@ -104,7 +95,7 @@
       <div class="panel-head"><div><p class="eyebrow">04 / LIBRARY</p><h2>Danh sách từ API</h2></div><span id="video-count" class="count">0 VIDEO</span></div>
       <div id="video-list" class="video-list"><p class="empty">Kết nối API JSON để tải danh sách video.</p></div>
     </section>
-    <section class="panel player-panel">
+    <section class="panel player-panel" id="preview-player">
       <div class="panel-head"><div><p class="eyebrow">05 / PREVIEW PLAYER</p><h2 id="player-title">Chưa chọn video</h2></div><span id="player-state" class="count">IDLE</span></div>
       <video id="player" controls playsinline preload="metadata"></video>
       <p id="player-message" class="hint block">Chọn một video trong danh sách hoặc nhập URL media ở phần Phát bằng URL.</p>
@@ -121,11 +112,11 @@
         <label>Trạng thái<select id="cms-status"><option value="draft">Bản nháp</option><option value="published">Xuất bản</option></select></label>
         <div class="actions"><button class="primary" type="submit">LƯU BÀI VIẾT</button><button class="secondary" id="cms-new" type="button">BÀI MỚI</button></div>
       </form>
-      <p id="cms-status-message" class="status" role="status" aria-live="polite">Đăng nhập Admin để tải CMS.</p>
+      <p id="cms-status-message" class="status" role="status" aria-live="polite">CMS API vẫn bảo vệ thao tác ghi ở máy chủ.</p>
       <div id="cms-list" class="cms-list"><p class="empty">Chưa tải dữ liệu.</p></div>
     </section>
     </div>
-    <footer><span>CLIPVIET.LIVE / ADMIN PREVIEW</span><span>Không lưu video lên máy chủ · Không thay đổi Production</span></footer>
+    <footer><span>CLIPVIET.LIVE / ADMIN WORKSPACE</span><span>Dashboard Preview · Dữ liệu CMS vẫn được API bảo vệ</span></footer>
   </main>
   <script type="module" src="./admin.js"></script>
   <script type="module" src="./adultembed-admin.mjs"></script>
