@@ -222,9 +222,10 @@ export default {
     if (!previewRequest(request, env)) return json({ error: "Preview-only registry is disabled." }, 404);
     const allowedOrigins = (env.CORS_ALLOWED_ORIGINS || "").split(",").map(v => v.trim()).filter(Boolean);
     const origin = request.headers.get("origin") || "";
-    if (origin && !allowedOrigins.includes(origin)) return json({error:"Origin not allowed."},403);
+    const sameOrigin = origin === new URL(request.url).origin;
+    if (origin && !sameOrigin && !allowedOrigins.includes(origin)) return json({error:"Origin not allowed."},403);
     const headers = new Headers();
-    if (origin && allowedOrigins.includes(origin)) {
+    if (origin && (sameOrigin || allowedOrigins.includes(origin))) {
       headers.set("Access-Control-Allow-Origin", origin);
       headers.set("Access-Control-Allow-Credentials", "true");
       headers.set("Vary", "Origin");

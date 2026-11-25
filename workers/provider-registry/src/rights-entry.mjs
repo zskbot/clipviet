@@ -2,6 +2,7 @@ import registry from "./index.mjs";
 import { resolveRole } from "./security.mjs";
 import { validateConnectorContract, validateContentRights, canApproveContentRights, playbackDecision } from "./rights-gate.mjs";
 import { runProviderDiagnostic, listProviderDiagnostics } from "./diagnostics.mjs";
+import { adminPage } from "./admin-ui.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...headers }
@@ -39,15 +40,17 @@ export default {
     const url = new URL(request.url);
     const parts = url.pathname.replace(/\/+$/, "").split("/").filter(Boolean);
     const rightsRoute = (parts[0] === "providers" && (parts[2] === "content-rights" || parts[2] === "connector" || parts[2] === "diagnostics")) ||
+      (parts.length === 1 && (parts[0] === "admin" || parts[0] === "health")) ||
       (parts[0] === "playback" && parts[1] === "authorize");
     if (!rightsRoute) return registry.fetch(request, env, ctx);
     if (env.REGISTRY_ENV !== "preview" || !previewOnly(request)) return json({ error: "Preview-only registry is disabled." }, 404);
 
     const allowedOrigins = (env.CORS_ALLOWED_ORIGINS || "").split(",").map(v => v.trim()).filter(Boolean);
     const origin = request.headers.get("origin") || "";
-    if (origin && !allowedOrigins.includes(origin)) return json({ error: "Origin not allowed." }, 403);
+    const sameOrigin = origin === url.origin;
+    if (origin && !sameOrigin && !allowedOrigins.includes(origin)) return json({ error: "Origin not allowed." }, 403);
     const cors = {};
-    if (origin) { cors["Access-Control-Allow-Origin"] = origin; cors["Access-Control-Allow-Credentials"] = "true"; cors.Vary = "Origin"; }
+    if (origin && (sameOrigin || allowedOrigins.includes(origin))) { cors["Access-Control-Allow-Origin"] = origin; cors["Access-Control-Allow-Credentials"] = "true"; cors.Vary = "Origin"; }
     cors["Access-Control-Allow-Methods"] = "GET,POST,PATCH,OPTIONS";
     cors["Access-Control-Allow-Headers"] = "Authorization,Content-Type";
     cors["Access-Control-Max-Age"] = "600";
@@ -58,6 +61,30 @@ export default {
     if (!env.PROVIDER_DB) return json({ error: "Preview D1 binding is not configured." }, 503, cors);
     const db = env.PROVIDER_DB;
     try {
+      if (request.method === "GET" && parts.length === 1 && parts[0] === "admin") {
+        if (!["admin", "technical", "legal"].includes(role)) return json({ error: "Forbidden" }, 403, cors);
+        return adminPage();
+      }
+      if (request.method === "GET" && parts.length === 1 && parts[0] === "health") {
+        if (!["admin", "technical", "legal"].includes(role)) return json({ error: "Forbidden" }, 403, cors);
+        const [providers, diagnostics] = await Promise.all([
+          db.prepare("SELECT COUNT(*) AS count FROM provider_registry").first(),
+          db.prepare("SELECT COUNT(*) AS count FROM provider_diagnostic_runs").first()
+        ]);
+        const grouped = await db.prepare("SELECT status, COUNT(*) AS count FROM provider_registry GROUP BY status").all();
+        return json({
+          status: "ok",
+          service: "clipviet-provider-registry-preview",
+          environment: "preview",
+          database: {
+            status: "ok",
+            providerCount: Number(providers?.count || 0),
+            diagnosticRunCount: Number(diagnostics?.count || 0),
+            providerStates: Object.fromEntries((grouped.results || []).map(row => [row.status, Number(row.count)]))
+          },
+          checkedAt: new Date().toISOString()
+        }, 200, cors);
+      }
       if (parts[0] === "providers" && parts.length === 3 && parts[2] === "diagnostics" && request.method === "GET") {
         if (!["admin", "technical", "legal"].includes(role)) return json({ error: "Forbidden" }, 403, cors);
         const provider = await db.prepare("SELECT id FROM provider_registry WHERE id=?").bind(parts[1]).first();
