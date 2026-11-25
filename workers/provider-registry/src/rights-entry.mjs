@@ -47,9 +47,10 @@ export default {
 
     const allowedOrigins = (env.CORS_ALLOWED_ORIGINS || "").split(",").map(v => v.trim()).filter(Boolean);
     const origin = request.headers.get("origin") || "";
-    if (origin && !allowedOrigins.includes(origin)) return json({ error: "Origin not allowed." }, 403);
+    const sameOrigin = origin === url.origin;
+    if (origin && !sameOrigin && !allowedOrigins.includes(origin)) return json({ error: "Origin not allowed." }, 403);
     const cors = {};
-    if (origin) { cors["Access-Control-Allow-Origin"] = origin; cors["Access-Control-Allow-Credentials"] = "true"; cors.Vary = "Origin"; }
+    if (origin && (sameOrigin || allowedOrigins.includes(origin))) { cors["Access-Control-Allow-Origin"] = origin; cors["Access-Control-Allow-Credentials"] = "true"; cors.Vary = "Origin"; }
     cors["Access-Control-Allow-Methods"] = "GET,POST,PATCH,OPTIONS";
     cors["Access-Control-Allow-Headers"] = "Authorization,Content-Type";
     cors["Access-Control-Max-Age"] = "600";
