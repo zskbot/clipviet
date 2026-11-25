@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import ClipformSuggestionPanel from "@/components/ClipformSuggestionPanel";
 
 export default function HomeFeed() {
   const [videos, setVideos] = useState([]);
@@ -71,5 +72,6 @@ export default function HomeFeed() {
         <div className="p-3"><h3 className="line-clamp-2 text-sm font-bold text-zinc-100 group-hover:text-red-400">{video.title}</h3><p className="mt-2 text-xs text-zinc-500">{video.year} · {video.category}</p><p className="mt-1 text-[11px] text-zinc-600">{Number(video.views || 0).toLocaleString("vi-VN")} lượt xem</p></div>
       </Link>)}</div> : <div className="rounded-2xl border border-dashed border-white/10 py-20 text-center text-sm text-zinc-500">Không tìm thấy video phù hợp.</div>}
     </section>
+    <ClipformSuggestionPanel />
   </main>;
 }
