@@ -325,8 +325,8 @@ $("#reset-filters")?.addEventListener("click", () => {
   activeCategoryName = "";
   currentPage = 1;
   categoryRoot.querySelectorAll("button").forEach((button, index) => button.setAttribute("aria-pressed", String(index === 0)));
-  countryRoot.querySelectorAll("button").forEach((button) => button.setAttribute("aria-pressed", "false"));
-  genreRoot.querySelectorAll("button").forEach((button) => button.setAttribute("aria-pressed", "false"));
+  countryRoot?.querySelectorAll("button").forEach((button) => button.setAttribute("aria-pressed", "false"));
+  genreRoot?.querySelectorAll("button").forEach((button) => button.setAttribute("aria-pressed", "false"));
   render();
 });
 $("#close-detail")?.addEventListener("click", () => dialog.close());
@@ -341,7 +341,7 @@ $("#search-form")?.addEventListener("submit", (event) => {
   render();
 });
 search?.addEventListener("input", () => { query = search.value; currentPage = 1; render(); });
-$("#sort")?.addEventListener("change", () => { currentPage = 1; render(); });
+
 
 function hasAgeConfirmation() {
   try { return sessionStorage.getItem("clipviet-age-confirmed") === "yes"; } catch { return false; }
