@@ -24,24 +24,11 @@ function corsHeaders(origin) {
     "vary":"Origin"
   } : {};
 }
-function b64url(bytes) {
-  let binary=""; for(const byte of bytes) binary+=String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-}
-function fromB64url(value) {
-  const base=value.replace(/-/g,"+").replace(/_/g,"/");
-  const binary=atob(base+"=".repeat((4-base.length%4)%4));
-  return Uint8Array.from(binary,char=>char.charCodeAt(0));
-}
-async function passwordMatches(password, encoded) {
-  const [saltText, hashText]=String(encoded||"").split(":");
-  if(!saltText||!hashText) return false;
-  const salt=fromB64url(saltText), expected=fromB64url(hashText);
-  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveBits"]);
-  const bits=await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt,iterations:210000},key,256);
-  const actual=new Uint8Array(bits);
-  if(actual.length!==expected.length) return false;
-  let diff=0; for(let i=0;i<actual.length;i++) diff|=actual[i]^expected[i];
+function safeSecretCompare(candidate, expected) {
+  const a=new TextEncoder().encode(String(candidate||""));
+  const b=new TextEncoder().encode(String(expected||""));
+  if(a.length!==b.length) return false;
+  let diff=0; for(let i=0;i<a.length;i++) diff|=a[i]^b[i];
   return diff===0;
 }
 async function signSession(payload, secret) {
@@ -82,7 +69,7 @@ async function handle(request, env) {
     if(entry.count>=5) return json({error:"Quá nhiều lần đăng nhập sai. Thử lại sau 10 phút."},429,headers);
     let body={}; try{body=await request.json();}catch{return json({error:"Dữ liệu đăng nhập không hợp lệ."},400,headers);}
     const password=typeof body.password==="string"?body.password:"";
-    if(!password||password.length>256||!await passwordMatches(password,env.ADMIN_PASSWORD_HASH)) {
+    if(!env.ADMIN_PASSWORD) return json({error:"Admin password secret is not configured."},503,headers);\n    if(!password||password.length>256||!safeSecretCompare(password,env.ADMIN_PASSWORD)) {
       entry.count++; failedLogins.set(ip,entry);
       return json({error:"Tài khoản hoặc mật khẩu không chính xác."},401,headers);
     }
