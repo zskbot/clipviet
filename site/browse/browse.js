@@ -6,7 +6,7 @@ let catalog = { videos: [], categories: [], providers: [] };
 let page = 1, pageCount = 1, activeProvider = "", categoryId = "", keyword = "", country = "", duration = "";
 let items = [], trendingTimer = null, trendingIndex = 0, trendingItems = [], quickCategory = "";
 const initialQuickCategory = new URLSearchParams(location.search).get("quick") || "";
-if (["jav","china","europe","vietnam","vietsub","south-asia"].includes(initialQuickCategory)) quickCategory = initialQuickCategory;
+if (["jav","china","europe","vietnam","vietsub","south-asia","actors","genres","uncensored","beauty","amateur","xvideos","xnxx"].includes(initialQuickCategory)) quickCategory = initialQuickCategory;
 
 const gate = $("age-gate");
 try { if (sessionStorage.getItem("clipviet-age-confirmed") === "yes") gate.hidden = true; } catch {}
@@ -58,7 +58,14 @@ function matches(item) {
     europe: /(châu âu|europe|european|pháp|đức|anh|italy|spanish)/i,
     vietnam: /(việt nam|viet nam|vietnam|vietnamese)/i,
     vietsub: /(vietsub|viet sub|phụ đề việt|sub tiếng việt)/i,
-    "south-asia": /(nam á|south asia|india|indian|pakistan|bangladesh|nepal|sri lanka)/i
+    "south-asia": /(nam á|south asia|india|indian|pakistan|bangladesh|nepal|sri lanka)/i,
+    actors: Boolean(item.actors),
+    genres: Boolean(item.categoryName || item.categoryId),
+    uncensored: /(không che|uncensored|no blur|raw)/i,
+    beauty: /(gái xinh|beautiful|beauty|hot girl)/i,
+    amateur: /(nghiệp dư|amateur|homemade|user generated)/i,
+    xvideos: /xvideos/i,
+    xnxx: /xnxx/i
   };
   return !unsafeMinor && (!quickCategory || quickMatchers[quickCategory]?.test(hay)) && (!activeProvider||item.sourceId===activeProvider) &&
     (!categoryId||item.categoryId===categoryId) && (!country||String(item.area||"").toLocaleLowerCase("vi")===country.toLocaleLowerCase("vi")) &&
