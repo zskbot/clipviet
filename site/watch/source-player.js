@@ -13,6 +13,7 @@ let episodeIndex = 0;
 let hls = null;
 let watchdog = null;
 let selectedQuality = "auto";
+// Only offer manual resolution levels advertised by the active HLS manifest.
 const imageDefaults = { brightness: 100, contrast: 100, saturation: 100 };
 const imageSettings = { ...imageDefaults };
 
