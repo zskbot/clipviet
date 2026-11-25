@@ -16,7 +16,7 @@ function setAdminAccess(allowed, message) {
   });
   authState.textContent = allowed ? "ADMIN ĐÃ ĐĂNG NHẬP" : "CHẾ ĐỘ XEM";
   authLogout.hidden = !allowed;
-  authSubmit.hidden = allowed;
+  if (authSubmit) authSubmit.hidden = allowed;
   if (authGoogle) authGoogle.hidden = allowed;
   authStatus.textContent = message;
   window.dispatchEvent(new CustomEvent("clipviet-admin-auth", { detail: { allowed } }));
