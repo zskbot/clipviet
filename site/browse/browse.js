@@ -88,7 +88,7 @@ function renderTrending() {
   const nextItems=trendingItems.filter((_,i)=>i!==trendingIndex%trendingItems.length).slice(0,8);
   for(const pick of nextItems){
     const card=document.createElement("a");card.className="hot-pick";card.href=href(pick);
-    const poster=document.createElement("img");poster.loading="lazy";poster.decoding="async";poster.alt="";poster.src=pick.poster||"../poster-fallback.svg";
+    const poster=document.createElement("img");poster.loading="lazy";poster.decoding="async";poster.fetchPriority="low";poster.sizes="88px";poster.alt="";poster.src=pick.poster||"../poster-fallback.svg";
     poster.addEventListener("error",()=>{poster.src="../poster-fallback.svg";},{once:true});
     const name=document.createElement("strong");name.textContent=pick.title;
     card.append(poster,name);picks.append(card);
@@ -109,7 +109,7 @@ function render() {
   const root=$("cards");root.replaceChildren();
   for(const item of items){
     const link=document.createElement("a");link.className="card";link.href="../watch/source.html?sourceId="+encodeURIComponent(item.sourceId)+"&vodId="+encodeURIComponent(item.id);
-    const image=document.createElement("img");image.loading="lazy";image.decoding="async";image.alt=item.title;image.src=item.poster||"../poster-fallback.svg";image.addEventListener("error",()=>{image.src="../poster-fallback.svg";},{once:true});
+    const image=document.createElement("img");image.loading="lazy";image.decoding="async";image.fetchPriority="low";image.sizes="(max-width: 700px) 50vw, (max-width: 1100px) 25vw, 240px";image.alt=item.title;image.src=item.poster||"../poster-fallback.svg";image.addEventListener("error",()=>{image.src="../poster-fallback.svg";},{once:true});
     const body=document.createElement("div");body.className="card-body";const title=document.createElement("h2");title.textContent=item.title;
     const meta=document.createElement("p");meta.textContent=[item.year,item.area,item.categoryName,item.duration,item.sourceName].filter(Boolean).join(" · ");
     body.append(title,meta);link.append(image,body);root.append(link);
