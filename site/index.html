@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08090d">
   <meta name="color-scheme" content="dark">
   <meta name="description" content="ClipViet.live — khám phá video nổi bật, video hot và thư viện video được tuyển chọn.">
@@ -17,7 +17,7 @@
     <nav aria-label="Điều hướng" class="primary-nav"><a href="./browse/">Khám phá video</a><a href="#catalog">Mới nhất</a><a href="#about">Giới thiệu</a><a href="./watch/">Trình phát</a><a href="./api-docs/">API Docs</a><a href="./sources.html">Nguồn liên kết</a></nav>
     <form id="search-form" role="search" aria-label="Tìm kiếm thư viện"><input id="search" type="search" placeholder="Tìm video..." aria-label="Tìm video"><button type="submit">TÌM</button></form>
     <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Mở menu điều hướng" aria-expanded="false" aria-controls="filter-menu"><span></span><span></span><span></span></button>
-    <aside id="filter-menu" class="filter-menu" aria-label="Menu điều hướng và bộ lọc" hidden>
+    <aside id="filter-menu" class="filter-menu" role="dialog" aria-modal="true" aria-label="Menu điều hướng và bộ lọc" tabindex="-1" hidden>
       <div class="filter-menu-head"><div><p class="eyebrow">CLIPVIET / MENU</p><h2>Điều hướng</h2></div><button id="menu-close" class="menu-close" type="button" aria-label="Đóng menu">×</button></div>
       <nav class="drawer-nav" aria-label="Điều hướng chính">
         <a href="./"><span class="drawer-nav-icon" aria-hidden="true">⌂</span><span>Trang chủ</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
