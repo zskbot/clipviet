@@ -77,7 +77,7 @@ export default function AdminPage() {
   return <main className="container min-h-[70vh] py-10">
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div><p className="text-xs font-bold uppercase tracking-[.25em] text-red-400">TX.TOP / PREVIEW</p><h1 className="mt-2 text-3xl font-black">Admin CMS</h1><p className="mt-2 text-sm text-zinc-500">Quản lý nguồn video công khai và nội dung được cấp quyền.</p></div>
-      <a href="/providers" className="text-sm text-zinc-400 hover:text-white">← Provider Sandbox</a>
+      <div className="flex flex-wrap gap-3"><a href="/admin/providers" className="text-sm text-red-300 hover:text-white">Video Provider Control →</a><a href="/providers" className="text-sm text-zinc-400 hover:text-white">← Provider Sandbox</a></div>
     </div>
 
     <section className="mb-8 border border-white/10 bg-white/[.025] p-5 sm:p-6">
