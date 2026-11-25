@@ -1,4 +1,5 @@
 import { videos as demoVideos } from "./data.js";
+import { initFeaturedPlayer, playFeaturedVideo, resetFeaturedPlayer } from "./player-controls.js";
 
 const $ = (selector) => document.querySelector(selector);
 const grid = $("#video-grid");
@@ -29,6 +30,7 @@ grid.insertAdjacentElement("afterend", pagination);
 
 search.value = query;
 $("#year").textContent = new Date().getFullYear();
+initFeaturedPlayer();
 
 function filterButton(label, root, current, setValue) {
   const button = document.createElement("button");
@@ -260,6 +262,7 @@ function renderFeatured() {
   const image = $("#featured-image");
   const player = $("#featured-player");
   const playButton = $("#featured-play");
+  resetFeaturedPlayer();
   if (player) { player.pause?.(); player.removeAttribute("src"); player.load?.(); player.hidden = true; }
   const playerStatus = $("#featured-player-status");
   const playerFallback = $("#featured-player-fallback");
@@ -295,58 +298,14 @@ function renderFeatured() {
     ? "VIDEO MẪU CÓ GIẤY PHÉP / OPEN MOVIE"
     : "CLIPVIET / MỚI CẬP NHẬT";
   $("#featured-open").onclick = () => openDetail(video);
-  $("#featured-watch").onclick = () => video.isSample ? playSampleVideo() : openDetail(video);
-  playButton.onclick = () => video.isSample ? playSampleVideo() : openDetail(video);
+  const startPlayback = () => {
+    if (featuredTimer) clearInterval(featuredTimer);
+    featuredTimer = null;
+    playFeaturedVideo(video);
+  };
+  $("#featured-watch").onclick = startPlayback;
+  playButton.onclick = startPlayback;
 }
-
-function playSampleVideo() {
-  const player = $("#featured-player");
-  const image = $("#featured-image");
-  const playButton = $("#featured-play");
-  const status = $("#featured-player-status");
-  const fallback = $("#featured-player-fallback");
-  if (!player || !sampleVideo.videoUrl) return;
-
-  player.hidden = false;
-  image.hidden = true;
-  playButton.hidden = true;
-  if (status) { status.hidden = true; status.textContent = ""; }
-  if (fallback) fallback.hidden = true;
-
-  // Native H.264/AAC MP4 playback is more reliable on iPhone Safari than
-  // an autoplaying third-party iframe. Keep play() inside the user gesture.
-  if (player.src !== sampleVideo.videoUrl) player.src = sampleVideo.videoUrl;
-  player.load();
-  const attempt = player.play();
-  if (attempt && typeof attempt.catch === "function") {
-    attempt.catch((error) => {
-      if (status) {
-        status.textContent = error?.name === "NotAllowedError"
-          ? "Safari đang chặn tự phát. Hãy nhấn nút Play trong thanh điều khiển video."
-          : "Không tải được video từ máy chủ nguồn. Bạn có thể mở bản gốc.";
-        status.hidden = false;
-      }
-      if (fallback) fallback.hidden = false;
-    });
-  }
-}
-
-const featuredNativePlayer = $("#featured-player");
-featuredNativePlayer?.addEventListener("error", () => {
-  const status = $("#featured-player-status");
-  const fallback = $("#featured-player-fallback");
-  if (status) {
-    status.textContent = "Nguồn MP4 không phản hồi hoặc định dạng không được hỗ trợ. Mở video gốc để tiếp tục.";
-    status.hidden = false;
-  }
-  if (fallback) fallback.hidden = false;
-});
-featuredNativePlayer?.addEventListener("playing", () => {
-  const status = $("#featured-player-status");
-  const fallback = $("#featured-player-fallback");
-  if (status) status.hidden = true;
-  if (fallback) fallback.hidden = true;
-});
 
 function renderSampleVideo(reason) {
   grid.replaceChildren();
