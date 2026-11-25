@@ -184,3 +184,5 @@ console.log(JSON.stringify({
 if (!videos.length) {
   throw new Error("All AppleCMS providers returned no video records; refusing to publish an empty catalogue.");
 }
+
+// Preview deployment trigger after enabling this branch.
