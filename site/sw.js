@@ -1,4 +1,4 @@
-const VERSION = "clipviet-shell-v1";
+const VERSION = "clipviet-shell-v2-player-settings";
 const SHELL = ["/","/browse/","/styles.css","/app.js","/browse/browse.js","/clipviet-logo.svg","/poster-fallback.svg","/manifest.webmanifest"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(VERSION).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
