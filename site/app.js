@@ -298,8 +298,13 @@ function renderFeatured() {
     ? "VIDEO MẪU CÓ GIẤY PHÉP / OPEN MOVIE"
     : "CLIPVIET / MỚI CẬP NHẬT";
   $("#featured-open").onclick = () => openDetail(video);
-  $("#featured-watch").onclick = () => playFeaturedVideo(video);
-  playButton.onclick = () => playFeaturedVideo(video);
+  const startPlayback = () => {
+    if (featuredTimer) clearInterval(featuredTimer);
+    featuredTimer = null;
+    playFeaturedVideo(video);
+  };
+  $("#featured-watch").onclick = startPlayback;
+  playButton.onclick = startPlayback;
 }
 
 function renderSampleVideo(reason) {
