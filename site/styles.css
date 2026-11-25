@@ -308,3 +308,5 @@ body.menu-open{overflow:hidden;touch-action:none}
 .player-frame video{display:block;width:100%;height:100%;max-height:none;object-fit:contain;background:#000}
 .player-controls select,.player-controls button,.player-controls a{min-height:44px;border-radius:0}
 @media(max-width:700px){.player-page{width:calc(100% - 20px);padding-top:14px}.player-frame{border-left:0;border-right:0}.player-meta{padding:14px 0}.player-controls{gap:8px}.player-controls label{flex-wrap:wrap}}
+
+/* Preview build trigger: PWA and adaptive 1280px player. */
