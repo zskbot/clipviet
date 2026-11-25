@@ -56,3 +56,21 @@ Do not bind a Production database to this Preview Worker. Do not apply migration
 - Cloudflare D1 Preview database: `clipviet-cms-preview` (`1e613e7b-5aa3-4927-bf78-552f383c9dce`, APAC).
 - Migration `0001_create_articles.sql` has been applied and the table/indexes verified.
 - Worker Preview has the `DB` binding. Admin secrets remain intentionally unconfigured until entered as Cloudflare Worker Secrets by the account owner.
+
+
+## Google OAuth Admin (Preview)
+
+The Preview Admin sign-in uses Google OAuth authorization-code flow. It grants Admin access only when Google returns an email profile with `email_verified: true` and the exact address `nvht25052002@gmail.com`.
+
+Configure these as **Cloudflare Worker Secrets** on `clipviet-catalog-api-preview`:
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `ADMIN_SESSION_SECRET` (random, at least 32 bytes; existing signed-session key)
+
+Register this exact Authorized redirect URI in the Google OAuth Web application:
+`https://clipviet-catalog-api-preview.huynhthuongg2505-f9b.workers.dev/api/admin/google/callback`
+
+The Admin app return URL for this branch Preview is:
+`https://preview-google-oauth-admin.clipviet-live-preview.pages.dev/admin/`
+
+Never put the Client Secret or session secret in Git, browser code, or chat. OAuth cannot complete until the three Worker Secrets are configured. This branch is Preview-only; do not bind Production resources or merge its PR without owner approval.
