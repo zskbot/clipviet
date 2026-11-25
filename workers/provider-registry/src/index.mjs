@@ -226,6 +226,7 @@ export default {
     const headers = new Headers();
     if (origin && allowedOrigins.includes(origin)) {
       headers.set("Access-Control-Allow-Origin", origin);
+      headers.set("Access-Control-Allow-Credentials", "true");
       headers.set("Vary", "Origin");
     }
     headers.set("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS");
