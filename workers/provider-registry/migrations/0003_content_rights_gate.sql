@@ -28,3 +28,21 @@ CREATE TABLE IF NOT EXISTS provider_content_rights (
 
 CREATE INDEX IF NOT EXISTS idx_provider_content_rights_status
   ON provider_content_rights(provider_id, status, license_expires_at);
+
+-- A provider may connect only through a separately reviewed connector contract.
+CREATE TABLE IF NOT EXISTS provider_connectors (
+  provider_id TEXT PRIMARY KEY REFERENCES provider_registry(id),
+  connector_id TEXT NOT NULL,
+  auth_mode TEXT NOT NULL CHECK (auth_mode IN ('none','api_key','oauth2','signed_request')),
+  scopes_json TEXT NOT NULL,
+  regions_json TEXT NOT NULL,
+  playback_mode TEXT NOT NULL CHECK (playback_mode IN ('official_embed','owner_hosted_stream','metadata_only','none')),
+  documentation_url TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('PENDING','APPROVED','DISABLED')),
+  evidence_reference TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_provider_connectors_status
+  ON provider_connectors(status, connector_id);
