@@ -10,6 +10,7 @@ const providers = [
 
 const maxPages = Math.max(1, Math.min(50, Number(process.env.CATALOG_PAGES_PER_PROVIDER || 20)));
 const targetVideoCount = Math.max(1, Math.min(1000, Number(process.env.CATALOG_TARGET_VIDEOS || 1000)));
+// Keep declarations on real source lines; escaped newline literals break Node.js parsing.
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const safeUrl = (value) => {
   if (typeof value !== "string" || value.length > 2048) return "";
