@@ -1,6 +1,6 @@
 import registry from "./index.mjs";
 import { resolveRole } from "./security.mjs";
-import { validateContentRights, canApproveContentRights, playbackDecision } from "./rights-gate.mjs";
+import { validateConnectorContract, validateContentRights, canApproveContentRights, playbackDecision } from "./rights-gate.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...headers }
@@ -30,7 +30,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const parts = url.pathname.replace(/\/+$/, "").split("/").filter(Boolean);
-    const rightsRoute = (parts[0] === "providers" && parts[2] === "content-rights") ||
+    const rightsRoute = (parts[0] === "providers" && (parts[2] === "content-rights" || parts[2] === "connector")) ||
       (parts[0] === "playback" && parts[1] === "authorize");
     if (!rightsRoute) return registry.fetch(request, env, ctx);
     if (env.REGISTRY_ENV !== "preview" || !previewOnly(request)) return json({ error: "Preview-only registry is disabled." }, 404);
@@ -50,6 +50,52 @@ export default {
     if (!env.PROVIDER_DB) return json({ error: "Preview D1 binding is not configured." }, 503, cors);
     const db = env.PROVIDER_DB;
     try {
+      if (parts[0] === "providers" && parts.length === 3 && parts[2] === "connector" && request.method === "GET") {
+        if (!["admin", "technical", "legal"].includes(role)) return json({ error: "Forbidden" }, 403, cors);
+        const connector = await db.prepare("SELECT * FROM provider_connectors WHERE provider_id=?").bind(parts[1]).first();
+        return json({ connector: connector ? { connectorId:connector.connector_id, authMode:connector.auth_mode, scopes:JSON.parse(connector.scopes_json), regions:JSON.parse(connector.regions_json), playbackMode:connector.playback_mode, documentationUrl:connector.documentation_url, status:connector.status, evidenceReference:connector.evidence_reference } : null }, 200, cors);
+      }
+
+      if (parts[0] === "providers" && parts.length === 3 && parts[2] === "connector" && request.method === "POST") {
+        if (role !== "admin") return json({ error: "Admin role required." }, 403, cors);
+        const parsedBody = await readJson(request);
+        if (parsedBody.error) return json({ error: parsedBody.error }, parsedBody.status, cors);
+        const parsed = validateConnectorContract(parsedBody.data);
+        if (parsed.error) return json({ error: parsed.error }, 400, cors);
+        const provider = await db.prepare("SELECT id FROM provider_registry WHERE id=?").bind(parts[1]).first();
+        if (!provider) return json({ error: "Provider not found." }, 404, cors);
+        const existing = await db.prepare("SELECT provider_id FROM provider_connectors WHERE provider_id=?").bind(parts[1]).first();
+        if (existing) return json({ error: "Connector already exists for this provider; create a reviewed change request instead of replacing it." }, 409, cors);
+        const c = parsed.data, now = new Date().toISOString(), eventId = crypto.randomUUID();
+        await db.batch([
+          db.prepare("INSERT INTO provider_connectors (provider_id,connector_id,auth_mode,scopes_json,regions_json,playback_mode,documentation_url,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)")
+            .bind(parts[1],c.connectorId,c.authMode,JSON.stringify(c.scopes),JSON.stringify(c.regions),c.playbackMode,c.documentationUrl,"PENDING",now,now),
+          db.prepare("INSERT INTO provider_audit (event_id,provider_id,action,from_status,to_status,actor_role,metadata_json,created_at) VALUES (?,?,?,?,?,?,?,?)")
+            .bind(eventId,parts[1],"CONNECTOR_REGISTERED",null,"PENDING",role,JSON.stringify({connectorId:c.connectorId,authMode:c.authMode,playbackMode:c.playbackMode,scopes:c.scopes,regions:c.regions}),now)
+        ]);
+        return json({ connector:{...c,status:"PENDING"} },201,cors);
+      }
+
+      if (parts[0] === "providers" && parts.length === 4 && parts[2] === "connector" && parts[3] === "approve" && request.method === "PATCH") {
+        if (role !== "legal") return json({ error: "Legal reviewer role required." }, 403, cors);
+        const parsedBody = await readJson(request);
+        if (parsedBody.error) return json({ error: parsedBody.error }, parsedBody.status, cors);
+        const evidenceReference = clean(parsedBody.data.evidenceReference);
+        if (!evidenceReference) return json({ error: "Connector documentation and scope review reference is required." },400,cors);
+        const provider = await db.prepare("SELECT id,status FROM provider_registry WHERE id=?").bind(parts[1]).first();
+        if (!provider || !["VERIFIED","APPROVED","ENABLED"].includes(provider.status)) return json({ error: "Provider must pass technical verification before connector approval." },409,cors);
+        const connector = await db.prepare("SELECT * FROM provider_connectors WHERE provider_id=?").bind(parts[1]).first();
+        if (!connector || connector.status !== "PENDING") return json({ error: "Pending connector not found." },404,cors);
+        const now = new Date().toISOString(), eventId = crypto.randomUUID();
+        await db.batch([
+          db.prepare("UPDATE provider_connectors SET status='APPROVED',evidence_reference=?,updated_at=? WHERE provider_id=? AND status='PENDING'").bind(evidenceReference,now,parts[1]),
+          db.prepare("INSERT INTO provider_audit (event_id,provider_id,action,from_status,to_status,actor_role,metadata_json,created_at) VALUES (?,?,?,?,?,?,?,?)").bind(eventId,parts[1],"CONNECTOR_APPROVED","PENDING","APPROVED",role,JSON.stringify({connectorId:connector.connector_id,evidenceReference}),now)
+        ]);
+        const updated = await db.prepare("SELECT * FROM provider_connectors WHERE provider_id=?").bind(parts[1]).first();
+        if (!updated || updated.status !== "APPROVED") return json({ error: "Connector approval failed or conflicted." },409,cors);
+        return json({ connector:{connectorId:updated.connector_id,authMode:updated.auth_mode,scopes:JSON.parse(updated.scopes_json),regions:JSON.parse(updated.regions_json),playbackMode:updated.playback_mode,documentationUrl:updated.documentation_url,status:updated.status,evidenceReference:updated.evidence_reference} },200,cors);
+      }
+
       if (parts[0] === "providers" && parts.length === 3 && parts[2] === "content-rights" && request.method === "GET") {
         if (!["admin", "technical", "legal"].includes(role)) return json({ error: "Forbidden" }, 403, cors);
         const result = await db.prepare("SELECT * FROM provider_content_rights WHERE provider_id=? ORDER BY created_at DESC LIMIT 500").bind(parts[1]).all();
@@ -111,8 +157,10 @@ export default {
         const region = clean(url.searchParams.get("region"),8);
         if (!providerId || !contentId || !requestedUse || !region) return json({ allowed:false,reason:"missing_policy_input" },400,cors);
         const provider = await db.prepare("SELECT status,license_expires_at FROM provider_registry WHERE id=?").bind(providerId).first();
+        const connector = await db.prepare("SELECT status,playback_mode FROM provider_connectors WHERE provider_id=?").bind(providerId).first();
         const content = await db.prepare("SELECT * FROM provider_content_rights WHERE id=? AND provider_id=?").bind(contentId,providerId).first();
-        const decision = playbackDecision({provider,content,requestedUse,region});
+        if (!connector || connector.status !== "APPROVED") return json({allowed:false,reason:"connector_not_approved"},403,cors);
+        const decision = playbackDecision({provider:{...provider,playback_mode:connector.playback_mode},content,requestedUse,region});
         return json(decision, decision.allowed ? 200 : 403, cors);
       }
 
