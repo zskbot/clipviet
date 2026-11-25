@@ -310,3 +310,9 @@ body.menu-open{overflow:hidden;touch-action:none}
 @media(max-width:700px){.player-page{width:calc(100% - 20px);padding-top:14px}.player-frame{border-left:0;border-right:0}.player-meta{padding:14px 0}.player-controls{gap:8px}.player-controls label{flex-wrap:wrap}}
 
 /* Preview build trigger: PWA and adaptive 1280px player. */
+
+
+/* Keep video artwork fully visible inside consistent 16:9 thumbnail frames. */
+.poster{aspect-ratio:16/9;background:#050609}
+.poster img{object-fit:contain;object-position:center;transform:none!important;filter:none}
+.video-card:hover .poster img{transform:none}
