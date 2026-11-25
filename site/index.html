@@ -65,7 +65,30 @@
     </section>
     <section class="about" id="about"><p class="eyebrow">ABOUT CLIPVIET.LIVE</p><h2>Một điểm đến.<br><span>Nhiều câu chuyện.</span></h2><p>ClipViet chạy trực tiếp trên GitHub Pages. GitHub Actions đồng bộ catalog AppleCMS thành JSON tĩnh theo lịch 6 giờ; trang web đọc catalog này và trình duyệt phát HLS/MP4 trực tiếp từ CDN nguồn. Không có API server, không proxy video và không cần dịch vụ hosting ứng dụng khác.</p></section>
   </main>
-  <footer><a class="brand footer-brand" href="./"><img src="./clipviet-logo.svg" alt=""><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a><p>© <span id="year"></span> ClipViet.live · Chỉ đăng tải nội dung bạn sở hữu hoặc có quyền phân phối.</p></footer>
+  <footer class="site-footer">
+    <section class="footer-search" aria-labelledby="footer-search-title">
+      <div class="footer-section-heading"><p class="eyebrow">DISCOVER / SEARCH</p><h2 id="footer-search-title">Top tìm kiếm</h2><p class="footer-intro">Các chủ đề được quan tâm trong thư viện nội dung dành riêng cho người trưởng thành (18+).</p></div>
+      <nav class="footer-search-tags" aria-label="Top tìm kiếm">
+        <a href="./?q=video%20nguoi%20lon">Video người lớn</a>
+        <a href="./?q=JAV%20Vietsub">JAV Vietsub</a>
+        <a href="./?q=video%2018%2B">Video 18+</a>
+        <a href="./?q=video%20Viet%20Nam">Video Việt Nam</a>
+        <a href="./?q=dien%20vien">Diễn viên</a>
+        <a href="./?q=hot%20girl%20truong%20thanh">Hot girl trưởng thành</a>
+        <a href="./?q=video%20HD">Video HD</a>
+        <a href="./?q=clip%20moi%20cap%20nhat">Clip mới cập nhật</a>
+        <a href="./?q=video%20chau%20A">Video châu Á</a>
+        <a href="./?q=video%20Au%20My">Video Âu - Mỹ</a>
+        <a href="./?q=noi%20dung%20co%20ban%20quyen">Nội dung có bản quyền</a>
+        <a href="./?q=video%20tu%20nguyen">Video tự nguyện</a>
+      </nav>
+    </section>
+    <div class="footer-about">
+      <a class="brand footer-brand" href="./"><img src="./clipviet-logo.svg" alt=""><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a>
+      <p>CLIP VIET — Thư viện khám phá video dành cho người trưởng thành. Nội dung được tuyển chọn và cập nhật theo dữ liệu nguồn; chỉ tiếp nhận, hiển thị nội dung có sự đồng thuận của người tham gia và quyền phân phối hợp pháp. Không đăng tải nội dung riêng tư bị phát tán trái phép hoặc nội dung liên quan đến người dưới 18 tuổi.</p>
+      <p class="footer-copyright">© <span id="year"></span> ClipViet.live · Bảo lưu mọi quyền.</p>
+    </div>
+  </footer>
   <dialog id="detail-dialog" class="detail-dialog"><button id="close-detail" class="close-button" aria-label="Đóng">×</button><div id="detail-content"></div></dialog>
   <dialog id="age-dialog" class="age-dialog"><div class="age-mark">18+</div><p class="eyebrow">XÁC NHẬN ĐỘ TUỔI</p><h2>Bạn đã đủ 18 tuổi?</h2><p>Một số nội dung có thể không phù hợp với người dưới 18 tuổi. Đây là xác nhận tự khai, không thay thế xác minh danh tính.</p><div class="age-actions"><button id="leave-button" class="secondary-button">RỜI KHỎI</button><button id="confirm-age" class="primary-button">TÔI ĐÃ ĐỦ 18 TUỔI</button></div></dialog>
   <script type="module" src="./app.js"></script>
