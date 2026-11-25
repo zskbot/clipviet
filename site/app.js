@@ -20,6 +20,12 @@ let activeCategory = "Tất cả";
 let activeCountry = "";
 let activeGenre = "";
 let query = new URLSearchParams(location.search).get("q") || "";
+const itemsPerPage = 16;
+let currentPage = 1;
+const pagination = document.createElement("nav");
+pagination.className = "video-pagination";
+pagination.setAttribute("aria-label", "Phân trang video");
+grid.insertAdjacentElement("afterend", pagination);
 
 search.value = query;
 $("#year").textContent = new Date().getFullYear();
@@ -50,6 +56,7 @@ function renderCategories(values) {
     button.setAttribute("aria-pressed", String(category === activeCategory));
     button.addEventListener("click", () => {
       activeCategory = category;
+      currentPage = 1;
       categoryRoot.querySelectorAll("button").forEach((item) => item.setAttribute("aria-pressed", String(item.textContent === category)));
       render();
     });
@@ -70,9 +77,13 @@ function render() {
   });
   if (sort === "title") items.sort((a, b) => a.title.localeCompare(b.title, "vi"));
   else items.sort((a, b) => Number(b.year || 0) - Number(a.year || 0));
+  const totalPages = Math.ceil(items.length / itemsPerPage);
+  currentPage = Math.max(1, Math.min(currentPage, totalPages || 1));
+  const pageItems = items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   grid.replaceChildren();
   count.textContent = items.length + " VIDEO";
   empty.hidden = items.length > 0;
+  renderPagination(totalPages);
   activeFiltersRoot.replaceChildren();
   [activeCountry, activeGenre].filter(Boolean).forEach((label) => {
     const chip = document.createElement("span");
@@ -81,7 +92,7 @@ function render() {
     activeFiltersRoot.append(chip);
   });
   activeFiltersRoot.hidden = !activeCountry && !activeGenre;
-  for (const video of items) {
+  for (const video of pageItems) {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "video-card";
@@ -98,6 +109,45 @@ function render() {
   }
 }
 
+
+function renderPagination(totalPages) {
+  pagination.replaceChildren();
+  if (totalPages <= 1) { pagination.hidden = true; return; }
+  pagination.hidden = false;
+  const addButton = (label, page, { active = false, disabled = false, title = "" } = {}) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "page-button" + (active ? " is-active" : "");
+    button.textContent = label;
+    button.disabled = disabled;
+    button.setAttribute("aria-label", title || ("Trang " + page));
+    if (active) button.setAttribute("aria-current", "page");
+    button.addEventListener("click", () => {
+      if (page === currentPage || disabled) return;
+      currentPage = page;
+      render();
+      const target = document.querySelector("#catalog .section-heading");
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    pagination.append(button);
+  };
+  if (currentPage > 1) addButton("◀", currentPage - 1, { title: "Trang trước" });
+  const windowSize = 10;
+  const startPage = Math.max(1, Math.min(currentPage - 4, totalPages - windowSize + 1));
+  const endPage = Math.min(totalPages, startPage + windowSize - 1);
+  for (let page = startPage; page <= endPage; page++) {
+    addButton(String(page), page, { active: page === currentPage });
+  }
+  if (endPage < totalPages) {
+    const last = document.createElement("span");
+    last.className = "page-ellipsis";
+    last.setAttribute("aria-hidden", "true");
+    last.textContent = "…";
+    pagination.append(last);
+    addButton("…" + totalPages, totalPages, { title: "Đến trang cuối: " + totalPages });
+  }
+  if (currentPage < totalPages) addButton("▶", currentPage + 1, { title: "Trang tiếp theo" });
+}
 
 let featuredVideos = [];
 let featuredIndex = 0;
@@ -184,6 +234,7 @@ document.addEventListener("keydown", (event) => {
 $("#reset-filters")?.addEventListener("click", () => {
   activeCountry = "";
   activeGenre = "";
+  currentPage = 1;
   countryRoot.querySelectorAll("button").forEach((button) => button.setAttribute("aria-pressed", "false"));
   genreRoot.querySelectorAll("button").forEach((button) => button.setAttribute("aria-pressed", "false"));
   render();
@@ -193,13 +244,14 @@ dialog?.addEventListener("click", (event) => { if (event.target === dialog) dial
 $("#search-form")?.addEventListener("submit", (event) => {
   event.preventDefault();
   query = search.value;
+  currentPage = 1;
   const url = new URL(location.href);
   if (query) url.searchParams.set("q", query); else url.searchParams.delete("q");
   history.replaceState({}, "", url);
   render();
 });
-search?.addEventListener("input", () => { query = search.value; render(); });
-$("#sort")?.addEventListener("change", render);
+search?.addEventListener("input", () => { query = search.value; currentPage = 1; render(); });
+$("#sort")?.addEventListener("change", () => { currentPage = 1; render(); });
 
 function hasAgeConfirmation() {
   try { return sessionStorage.getItem("clipviet-age-confirmed") === "yes"; } catch { return false; }
