@@ -17,7 +17,7 @@ function allowedOrigin(request, env) {
 function corsHeaders(origin) {
   return origin ? {
     "access-control-allow-origin":origin,
-    "access-control-allow-methods":"GET, POST, OPTIONS",
+    "access-control-allow-methods":"GET, POST, PUT, DELETE, OPTIONS",
     "access-control-allow-headers":"Accept, Range, Authorization, Content-Type",
     "access-control-expose-headers":"Accept-Ranges, Content-Range, Content-Length",
     "access-control-max-age":"600",

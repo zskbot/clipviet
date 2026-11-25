@@ -8,3 +8,15 @@
 .admin-auth-panel [hidden]{display:none!important}
 .admin-locked{opacity:.48;filter:saturate(.5);pointer-events:none}
 @media(max-width:640px){.admin-login-form{grid-template-columns:1fr}.admin-login-form .actions{grid-column:auto}.admin-auth-panel{padding:16px}}
+
+.cms-panel textarea,.cms-panel select{width:100%;background:#090a0f;border:1px solid var(--line);color:var(--fg);padding:12px;font:inherit;border-radius:0}
+.cms-panel textarea{resize:vertical;min-height:180px;line-height:1.6}
+.cms-list{display:grid;gap:10px;margin-top:18px}
+.cms-item{border:1px solid var(--line);padding:14px;display:grid;gap:8px}
+.cms-item h3{font-size:14px;margin:0}
+.cms-item p{font-size:11px;color:var(--muted);margin:0;overflow-wrap:anywhere}
+.cms-item-actions{display:flex;gap:8px;flex-wrap:wrap}
+.cms-item-actions button{padding:9px 12px}
+.cms-state{font-size:9px;letter-spacing:1px;color:#e7c46c}
+.cms-state[data-status=published]{color:#75d49a}
+@media(max-width:620px){.cms-item-actions button{flex:1}}

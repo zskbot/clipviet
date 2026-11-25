@@ -18,7 +18,7 @@ function setAdminAccess(allowed, message) {
   authLogout.hidden = !allowed;
   authSubmit.hidden = allowed;
   authPassword.disabled = allowed;
-  authStatus.textContent = message;
+  authStatus.textContent = message;\n  window.dispatchEvent(new CustomEvent("clipviet-admin-auth",{detail:{allowed}}));
 }
 async function adminRequest(path, options = {}) {
   const response = await fetch(ADMIN_API + path, {
