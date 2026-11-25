@@ -101,21 +101,7 @@ async function handle(request, env) {
   const headers=corsHeaders(origin);
   if(path.startsWith("/api/admin/")&&!origin) return json({error:"Origin required"},403);
   if(request.method==="OPTIONS") return new Response(null,{status:204,headers});
-  if(path==="/api/admin/login"&&request.method==="POST") {
-    const ip=request.headers.get("CF-Connecting-IP")||"unknown";
-    const now=Date.now(), entry=failedLogins.get(ip)||{count:0,until:now+600000};
-    if(now>entry.until){entry.count=0;entry.until=now+600000;}
-    if(entry.count>=5) return json({error:"Quá nhiều lần đăng nhập sai. Thử lại sau 10 phút."},429,headers);
-    let body={}; try{body=await request.json();}catch{return json({error:"Dữ liệu đăng nhập không hợp lệ."},400,headers);}
-    const password=typeof body.password==="string"?body.password:"";
-    if(!env.ADMIN_PASSWORD||!env.ADMIN_SESSION_SECRET) return json({error:"Admin authentication secrets are not configured."},503,headers);
-    if(!password||password.length>256||!safeSecretCompare(password,env.ADMIN_PASSWORD)) {
-      entry.count++; failedLogins.set(ip,entry);
-      return json({error:"Tài khoản hoặc mật khẩu không chính xác."},401,headers);
-    }
-    failedLogins.delete(ip);
-    return json({ok:true,token:await issueSession(env),expiresIn:14400},200,headers);
-  }
+  if(path==="/api/admin/login"&&request.method==="POST") return json({error:"Password login is disabled. Use Google OAuth."},410,headers);
   if(path==="/api/admin/session"&&request.method==="GET") {
     return await validSession(request,env)?json({ok:true,role:"admin"},200,headers):json({error:"Admin session required"},401,headers);
   }
