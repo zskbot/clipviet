@@ -1,5 +1,6 @@
 const MAX_API_BYTES = 1024 * 1024;
 const TIMEOUT_MS = 10000;
+const API_HOSTS = new Set(["api.souavzy.vip","apiyutu.com","lbapi9.com","slapibf.com","jipinvip1.com"]);
 const safeHost = value => {
   if (typeof value !== "string" || value.length > 253) return "";
   const host = value.trim().toLowerCase();
@@ -56,7 +57,7 @@ export async function runProviderDiagnostic(db, provider) {
     sample: {videoCount:0, fields:[], mediaHostCandidates:[]},
     note: "A diagnostic result is technical evidence only; it does not grant content rights."
   };
-  if (!apiHost || urlHost(provider.api_base_url) !== apiHost) {
+  if (!apiHost || !API_HOSTS.has(apiHost) || urlHost(provider.api_base_url) !== apiHost) {
     result.checks.apiHost.status = "FAIL";
   } else {
     try {
