@@ -142,3 +142,5 @@
 .home-tag.is-active{border-color:var(--red);background:#ef334018;color:var(--fg)}
 @media(max-width:700px){.home-quick-tags{gap:8px;margin:14px 0 18px}.home-tag{min-height:42px;padding:8px 6px;font-size:9px;letter-spacing:.6px}}
 @media(max-width:360px){.home-quick-tags{gap:6px}.home-tag{min-height:40px;padding:7px 4px;font-size:8px;letter-spacing:.35px}}
+
+/* Preview validation: homepage category control theme update. */
