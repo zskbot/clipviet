@@ -19,6 +19,7 @@ function setAdminAccess(allowed, message) {
   authSubmit.hidden = allowed;
   authPassword.disabled = allowed;
   authStatus.textContent = message;
+  window.dispatchEvent(new CustomEvent("clipviet-admin-auth", { detail: { allowed } }));\n  window.dispatchEvent(new CustomEvent("clipviet-admin-auth",{detail:{allowed}}));
 }
 async function adminRequest(path, options = {}) {
   const response = await fetch(ADMIN_API + path, {
@@ -30,6 +31,7 @@ async function adminRequest(path, options = {}) {
   if (!response.ok) throw new Error(data.error || "Yêu cầu quản trị không thành công.");
   return data;
 }
+window.clipvietAdminRequest = adminRequest;
 try {
   adminToken = sessionStorage.getItem(ADMIN_SESSION_KEY) || "";
 } catch { adminToken = ""; }

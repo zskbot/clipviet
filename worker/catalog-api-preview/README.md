@@ -36,3 +36,17 @@ Configure these as **Worker Secrets** (never as plain-text vars and never in Git
 The Worker uses a signed, 4-hour bearer session. The browser keeps the session token in `sessionStorage`, not localStorage or a cookie. `POST /api/admin/login`, `GET /api/admin/session`, and `POST /api/admin/logout` are available. All other `/api/admin/*` routes fail closed unless a valid session is supplied; no content-write endpoint is enabled by this change.
 
 The current static Admin has no persistent article/CMS editing API. This change gates the existing management tools and establishes the authenticated API boundary; article CRUD must be implemented separately against an approved persistent store before claiming that article edits are saved.
+
+## Persistent CMS (Preview)
+
+The authenticated CMS stores article records in Cloudflare D1. Apply the SQL migration in `migrations/0001_create_articles.sql` to the Preview database before enabling the CMS UI.
+
+### D1 binding
+
+Bind the Preview database to the Worker as `DB`. The CMS supports:
+- Public read-only: `GET /api/public/articles` and `GET /api/public/articles?slug=...` (published articles only).
+- Admin-only: `GET/POST /api/admin/articles`, `PUT/DELETE /api/admin/articles/{id}`.
+- Fields: title, slug, excerpt, body, draft/published status, created/updated/published timestamps.
+- Maximum content size: 50 KB; list APIs are capped to 100 public / 200 Admin records.
+
+Do not bind a Production database to this Preview Worker. Do not apply migrations to Production. The Admin page renders article text as text (not executable HTML).

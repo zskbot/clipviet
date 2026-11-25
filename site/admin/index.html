@@ -108,9 +108,24 @@
       <video id="player" controls playsinline preload="metadata"></video>
       <p id="player-message" class="hint block">Chọn một video trong danh sách hoặc nhập URL media ở phần Phát bằng URL.</p>
     </section>
+    <section class="panel cms-panel" id="cms-panel" data-admin-protected inert aria-disabled="true">
+      <div class="panel-head"><div><p class="eyebrow">06 / CONTENT MANAGEMENT</p><h2>CMS · Quản lý bài viết</h2></div><span class="local-tag">D1 PERSISTENT STORAGE</span></div>
+      <p class="hint block">Bài viết được lưu trong Cloudflare D1. Chỉ Admin đã đăng nhập mới được tạo, sửa, xóa hoặc xuất bản.</p>
+      <form id="cms-form" class="form-grid">
+        <input id="cms-id" type="hidden">
+        <label>Tiêu đề<input id="cms-title" maxlength="160" required placeholder="Tiêu đề bài viết"></label>
+        <label>Slug URL<input id="cms-slug" maxlength="180" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="tieu-de-bai-viet"></label>
+        <label class="wide">Mô tả ngắn<input id="cms-excerpt" maxlength="320" placeholder="Mô tả hiển thị trong danh sách"></label>
+        <label class="wide">Nội dung bài viết<textarea id="cms-body" rows="10" maxlength="50000" required placeholder="Nội dung văn bản bài viết…"></textarea></label>
+        <label>Trạng thái<select id="cms-status"><option value="draft">Bản nháp</option><option value="published">Xuất bản</option></select></label>
+        <div class="actions"><button class="primary" type="submit">LƯU BÀI VIẾT</button><button class="secondary" id="cms-new" type="button">BÀI MỚI</button></div>
+      </form>
+      <p id="cms-status-message" class="status" role="status" aria-live="polite">Đăng nhập Admin để tải CMS.</p>
+      <div id="cms-list" class="cms-list"><p class="empty">Chưa tải dữ liệu.</p></div>
+    </section>
     <footer><span>CLIPVIET.LIVE / ADMIN PREVIEW</span><span>Không lưu video lên máy chủ · Không thay đổi Production</span></footer>
   </main>
   <script type="module" src="./admin.js"></script>
-  <script type="module" src="./adultembed-admin.mjs"></script>
+  <script type="module" src="./adultembed-admin.mjs"></script>\n  <script type="module" src="./cms.js"></script>
 </body>
 </html>

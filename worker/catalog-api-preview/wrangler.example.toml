@@ -12,3 +12,9 @@ APPLECMS_APIYUTU_URL = "https://apiyutu.com/api.php/provide/vod/"
 APPLECMS_LBAPI9_URL = "https://lbapi9.com/api.php/provide/vod/"
 APPLECMS_SLAPIBF_URL = "https://slapibf.com/api.php/provide/vod/"
 APPLECMS_JIPINVIP1_URL = "https://jipinvip1.com/api.php/provide/vod/"
+
+# Preview-only D1 binding. Replace the placeholder after creating the Preview database.
+[[d1_databases]]
+binding = "DB"
+database_name = "clipviet-cms-preview"
+database_id = "REPLACE_WITH_PREVIEW_DATABASE_ID"
