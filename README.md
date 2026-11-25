@@ -1,5 +1,13 @@
 # ClipViet.live — Video Streaming Platform
 
+## GitHub Pages deployment (the only publishing target)
+
+The public site is the static website in `site/`. The only production publishing workflow is `.github/workflows/deploy-clipviet-pages.yml`, which uploads **only** `site/` to GitHub Pages. It runs after approved changes reach `main` and on a six-hour schedule.
+
+AppleCMS source configuration and static catalog generation live in `scripts/sync-pages-catalog.mjs`. GitHub Actions fetches source JSON, writes `site/data/catalog.json` into the Pages artifact, and never commits the generated catalog or source media into Git. The browser reads that static JSON; HLS/MP4 is delivered directly from the source CDN.
+
+The repository's legacy Next.js Pages, duplicate Pages and Google Cloud/GKE deployment workflows are disabled. No Netlify, Vercel, Cloudflare Worker or separate application deployment is used for this GitHub Pages rollout. GitHub Pages cannot run server-side API routes or safely store browser-visible credentials; the five listed AppleCMS endpoints are configured as anonymous JSON sources in the supplied integration specification.
+
 ClipViet.live is a Vietnamese streaming catalogue built with Next.js App Router, React and Tailwind CSS. The canonical domain configured for the application is https://clipviet.live.
 
 ## Features
