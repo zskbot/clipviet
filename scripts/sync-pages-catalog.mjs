@@ -66,11 +66,16 @@ function parseLines(raw, playFrom) {
   });
 }
 
+const excludedAdultLabels = /(?:học\s*sinh|nữ\s*sinh|nam\s*sinh|underage|minor|loli|shota|school\s*(?:girl|boy|student)|teen\s*(?:girl|boy))/i;
+const normalizeKey = (value) => String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+function isExcludedAgeLabel(item) { return excludedAdultLabels.test([item.vod_name,item.vod_title,item.vod_class,item.type_name,item.vod_content,item.vod_blurb,item.vod_actor].filter(Boolean).join(" ")); }
+function videoFingerprint(video) { return [normalizeKey(video.title),normalizeKey(video.year),normalizeKey(video.area),normalizeKey(video.duration)].join("|"); }
+
 function normalize(item, provider) {
   if (!item || typeof item !== "object") return null;
   const sourceItemId = String(item.vod_id ?? "").trim();
   const title = String(item.vod_name || item.vod_title || "").trim();
-  if (!sourceItemId || !title) return null;
+  if (!sourceItemId || !title || isExcludedAgeLabel(item)) return null;
   const lines = parseLines(item.vod_play_url, item.vod_play_from);
   return {
     uid: provider.id + ":" + sourceItemId,
@@ -145,7 +150,14 @@ for (const provider of providers) {
   await pause(200);
 }
 
-const videos = results.flatMap((result) => result.videos);
+const collectedVideos = results.flatMap((result) => result.videos);
+const deduplicated = new Map();
+for (const video of collectedVideos) {
+  const key = videoFingerprint(video);
+  const existing = deduplicated.get(key);
+  if (!existing || (!existing.hasPlayback && video.hasPlayback) || (!existing.poster && video.poster) || (!existing.description && video.description)) deduplicated.set(key, video);
+}
+const videos = [...deduplicated.values()];
 const payload = {
   schemaVersion: 1,
   updatedAt: new Date().toISOString(),
