@@ -58,19 +58,13 @@ Do not bind a Production database to this Preview Worker. Do not apply migration
 - Worker Preview has the `DB` binding. Admin secrets remain intentionally unconfigured until entered as Cloudflare Worker Secrets by the account owner.
 
 
-## Google OAuth Admin (Preview)
 
-The Preview Admin sign-in uses Google OAuth authorization-code flow. It grants Admin access only when Google returns an email profile with `email_verified: true` and the exact address `nvht25052002@gmail.com`.
+## Admin PIN authentication (Preview)
 
-Configure these as **Cloudflare Worker Secrets** on `clipviet-catalog-api-preview`:
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `ADMIN_SESSION_SECRET` (random, at least 32 bytes; existing signed-session key)
+The Admin page is available at `/admin/`. Management tools remain locked until a six-digit PIN is verified by the Worker.
 
-Register this exact Authorized redirect URI in the Google OAuth Web application:
-`https://clipviet-catalog-api-preview.huynhthuongg2505-f9b.workers.dev/api/admin/google/callback`
+Configure these as Cloudflare Worker Secrets on `clipviet-catalog-api-preview`:
+- `ADMIN_PIN`: exactly six digits. The initial owner-selected value is set outside Git as a Worker Secret.
+- `ADMIN_SESSION_SECRET`: unique random secret of at least 32 bytes.
 
-The Admin app return URL for this branch Preview is:
-`https://preview-google-oauth-admin.clipviet-live-preview.pages.dev/admin/`
-
-Never put the Client Secret or session secret in Git, browser code, or chat. OAuth cannot complete until the three Worker Secrets are configured. This branch is Preview-only; do not bind Production resources or merge its PR without owner approval.
+The Worker issues a signed 4-hour bearer session. The browser stores it in `sessionStorage`. The login endpoint applies a best-effort per-isolate limit of five failed attempts followed by a 15-minute cooldown; configure Cloudflare edge rate limiting for durable distributed enforcement before Production use. Never commit the PIN or signing secret.
