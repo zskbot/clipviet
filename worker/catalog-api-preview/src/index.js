@@ -18,7 +18,8 @@ function corsHeaders(origin) {
   return origin ? {
     "access-control-allow-origin":origin,
     "access-control-allow-methods":"GET, OPTIONS",
-    "access-control-allow-headers":"Accept",
+    "access-control-allow-headers":"Accept, Range",
+    "access-control-expose-headers":"Accept-Ranges, Content-Range, Content-Length",
     "access-control-max-age":"600",
     "vary":"Origin"
   } : {};
