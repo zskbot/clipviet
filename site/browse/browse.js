@@ -55,15 +55,29 @@ function matches(item) {
     (!keyword||hay.includes(keyword.toLocaleLowerCase("vi"))) && durationMatches(item);
 }
 function renderTrending() {
-  const root=$("trending-card"); root.replaceChildren();
-  if(!trendingItems.length){root.textContent="Chưa có đủ dữ liệu để xếp hạng đề xuất.";return;}
+  const root=$("trending-card"), picks=$("hot-recommendations");
+  root.replaceChildren(); picks.replaceChildren();
+  if(!trendingItems.length){root.textContent="Chưa có đủ dữ liệu để chọn video nổi bật.";return;}
   const item=trendingItems[trendingIndex%trendingItems.length];
-  const img=document.createElement("img");img.src=item.poster||"../poster-fallback.svg";img.alt=item.title;img.loading="lazy";
-  const body=document.createElement("div"),title=document.createElement("h3"),meta=document.createElement("p"),link=document.createElement("a");
-  title.textContent=item.title;meta.textContent=[item.area,item.categoryName,item.duration,item.sourceName].filter(Boolean).join(" · ");
-  link.href="../watch/source.html?sourceId="+encodeURIComponent(item.sourceId)+"&vodId="+encodeURIComponent(item.id);link.textContent="XEM VIDEO ↗";
-  body.append(title,meta,link);root.append(img,body);
-  $("trending-index").textContent=(trendingIndex+1)+" / "+trendingItems.length+" · TỰ ĐỘNG 10 GIÂY";
+  const href=x=>"../watch/source.html?sourceId="+encodeURIComponent(x.sourceId)+"&vodId="+encodeURIComponent(x.id);
+  const hero=document.createElement("a");hero.className="hot-stage";hero.href=href(item);hero.setAttribute("aria-label","Xem video "+item.title);
+  const img=document.createElement("img");img.className="hot-cover";img.src=item.poster||"../poster-fallback.svg";img.alt="";img.loading="eager";img.decoding="async";
+  img.addEventListener("error",()=>{img.src="../poster-fallback.svg";},{once:true});
+  const content=document.createElement("div");content.className="hot-stage-content";
+  const kicker=document.createElement("span");kicker.className="hot-kicker";kicker.textContent="★ VIDEO HOT";
+  const title=document.createElement("h3");title.textContent=item.title;
+  const meta=document.createElement("p");meta.className="hot-stage-meta";meta.textContent=[item.area,item.categoryName,item.duration,item.sourceName].filter(Boolean).join(" · ");
+  const play=document.createElement("span");play.className="hot-play";play.textContent="▶  XEM NGAY";
+  content.append(kicker,title,meta,play);hero.append(img,content);root.append(hero);
+  const nextItems=trendingItems.filter((_,i)=>i!==trendingIndex%trendingItems.length).slice(0,8);
+  for(const pick of nextItems){
+    const card=document.createElement("a");card.className="hot-pick";card.href=href(pick);
+    const poster=document.createElement("img");poster.loading="lazy";poster.decoding="async";poster.alt="";poster.src=pick.poster||"../poster-fallback.svg";
+    poster.addEventListener("error",()=>{poster.src="../poster-fallback.svg";},{once:true});
+    const name=document.createElement("strong");name.textContent=pick.title;
+    card.append(poster,name);picks.append(card);
+  }
+  $("trending-index").textContent=(trendingIndex+1)+" / "+trendingItems.length;
 }
 function setupTrending() {
   const source=catalog.videos.filter(x=>x&&x.id&&x.sourceId&&!/(học\s*sinh|nữ\s*sinh|nam\s*sinh|underage|minor|loli|shota)/i.test([x.title,x.description,x.categoryName,x.actors].join(" ")));
