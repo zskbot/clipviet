@@ -4,7 +4,7 @@ const PAGE_SIZE = 16;
 const MAX_PAGES = 1000;
 let catalog = { videos: [], categories: [], providers: [] };
 let page = 1, pageCount = 1, activeProvider = "", categoryId = "", keyword = "", country = "", duration = "";
-let items = [], trendingTimer = null, trendingIndex = 0, trendingItems = [];
+let items = [], trendingTimer = null, trendingIndex = 0, trendingItems = [], quickCategory = "";
 
 const gate = $("age-gate");
 try { if (sessionStorage.getItem("clipviet-age-confirmed") === "yes") gate.hidden = true; } catch {}
@@ -50,7 +50,15 @@ function matches(item) {
   const hay=[item.title,item.description,item.categoryName,item.actors,item.area,item.sourceName,item.tags].filter(Boolean).join(" ").toLocaleLowerCase("vi");
   // Never surface content labeled as minors, schoolchildren, or youth in adult-content recommendations.
   const unsafeMinor=/(học\s*sinh|nữ\s*sinh|nam\s*sinh|school\s*(girl|boy|student)|underage|minor|loli|shota|teen\s*(girl|boy))/i.test(hay);
-  return !unsafeMinor && (!activeProvider||item.sourceId===activeProvider) &&
+  const quickMatchers = {
+    jav: /\b(jav|japan|japanese|nhật|nhat)\b/i,
+    china: /(trung quốc|china|chinese|cn)/i,
+    europe: /(châu âu|europe|european|pháp|đức|anh|italy|spanish)/i,
+    vietnam: /(việt nam|viet nam|vietnam|vietnamese)/i,
+    vietsub: /(vietsub|viet sub|phụ đề việt|sub tiếng việt)/i,
+    "south-asia": /(nam á|south asia|india|indian|pakistan|bangladesh|nepal|sri lanka)/i
+  };
+  return !unsafeMinor && (!quickCategory || quickMatchers[quickCategory]?.test(hay)) && (!activeProvider||item.sourceId===activeProvider) &&
     (!categoryId||item.categoryId===categoryId) && (!country||String(item.area||"").toLocaleLowerCase("vi")===country.toLocaleLowerCase("vi")) &&
     (!keyword||hay.includes(keyword.toLocaleLowerCase("vi"))) && durationMatches(item);
 }
@@ -111,6 +119,17 @@ function loadVideos() {
   $("count").dataset.total=String(total);render();
   status("Catalog đồng bộ · "+providerRows()+" · "+total.toLocaleString("vi-VN")+" kết quả · tối đa 1.000 trang · "+new Date(catalog.updatedAt).toLocaleString("vi-VN"));
 }
+document.querySelectorAll(".category-chip").forEach(button=>{
+  button.addEventListener("click",()=>{
+    quickCategory=button.dataset.category===quickCategory?"":button.dataset.category;
+    document.querySelectorAll(".category-chip").forEach(chip=>{
+      const active=chip.dataset.category===quickCategory;
+      chip.classList.toggle("is-active",active);
+      chip.setAttribute("aria-pressed",String(active));
+    });
+    page=1;loadVideos();
+  });
+});
 $("filters").addEventListener("submit",event=>{
   event.preventDefault();page=1;
   const selected=$("category").value;
