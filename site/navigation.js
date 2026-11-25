@@ -47,10 +47,14 @@ if(menu){
  const input=search.querySelector("input");
  input.addEventListener("input",()=>{
   const q=input.value.trim().toLocaleLowerCase("vi");
-  menu.querySelectorAll(".nav-accordion,.nav-community-links a,.nav-plain-link").forEach(el=>{
+  menu.querySelectorAll(".nav-accordion,.nav-community-links a,.nav-accordion-links a,.nav-plain-link").forEach(el=>{
    const match=!q||el.textContent.toLocaleLowerCase("vi").includes(q);
-   if(el.matches(".nav-accordion")){el.hidden=!match; if(q&&match)el.open=true}
-   else if(el.matches("a,.nav-plain-link")&&!el.closest(".nav-accordion"))el.hidden=!match;
+   if(el.matches(".nav-accordion")){
+    const children=[...el.querySelectorAll(".nav-accordion-links a,.nav-community-links a,.nav-plain-link")];
+    const groupMatch=!q||match||children.some(child=>child.textContent.toLocaleLowerCase("vi").includes(q));
+    el.hidden=!groupMatch;
+    if(q&&groupMatch)el.open=true;
+   }else el.hidden=!match;
   });
  });
  menu.querySelector("#open-suggestion")?.addEventListener("click",()=>{const d=menu.querySelector("#suggestion-details");if(d)d.open=true});
