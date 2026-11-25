@@ -23,13 +23,14 @@
       <p>Kết nối JSON API của bạn hoặc dán URL phát trực tiếp để kiểm tra video ngay trên trình duyệt.</p>
     </section>
     <section class="admin-auth-panel" id="admin-auth" aria-labelledby="admin-auth-title">
-      <div class="panel-head"><div><p class="eyebrow">ADMIN ACCESS / OPTIONAL SIGN-IN</p><h2 id="admin-auth-title">Đăng nhập quản trị</h2></div><span id="admin-auth-state" class="local-tag">CHẾ ĐỘ XEM</span></div>
-      <p class="hint block">Trang và nội dung công khai vẫn xem được mà không cần đăng nhập. Chỉ các thao tác quản lý, cấu hình và chỉnh sửa mới cần quyền Admin.</p>
-      <div class="admin-login-form">
-        <p class="hint block">Tài khoản Admin được giới hạn: <strong>nvht25052002@gmail.com</strong></p>
-        <div class="actions"><button class="primary" id="admin-google-login" type="button">ĐĂNG NHẬP BẰNG GOOGLE</button><button class="secondary" id="admin-logout" type="button" hidden>ĐĂNG XUẤT</button></div>
-      </div>
-      <p id="admin-auth-status" class="status" role="status" aria-live="polite">Bạn đang ở chế độ xem công khai. Đăng nhập khi cần quản lý.</p>
+      <div class="panel-head"><div><p class="eyebrow">ADMIN ACCESS / PIN</p><h2 id="admin-auth-title">Mở khóa quản trị</h2></div><span id="admin-auth-state" class="local-tag">CHƯA XÁC THỰC</span></div>
+      <p class="hint block">Trang Admin chỉ mở các công cụ quản lý sau khi xác minh mã PIN 6 chữ số.</p>
+      <form id="admin-login-form" class="admin-login-form">
+        <label for="admin-pin">MÃ PIN 6 SỐ</label>
+        <input id="admin-pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="current-password" placeholder="••••••" aria-label="Mã PIN 6 chữ số" required>
+        <div class="actions"><button class="primary" id="admin-login-submit" type="submit">MỞ KHÓA ADMIN</button><button class="secondary" id="admin-logout" type="button" hidden>KHÓA ADMIN</button></div>
+      </form>
+      <p id="admin-auth-status" class="status" role="status" aria-live="polite">Nhập mã PIN 6 chữ số để mở khóa.</p>
     </section>
     <section class="clipform-suggestion" aria-labelledby="clipform-admin-title">
       <div class="clipform-suggestion-head"><div><p class="eyebrow">COMMUNITY / INBOX</p><h2 id="clipform-admin-title">Biểu mẫu đề xuất video</h2><p>Xem các phản hồi trong Clipform workspace. Đề xuất không được tự động nhập vào thư viện hoặc phát công khai.</p></div><a class="clipform-open" href="https://clipform.io/3d76a8c57" target="_blank" rel="noopener noreferrer">MỞ BIỂU MẪU ↗</a></div>
