@@ -84,6 +84,61 @@ async function handle(request, env) {
   if(path==="/api/admin/logout"&&request.method==="POST") {
     return await validSession(request,env)?json({ok:true},200,headers):json({error:"Admin session required"},401,headers);
   }
+  if(path==="/api/public/articles"&&request.method==="GET") {
+    if(!env.DB) return json({error:"CMS database is not configured"},503,headers);
+    const slug=url.searchParams.get("slug");
+    if(slug) {
+      const row=await env.DB.prepare("SELECT id,slug,title,excerpt,body,published_at,updated_at FROM articles WHERE slug=? AND status='published'").bind(slug).first();
+      return row?json({data:row},200,headers):json({error:"Article not found"},404,headers);
+    }
+    const rows=await env.DB.prepare("SELECT id,slug,title,excerpt,body,published_at,updated_at FROM articles WHERE status='published' ORDER BY published_at DESC, updated_at DESC LIMIT 100").all();
+    return json({data:rows.results||[],count:rows.results?.length||0},200,headers);
+  }
+  if(path==="/api/admin/articles"&&(request.method==="GET"||request.method==="POST")) {
+    if(!await validSession(request,env)) return json({error:"Admin session required"},401,headers);
+    if(!env.DB) return json({error:"CMS database is not configured"},503,headers);
+    if(request.method==="GET") {
+      const rows=await env.DB.prepare("SELECT id,slug,title,excerpt,body,status,created_at,updated_at,published_at FROM articles ORDER BY updated_at DESC LIMIT 200").all();
+      return json({data:rows.results||[],count:rows.results?.length||0},200,headers);
+    }
+    let body={}; try{body=await request.json();}catch{return json({error:"Invalid JSON body"},400,headers);}
+    const title=String(body.title||"").trim(), slug=String(body.slug||"").trim().toLowerCase();
+    const excerpt=String(body.excerpt||"").trim(), content=String(body.body||"");
+    const status=body.status==="published"?"published":"draft";
+    if(title.length<2||title.length>160||!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slug.length>180||excerpt.length>320||content.length>50000)
+      return json({error:"Invalid article fields or limits exceeded"},400,headers);
+    const id=crypto.randomUUID(), now=new Date().toISOString(), publishedAt=status==="published"?now:null;
+    try {
+      await env.DB.prepare("INSERT INTO articles (id,slug,title,excerpt,body,status,created_at,updated_at,published_at) VALUES (?,?,?,?,?,?,?,?,?)")
+        .bind(id,slug,title,excerpt,content,status,now,now,publishedAt).run();
+    } catch(error) { return json({error:"Could not save article. Check whether the slug already exists."},409,headers); }
+    return json({ok:true,data:{id,slug,title,excerpt,body:content,status,created_at:now,updated_at:now,published_at:publishedAt}},201,headers);
+  }
+  const articleMatch=path.match(/^\/api\/admin\/articles\/([0-9a-f-]{36})$/i);
+  if(articleMatch&&(request.method==="PUT"||request.method==="DELETE")) {
+    if(!await validSession(request,env)) return json({error:"Admin session required"},401,headers);
+    if(!env.DB) return json({error:"CMS database is not configured"},503,headers);
+    const id=articleMatch[1];
+    if(request.method==="DELETE") {
+      const result=await env.DB.prepare("DELETE FROM articles WHERE id=?").bind(id).run();
+      return result.meta?.changes?json({ok:true},200,headers):json({error:"Article not found"},404,headers);
+    }
+    let body={}; try{body=await request.json();}catch{return json({error:"Invalid JSON body"},400,headers);}
+    const title=String(body.title||"").trim(), slug=String(body.slug||"").trim().toLowerCase();
+    const excerpt=String(body.excerpt||"").trim(), content=String(body.body||"");
+    const status=body.status==="published"?"published":"draft";
+    if(title.length<2||title.length>160||!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slug.length>180||excerpt.length>320||content.length>50000)
+      return json({error:"Invalid article fields or limits exceeded"},400,headers);
+    const now=new Date().toISOString();
+    const existing=await env.DB.prepare("SELECT published_at FROM articles WHERE id=?").bind(id).first();
+    if(!existing) return json({error:"Article not found"},404,headers);
+    const publishedAt=status==="published"?(existing.published_at||now):null;
+    try {
+      await env.DB.prepare("UPDATE articles SET slug=?,title=?,excerpt=?,body=?,status=?,updated_at=?,published_at=? WHERE id=?")
+        .bind(slug,title,excerpt,content,status,now,publishedAt,id).run();
+    } catch(error) { return json({error:"Could not update article. Check whether the slug already exists."},409,headers); }
+    return json({ok:true,data:{id,slug,title,excerpt,body:content,status,updated_at:now,published_at:publishedAt}},200,headers);
+  }
   if(path.startsWith("/api/admin/")) {
     if(!await validSession(request,env)) return json({error:"Admin session required"},401,headers);
     return json({error:"Admin endpoint not implemented"},404,headers);
