@@ -9,6 +9,7 @@ let lineIndex = 0;
 let episodeIndex = 0;
 let hls = null;
 let watchdog = null;
+let selectedQuality = "auto";
 
 function say(message) { status.textContent = message; }
 function destroy() {
@@ -74,16 +75,28 @@ function play() {
   video.onplaying = markReady;
   video.onerror = () => failed("Trình duyệt không tải được video hoặc segment.");
   if (useHlsJs && episode.type === "hls") {
-    hls = new Hls({ enableWorker: true, lowLatencyMode: false, manifestLoadingTimeOut: 15000, fragLoadingTimeOut: 15000 });
+    hls = new Hls({ enableWorker: true, lowLatencyMode: false, manifestLoadingTimeOut: 15000, fragLoadingTimeOut: 20000, maxBufferLength: 30, maxMaxBufferLength: 60, backBufferLength: 30, capLevelToPlayerSize: true });
     hls.loadSource(episode.url);
     hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => say("Manifest HLS đã tải. Đang chờ dữ liệu video…"));
+    hls.on(Hls.Events.MANIFEST_PARSED, () => { applyQuality(); say("Manifest HLS đã tải. Chất lượng: " + $("quality").selectedOptions[0].textContent + "."); });
     hls.on(Hls.Events.ERROR, (_event, detail) => { if (detail.fatal) failed("HLS lỗi: " + detail.details + "."); });
   } else {
     video.src = episode.url;
     video.load();
   }
 }
+function applyQuality() {
+  if (!hls || !hls.levels?.length) return;
+  const target = selectedQuality === "auto" ? Infinity : Number(selectedQuality);
+  if (!Number.isFinite(target)) { hls.currentLevel = -1; return; }
+  const eligible = hls.levels.map((level,index)=>({level,index})).filter(x=>(x.level.width||0)<=target);
+  const choice = eligible.sort((a,b)=>(b.level.width||0)-(a.level.width||0))[0];
+  hls.currentLevel = choice ? choice.index : 0;
+}
+$("quality").addEventListener("change", () => {
+  selectedQuality = $("quality").value; applyQuality();
+  if (!hls && selectedQuality !== "auto") say("Nguồn phát gốc tự quản lý chất lượng; lựa chọn độ phân giải chỉ áp dụng khi HLS.js hỗ trợ.");
+});
 $("line").addEventListener("change", () => { lineIndex = Number($("line").value) || 0; episodeIndex = 0; renderEpisodes(); play(); });
 $("switch").addEventListener("click", () => { lineIndex = (lineIndex + 1) % data.lines.length; episodeIndex = 0; renderLines(); renderEpisodes(); play(); });
 
