@@ -1,7 +1,7 @@
-import { categories, videos as demoVideos } from "./data.js";
+import { categories as demoCategories, videos as demoVideos } from "./data.js";
 
 let videos = demoVideos;
-const API_BASE = window.CLIPVIET_API_BASE || "https://api.clipviet.live/api/v1";
+let activeCategory = "Tất cả";
 
 const grid = document.querySelector("#video-grid");
 const count = document.querySelector("#result-count");
@@ -132,7 +132,7 @@ function openDetail(video) {
   detail.querySelector(".description").textContent = video.description;
   detail.querySelector(".meta").textContent = [video.year, video.duration, video.rating, video.country || video.originCountry].filter(Boolean).join(" · ");
   detail.querySelector(".detail-source").textContent = video.apiManaged ? "Nguồn phát đã đăng ký trong ClipViet API." : "Bản ghi demo, chưa có nguồn phát.";
-  if (video.apiManaged) { const link = detail.querySelector(".watch-link"); link.hidden = false; link.href = "./watch/?id=" + encodeURIComponent(video.id); }
+  if (video.apiManaged && video.sourceId && video.id) { const link = detail.querySelector(".watch-link"); link.hidden = false; link.href = "./watch/source.html?sourceId=" + encodeURIComponent(video.sourceId) + "&vodId=" + encodeURIComponent(video.id); }
   dialog.showModal();
 }
 
