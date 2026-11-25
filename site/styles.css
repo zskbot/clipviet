@@ -135,10 +135,10 @@
 /* Keep the featured video as the first content block after the mobile search. */
 @media(max-width:700px){.featured-heading{margin-bottom:12px}.featured-video{padding-top:20px}}
 
-/* Quick category tags directly under the homepage video-library heading */
-.home-quick-tags{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0 22px}
-.home-tag{display:flex;align-items:center;justify-content:center;min-height:56px;padding:10px 14px;border-radius:999px;background:#292929;color:#d0d0d0;text-align:center;text-decoration:none;font-size:clamp(13px,1.6vw,18px);font-weight:500;line-height:1.25;transition:background .18s,color .18s}
-.home-tag:hover,.home-tag:focus-visible{background:#383838;color:#fff;outline-offset:3px}
-.home-tag.is-active{background:#535353;color:#ff6b35}
-@media(max-width:700px){.home-quick-tags{gap:9px 10px;margin:14px 0 18px}.home-tag{min-height:52px;padding:8px 9px;font-size:clamp(12px,3.6vw,17px)}}
-@media(max-width:360px){.home-quick-tags{gap:8px}.home-tag{min-height:48px;padding:7px 5px;font-size:11px}}
+/* Homepage quick category tags — square controls, aligned with ClipViet dark/red theme */
+.home-quick-tags{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0 22px}
+.home-tag{display:flex;align-items:center;justify-content:center;min-width:0;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:0;background:var(--panel);color:var(--muted);text-align:center;text-decoration:none;text-transform:uppercase;font-family:inherit;font-size:10px;font-weight:800;letter-spacing:1px;line-height:1.35;transition:background .18s,border-color .18s,color .18s}
+.home-tag:hover,.home-tag:focus-visible{border-color:var(--red);background:#ef334018;color:var(--fg);outline:1px solid var(--red);outline-offset:1px}
+.home-tag.is-active{border-color:var(--red);background:#ef334018;color:var(--fg)}
+@media(max-width:700px){.home-quick-tags{gap:8px;margin:14px 0 18px}.home-tag{min-height:42px;padding:8px 6px;font-size:9px;letter-spacing:.6px}}
+@media(max-width:360px){.home-quick-tags{gap:6px}.home-tag{min-height:40px;padding:7px 4px;font-size:8px;letter-spacing:.35px}}
