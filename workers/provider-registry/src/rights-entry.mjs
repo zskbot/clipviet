@@ -1,6 +1,7 @@
 import registry from "./index.mjs";
 import { resolveRole } from "./security.mjs";
 import { validateConnectorContract, validateContentRights, canApproveContentRights, playbackDecision } from "./rights-gate.mjs";
+import { runProviderDiagnostic, listProviderDiagnostics } from "./diagnostics.mjs";
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...headers }
@@ -37,7 +38,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const parts = url.pathname.replace(/\/+$/, "").split("/").filter(Boolean);
-    const rightsRoute = (parts[0] === "providers" && (parts[2] === "content-rights" || parts[2] === "connector")) ||
+    const rightsRoute = (parts[0] === "providers" && (parts[2] === "content-rights" || parts[2] === "connector" || parts[2] === "diagnostics")) ||
       (parts[0] === "playback" && parts[1] === "authorize");
     if (!rightsRoute) return registry.fetch(request, env, ctx);
     if (env.REGISTRY_ENV !== "preview" || !previewOnly(request)) return json({ error: "Preview-only registry is disabled." }, 404);
@@ -57,6 +58,19 @@ export default {
     if (!env.PROVIDER_DB) return json({ error: "Preview D1 binding is not configured." }, 503, cors);
     const db = env.PROVIDER_DB;
     try {
+      if (parts[0] === "providers" && parts.length === 3 && parts[2] === "diagnostics" && request.method === "GET") {
+        if (!["admin", "technical", "legal"].includes(role)) return json({ error: "Forbidden" }, 403, cors);
+        const provider = await db.prepare("SELECT id FROM provider_registry WHERE id=?").bind(parts[1]).first();
+        if (!provider) return json({ error: "Provider not found." }, 404, cors);
+        return json({ runs: await listProviderDiagnostics(db, parts[1]) }, 200, cors);
+      }
+      if (parts[0] === "providers" && parts.length === 4 && parts[2] === "diagnostics" && parts[3] === "run" && request.method === "POST") {
+        if (role !== "technical" && role !== "admin") return json({ error: "Technical reviewer role required." }, 403, cors);
+        const provider = await db.prepare("SELECT * FROM provider_registry WHERE id=?").bind(parts[1]).first();
+        if (!provider) return json({ error: "Provider not found." }, 404, cors);
+        const run = await runProviderDiagnostic(db, provider);
+        return json({ run }, 200, cors);
+      }
       if (parts[0] === "providers" && parts.length === 3 && parts[2] === "connector" && request.method === "GET") {
         if (!["admin", "technical", "legal"].includes(role)) return json({ error: "Forbidden" }, 403, cors);
         const connector = await db.prepare("SELECT * FROM provider_connectors WHERE provider_id=?").bind(parts[1]).first();
