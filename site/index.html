@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08090d">
   <meta name="color-scheme" content="dark">
   <meta name="description" content="ClipViet.live — khám phá video nổi bật, video hot và thư viện video được tuyển chọn.">
@@ -17,7 +17,7 @@
     <nav aria-label="Điều hướng" class="primary-nav"><a href="./browse/">Khám phá video</a><a href="#catalog">Mới nhất</a><a href="#about">Giới thiệu</a><a href="./watch/">Trình phát</a><a href="./api-docs/">API Docs</a><a href="./sources.html">Nguồn liên kết</a></nav>
     <form id="search-form" role="search" aria-label="Tìm kiếm thư viện"><input id="search" type="search" placeholder="Tìm video..." aria-label="Tìm video"><button type="submit">TÌM</button></form>
     <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Mở menu điều hướng" aria-expanded="false" aria-controls="filter-menu"><span></span><span></span><span></span></button>
-    <aside id="filter-menu" class="filter-menu" aria-label="Menu điều hướng và bộ lọc" hidden>
+    <aside id="filter-menu" class="filter-menu" role="dialog" aria-modal="true" aria-label="Menu điều hướng và bộ lọc" tabindex="-1" hidden>
       <div class="filter-menu-head"><div><p class="eyebrow">CLIPVIET / MENU</p><h2>Điều hướng</h2></div><button id="menu-close" class="menu-close" type="button" aria-label="Đóng menu">×</button></div>
       <nav class="drawer-nav" aria-label="Điều hướng chính">
         <a href="./"><span class="drawer-nav-icon" aria-hidden="true">⌂</span><span>Trang chủ</span><span class="drawer-nav-arrow" aria-hidden="true">↗</span></a>
@@ -43,13 +43,19 @@
 
     <section class="catalog" id="catalog" aria-labelledby="catalog-title">
       <div class="section-heading"><div><p class="eyebrow">THƯ VIỆN</p><h2 id="catalog-title">Danh sách video</h2></div><span id="result-count">0 VIDEO</span></div>
-      <div class="home-quick-tags" aria-label="Danh mục video nổi bật">
-        <a class="home-tag is-active" href="./browse/?quick=jav">Jav HD</a>
-        <a class="home-tag" href="./browse/?quick=china">Phim sex Trung Quốc</a>
-        <a class="home-tag" href="./browse/?quick=europe">Sex châu Âu</a>
-        <a class="home-tag" href="./browse/?quick=vietnam">Phim Sex Việt Nam</a>
-        <a class="home-tag" href="./browse/?quick=vietsub">Phim Sex Vietsub</a>
-        <a class="home-tag" href="./browse/?quick=south-asia">Phim Sex Nam Á</a>
+      <div class="home-category-grid" aria-label="Khám phá danh mục video">
+        <a class="home-category-card" href="./browse/?quick=actors"><span class="home-category-mark" aria-hidden="true">01</span><span class="home-category-copy"><strong>Diễn viên</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
+        <a class="home-category-card" href="./browse/?quick=genres"><span class="home-category-mark" aria-hidden="true">02</span><span class="home-category-copy"><strong>Thể loại</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
+        <a class="home-category-card" href="./browse/?quick=vietnam"><span class="home-category-mark" aria-hidden="true">03</span><span class="home-category-copy"><strong>Việt Nam</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
+        <a class="home-category-card" href="./browse/?quick=vietsub"><span class="home-category-mark" aria-hidden="true">04</span><span class="home-category-copy"><strong>Vietsub</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
+        <a class="home-category-card" href="./browse/?quick=china"><span class="home-category-mark" aria-hidden="true">05</span><span class="home-category-copy"><strong>Trung Quốc</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
+        <a class="home-category-card" href="./browse/?quick=europe"><span class="home-category-mark" aria-hidden="true">06</span><span class="home-category-copy"><strong>Âu - Mỹ</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
+        <a class="home-category-card" href="./browse/?quick=uncensored"><span class="home-category-mark" aria-hidden="true">07</span><span class="home-category-copy"><strong>Không Che</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
+        <a class="home-category-card" href="./browse/?quick=jav"><span class="home-category-mark" aria-hidden="true">08</span><span class="home-category-copy"><strong>JAV HD</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
+        <a class="home-category-card" href="./browse/?quick=beauty"><span class="home-category-mark" aria-hidden="true">09</span><span class="home-category-copy"><strong>Gái Xinh</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
+        <a class="home-category-card" href="./browse/?quick=amateur"><span class="home-category-mark" aria-hidden="true">10</span><span class="home-category-copy"><strong>Nghiệp Dư</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
+        <a class="home-category-card" href="./browse/?quick=xvideos"><span class="home-category-mark" aria-hidden="true">11</span><span class="home-category-copy"><strong>Xvideos</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
+        <a class="home-category-card" href="./browse/?quick=xnxx"><span class="home-category-mark" aria-hidden="true">12</span><span class="home-category-copy"><strong>Xnxx</strong><small>KHÁM PHÁ DANH MỤC</small></span><span class="home-category-arrow" aria-hidden="true">↗</span></a>
       </div>
       <div class="active-filters" id="active-filters" aria-live="polite"></div>
       <div class="filters"><div id="categories" class="category-list" aria-label="Lọc thể loại"></div><label class="sort-label">SẮP XẾP <select id="sort"><option value="new">Mới nhất</option><option value="title">Tên A–Z</option></select></label></div>

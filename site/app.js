@@ -149,25 +149,38 @@ function openDetail(video) {
   dialog.showModal();
 }
 
+let menuReturnFocus = null;
 function closeMenu(returnFocus = false) {
   menu.hidden = true;
+  document.body.classList.remove("menu-open");
   menuToggle.setAttribute("aria-expanded", "false");
   menuToggle.setAttribute("aria-label", "Mở menu điều hướng");
-  if (returnFocus) menuToggle.focus();
+  if (returnFocus) (menuReturnFocus || menuToggle).focus();
 }
 menuToggle?.addEventListener("click", () => {
   const opening = menu.hidden;
-  menu.hidden = !opening;
-  menuToggle.setAttribute("aria-expanded", String(opening));
-  if (opening) menu.querySelector(".drawer-nav a")?.focus();
+  if (opening) {
+    menuReturnFocus = document.activeElement;
+    menu.hidden = false;
+    document.body.classList.add("menu-open");
+    menuToggle.setAttribute("aria-expanded", "true");
+    menuToggle.setAttribute("aria-label", "Đóng menu điều hướng");
+    requestAnimationFrame(() => menu.querySelector(".drawer-nav a")?.focus());
+  } else closeMenu(true);
 });
 $("#menu-close")?.addEventListener("click", () => closeMenu(true));
 menu?.querySelectorAll(".drawer-nav a").forEach((link) => link.addEventListener("click", () => closeMenu()));
-document.addEventListener("pointerdown", (event) => {
-  if (!menu || menu.hidden || menu.contains(event.target) || menuToggle?.contains(event.target)) return;
-  closeMenu();
+document.addEventListener("keydown", (event) => {
+  if (!menu || menu.hidden) return;
+  if (event.key === "Escape") { event.preventDefault(); closeMenu(true); return; }
+  if (event.key === "Tab") {
+    const focusable = [...menu.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter((el) => el.offsetParent !== null);
+    if (!focusable.length) { event.preventDefault(); menu.focus(); return; }
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
 });
-document.addEventListener("keydown", (event) => { if (event.key === "Escape" && menu && !menu.hidden) closeMenu(true); });
 $("#reset-filters")?.addEventListener("click", () => {
   activeCountry = "";
   activeGenre = "";
