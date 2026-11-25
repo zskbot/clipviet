@@ -38,6 +38,7 @@ function filterButton(label, root, current, setValue) {
   button.setAttribute("aria-pressed", String(current() === label));
   button.addEventListener("click", () => {
     setValue(current() === label ? "" : label);
+    currentPage = 1;
     root.querySelectorAll("button").forEach((item) => item.setAttribute("aria-pressed", String(item.textContent === current())));
     render();
   });
