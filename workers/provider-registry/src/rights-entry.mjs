@@ -156,6 +156,40 @@ export default {
         return json({ record: rowToJson(updated) }, 200, cors);
       }
 
+      if (parts[0] === "providers" && parts.length === 4 && parts[2] === "connector" && parts[3] === "disable" && request.method === "PATCH") {
+        if (role !== "admin" && role !== "legal") return json({ error: "Admin or legal reviewer role required." },403,cors);
+        const parsedBody = await readJson(request);
+        if (parsedBody.error) return json({ error: parsedBody.error },parsedBody.status,cors);
+        const reason = clean(parsedBody.data.reason);
+        if (!reason) return json({ error: "A disable reason is required." },400,cors);
+        const connector = await db.prepare("SELECT * FROM provider_connectors WHERE provider_id=?").bind(parts[1]).first();
+        if (!connector || connector.status === "DISABLED") return json({ error: "Active connector not found." },404,cors);
+        const now = new Date().toISOString(), eventId = crypto.randomUUID();
+        await db.batch([
+          db.prepare("UPDATE provider_connectors SET status='DISABLED',updated_at=? WHERE provider_id=? AND status<>'DISABLED'").bind(now,parts[1]),
+          db.prepare("INSERT INTO provider_audit (event_id,provider_id,action,from_status,to_status,actor_role,metadata_json,created_at) SELECT ?,?,?,?, ?,?,?,? WHERE EXISTS (SELECT 1 FROM provider_connectors WHERE provider_id=? AND status='DISABLED' AND updated_at=?)").bind(eventId,parts[1],"CONNECTOR_DISABLED",connector.status,"DISABLED",role,JSON.stringify({connectorId:connector.connector_id,reason}),now,parts[1],now)
+        ]);
+        return json({ status:"DISABLED", reason },200,cors);
+      }
+
+      if (parts[0] === "providers" && parts.length === 6 && parts[2] === "content-rights" && parts[4] === "revoke" && request.method === "PATCH") {
+        if (role !== "admin" && role !== "legal") return json({ error: "Admin or legal reviewer role required." },403,cors);
+        const parsedBody = await readJson(request);
+        if (parsedBody.error) return json({ error: parsedBody.error },parsedBody.status,cors);
+        const reason = clean(parsedBody.data.reason);
+        if (!reason) return json({ error: "A takedown or revocation reason is required." },400,cors);
+        const row = await db.prepare("SELECT * FROM provider_content_rights WHERE provider_id=? AND id=?").bind(parts[1],parts[3]).first();
+        if (!row) return json({ error: "Content rights record not found." },404,cors);
+        const now = new Date().toISOString(), eventId = crypto.randomUUID();
+        await db.batch([
+          db.prepare("UPDATE provider_content_rights SET status='REVOKED',updated_at=? WHERE id=? AND provider_id=? AND status<>'REVOKED'").bind(now,parts[3],parts[1]),
+          db.prepare("INSERT INTO provider_audit (event_id,provider_id,action,from_status,to_status,actor_role,metadata_json,created_at) SELECT ?,?,?,?, ?,?,?,? WHERE EXISTS (SELECT 1 FROM provider_content_rights WHERE id=? AND provider_id=? AND status='REVOKED' AND updated_at=?)").bind(eventId,parts[1],"CONTENT_RIGHTS_REVOKED",row.status,"REVOKED",role,JSON.stringify({contentRightsId:parts[3],reason}),now,parts[3],parts[1],now)
+        ]);
+        const updated = await db.prepare("SELECT status FROM provider_content_rights WHERE id=? AND provider_id=?").bind(parts[3],parts[1]).first();
+        if (!updated || updated.status !== "REVOKED") return json({ error: "Rights revocation failed or conflicted." },409,cors);
+        return json({ status:"REVOKED", reason },200,cors);
+      }
+
       if (parts[0] === "playback" && parts[1] === "authorize" && request.method === "GET") {
         if (!["admin", "technical", "legal"].includes(role)) return json({ error: "Forbidden" }, 403, cors);
         const providerId = clean(url.searchParams.get("providerId"),80);
