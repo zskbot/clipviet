@@ -5,7 +5,17 @@ function b64u(s){const v=s.replace(/-/g,"+").replace(/_/g,"/");return Uint8Array
 function part(s){return JSON.parse(new TextDecoder().decode(b64u(s)));}
 function b64(bytes){let s="";for(const b of bytes)s+=String.fromCharCode(b);return btoa(s);}
 function clean(v,n=200){return typeof v==="string"?v.trim().slice(0,n):"";}
-export async function accessRole(request,env){
+export async function accessRole(request,env,ctx){
+ const access=ctx?.access;
+ if(access&&typeof access.getIdentity==="function"){
+  try{
+   const identity=await access.getIdentity();
+   const groups=Array.isArray(identity?.groups)?identity.groups:[];
+   if(env.ACCESS_ADMIN_GROUP_ID&&groups.includes(env.ACCESS_ADMIN_GROUP_ID))return "admin";
+   if(env.ACCESS_TECH_GROUP_ID&&groups.includes(env.ACCESS_TECH_GROUP_ID))return "technical";
+   if(env.ACCESS_LEGAL_GROUP_ID&&groups.includes(env.ACCESS_LEGAL_GROUP_ID))return "legal";
+  }catch{}
+ }
  const token=request.headers.get("Cf-Access-Jwt-Assertion")||"",domain=clean(env.ACCESS_TEAM_DOMAIN,120).toLowerCase(),aud=clean(env.ACCESS_AUD,200);
  if(!token||!/^([a-z0-9-]+)\.cloudflareaccess\.com$/.test(domain)||!aud)return "";
  const p=token.split(".");if(p.length!==3)return "";

@@ -218,7 +218,7 @@ async function transitionProvider(db, id, to, role, evidence) {
   return { provider: providerRow(updated) };
 }
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (!previewRequest(request, env)) return json({ error: "Preview-only registry is disabled." }, 404);
     const allowedOrigins = (env.CORS_ALLOWED_ORIGINS || "").split(",").map(v => v.trim()).filter(Boolean);
     const origin = request.headers.get("origin") || "";
@@ -240,7 +240,7 @@ export default {
     };
     if (request.method === "OPTIONS") return new Response(null,{status:204,headers});
     if (!env.PROVIDER_DB) return respond({error:"Preview D1 binding is not configured."},503);
-    const role = await resolveRole(request,env,equalSecret);
+    const role = await resolveRole(request,env,equalSecret,ctx);
     if (!role) return respond({error:"Unauthorized"},401);
     const url = new URL(request.url);
     const parts = url.pathname.replace(/\/+$/,"").split("/").filter(Boolean);
