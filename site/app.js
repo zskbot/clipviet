@@ -1,5 +1,8 @@
 import { videos as demoVideos } from "./data.js";
 
+const PREVIEW_API_BASE = "https://clipviet-catalog-api-preview.huynhthuongg2505-f9b.workers.dev";
+const API_BASE = window.CLIPVIET_API_BASE || (location.hostname.endsWith(".clipviet-live-preview.pages.dev") ? PREVIEW_API_BASE : "");
+
 const $ = (selector) => document.querySelector(selector);
 const grid = $("#video-grid");
 const count = $("#result-count");
@@ -167,23 +170,48 @@ $("#confirm-age")?.addEventListener("click", () => {
 $("#leave-button")?.addEventListener("click", () => { location.href = "https://www.google.com/"; });
 
 render();
+async function loadStaticCatalog() {
+  const response = await fetch("./data/catalog.json", { cache: "no-store", headers: { Accept: "application/json" } });
+  if (!response.ok) throw new Error("catalog.json HTTP " + response.status);
+  const catalog = await response.json();
+  if (!Array.isArray(catalog.videos) || !catalog.videos.length) throw new Error("Catalog chưa có video");
+  videos = catalog.videos.map((item) => ({
+    id: item.id, sourceId: item.sourceId, sourceName: item.sourceName,
+    title: item.title, category: item.categoryName || "Khác", genre: item.categoryName || "",
+    year: item.year, duration: item.duration, rating: "18+", description: item.description,
+    poster: item.poster, country: item.area, apiManaged: true
+  }));
+  renderCategories(["Tất cả", ...new Set(videos.map((item) => item.category).filter(Boolean))]);
+  render();
+  const note = document.querySelector(".data-note");
+  if (note) note.textContent = "GITHUB PAGES CATALOG · " + videos.length + " VIDEO · CẬP NHẬT " + new Date(catalog.updatedAt).toLocaleString("vi-VN");
+}
+async function loadPreviewApi() {
+  const response = await fetch(API_BASE + "/api/catalog/videos?page=1", { cache: "no-store", headers: { Accept: "application/json" } });
+  if (!response.ok) throw new Error("Preview API HTTP " + response.status);
+  const payload = await response.json();
+  if (!Array.isArray(payload.items)) throw new Error("Preview API response không hợp lệ");
+  videos = payload.items.map((item) => ({
+    id: item.id, sourceId: item.sourceId, sourceName: item.sourceName,
+    title: item.title || "Video", category: item.categoryName || "Khác", genre: item.categoryName || "",
+    year: item.year, duration: item.duration, rating: "18+", description: item.description,
+    poster: item.poster, country: item.area, apiManaged: true
+  }));
+  renderCategories(["Tất cả", ...new Set(videos.map((item) => item.category).filter(Boolean))]);
+  render();
+  const note = document.querySelector(".data-note");
+  if (note) note.textContent = "CLOUDFLARE PREVIEW API · " + videos.length + " VIDEO · " + (payload.provider?.name || payload.provider?.id || "PROVIDER");
+}
 (async () => {
-  try {
-    const response = await fetch("./data/catalog.json", { cache: "no-store", headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error("catalog.json HTTP " + response.status);
-    const catalog = await response.json();
-    if (!Array.isArray(catalog.videos) || !catalog.videos.length) throw new Error("Catalog chưa có video");
-    videos = catalog.videos.map((item) => ({
-      id: item.id, sourceId: item.sourceId, sourceName: item.sourceName,
-      title: item.title, category: item.categoryName || "Khác", genre: item.categoryName || "",
-      year: item.year, duration: item.duration, rating: "18+", description: item.description,
-      poster: item.poster, country: item.area, apiManaged: true
-    }));
-    renderCategories(["Tất cả", ...new Set(videos.map((item) => item.category).filter(Boolean))]);
-    render();
-    const note = document.querySelector(".data-note");
-    if (note) note.textContent = "GITHUB PAGES CATALOG · " + videos.length + " VIDEO · CẬP NHẬT " + new Date(catalog.updatedAt).toLocaleString("vi-VN");
-  } catch (error) {
+  if (API_BASE) {
+    try { await loadPreviewApi(); return; }
+    catch (apiError) {
+      const note = document.querySelector(".data-note");
+      if (note) note.textContent = "PREVIEW API CHƯA SẴN SÀNG · " + apiError.message + " · ĐANG DÙNG CATALOG TĨNH";
+    }
+  }
+  try { await loadStaticCatalog(); }
+  catch (error) {
     const note = document.querySelector(".data-note");
     if (note) note.textContent = "CATALOG CHƯA ĐỒNG BỘ · " + error.message;
   }

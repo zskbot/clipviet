@@ -1,4 +1,6 @@
 const params = new URLSearchParams(location.search);
+const PREVIEW_API_BASE = "https://clipviet-catalog-api-preview.huynhthuongg2505-f9b.workers.dev";
+const API_BASE = window.CLIPVIET_API_BASE || (location.hostname.endsWith(".clipviet-live-preview.pages.dev") ? PREVIEW_API_BASE : "");
 const sourceId = params.get("sourceId");
 const vodId = params.get("vodId");
 const $ = (id) => document.getElementById(id);
@@ -58,8 +60,8 @@ function play() {
   $("external").hidden = false;
   $("external").href = episode.url;
   say("Đang tải video trực tiếp từ CDN nguồn…");
-  const isSafari = /Safari/i.test(navigator.userAgent) && !/(Chrome|CriOS|Edg|OPR|Firefox)/i.test(navigator.userAgent);
-  const useHlsJs = !isSafari && window.Hls && window.Hls.isSupported();
+  const nativeHls = Boolean(video.canPlayType("application/vnd.apple.mpegurl") || video.canPlayType("application/x-mpegURL"));
+  const useHlsJs = episode.type === "hls" && !nativeHls && window.Hls && window.Hls.isSupported();
   let ready = false;
   const markReady = () => {
     if (ready) return;
@@ -90,11 +92,27 @@ $("switch").addEventListener("click", () => { lineIndex = (lineIndex + 1) % data
 (async () => {
   if (!sourceId || !vodId) { say("Thiếu sourceId hoặc vodId."); return; }
   try {
-    const response = await fetch("../data/catalog.json", { cache: "no-store", headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error("Không tải được catalog GitHub Pages.");
-    const catalog = await response.json();
-    data = catalog.videos.find((item) => item.sourceId === sourceId && item.id === vodId);
-    if (!data) throw new Error("Video không còn trong catalog hiện tại. Hãy quay lại thư viện.");
+    if (API_BASE) {
+      const endpoint = API_BASE + "/api/providers/" + encodeURIComponent(sourceId) + "/videos/" + encodeURIComponent(vodId);
+      const response = await fetch(endpoint, { cache: "no-store", headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error("Video API HTTP " + response.status);
+      const payload = await response.json();
+      data = payload.data;
+    } else {
+      const response = await fetch("../data/catalog.json", { cache: "no-store", headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error("Không tải được catalog GitHub Pages.");
+      const catalog = await response.json();
+      data = catalog.videos.find((item) => item.sourceId === sourceId && item.id === vodId);
+    }
+    if (!data) throw new Error("Không tìm thấy video trong nguồn hiện tại.");
+    data.lines = (data.lines || []).map((line, index) => ({
+      ...line,
+      name: line.name || line.lineName || "Đường phát " + (index + 1),
+      episodes: (line.episodes || []).map((episode) => ({
+        ...episode,
+        type: episode.type || (/\\.m3u8(?:$|[?#])/i.test(episode.url || "") ? "hls" : "file")
+      }))
+    }));
     if (!Array.isArray(data.lines) || !data.lines.length) throw new Error("Nguồn không cung cấp đường phát trực tiếp.");
     $("title").textContent = data.title;
     $("meta").textContent = [data.sourceName, data.year, data.area, data.categoryName, data.duration].filter(Boolean).join(" · ");
