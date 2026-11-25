@@ -49,7 +49,7 @@ authForm.addEventListener("submit", async event => {
     adminToken = data.token;
     try { sessionStorage.setItem(ADMIN_SESSION_KEY, adminToken); } catch {}
     authPassword.value = "";
-    setAdminAccess(true, "Đăng nhập thành công. Quyền quản trị có hiệu lực trong tối đa 4 giờ hoặc đến khi đăng xuất.");
+    setAdminAccess(true, "Đăng nhập thành công. Phiên có hiệu lực tối đa 4 giờ; đăng xuất sẽ xóa phiên trên trình duyệt này.");
   } catch (error) {
     authStatus.textContent = error.message;
   } finally { authSubmit.disabled = false; }
