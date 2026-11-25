@@ -56,7 +56,7 @@ export default {
     cors["Access-Control-Max-Age"] = "600";
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
 
-    const role = await resolveRole(request, env, equalSecret);
+    const role = await resolveRole(request, env, equalSecret, ctx);
     if (!role) return json({ error: "Unauthorized" }, 401, cors);
     if (!env.PROVIDER_DB) return json({ error: "Preview D1 binding is not configured." }, 503, cors);
     const db = env.PROVIDER_DB;
