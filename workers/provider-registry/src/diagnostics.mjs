@@ -4,8 +4,8 @@ const API_HOSTS = new Set(["api.souavzy.vip","apiyutu.com","lbapi9.com","slapibf
 const safeHost = value => {
   if (typeof value !== "string" || value.length > 253) return "";
   const host = value.trim().toLowerCase();
-  if (!/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$/.test(host)) return "";
-  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal") || /^\\d{1,3}(?:\\.\\d{1,3}){3}$/.test(host)) return "";
+  if (!/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(host)) return "";
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal") || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return "";
   return host;
 };
 const urlHost = raw => { try { const u = new URL(raw); return u.protocol === "https:" && !u.username && !u.password && !u.port ? safeHost(u.hostname) : ""; } catch { return ""; } };
@@ -13,7 +13,6 @@ const hostAllowed = (raw, allowlist) => {
   const host = urlHost(raw);
   return Boolean(host && Array.isArray(allowlist) && allowlist.some(item => safeHost(item) === host));
 };
-const status = value => value ? "PASS" : "FAIL";
 async function readLimited(response, limit) {
   const reader = response.body?.getReader();
   if (!reader) return "";
@@ -36,7 +35,7 @@ function sampleMediaUrls(rows) {
     for (const line of raw.split("$$$")) for (const segment of line.split("#")) {
       const pos = segment.lastIndexOf("$");
       const candidate = pos >= 0 ? segment.slice(pos + 1) : segment;
-      if (/^https:\\/\\//i.test(candidate)) found.push(candidate);
+      if (/^https:\/\//i.test(candidate)) found.push(candidate);
       if (found.length >= 10) return found;
     }
   }
@@ -49,17 +48,15 @@ export async function runProviderDiagnostic(db, provider) {
   const result = {
     providerId: provider.id, checkedAt, status: "UNVERIFIED",
     checks: {
-      apiHost: {status: apiHost && urlHost(provider.api_base_url) === apiHost ? "PASS" : "FAIL", expectedHost: apiHost || null},
+      apiHost: {status: apiHost && API_HOSTS.has(apiHost) && urlHost(provider.api_base_url) === apiHost ? "PASS" : "FAIL", expectedHost: apiHost || null},
       http: {status:"UNVERIFIED"}, json: {status:"UNVERIFIED"}, pagination: {status:"UNVERIFIED"},
-      metadata: {status:"UNVERIFIED"}, mediaHosts: {status: mediaHosts.length ? "UNVERIFIED" : "UNVERIFIED", allowlist:mediaHosts},
+      metadata: {status:"UNVERIFIED"}, mediaHosts: {status:"UNVERIFIED", allowlist:mediaHosts},
       mime: {status:"UNVERIFIED"}, range: {status:"UNVERIFIED"}
     },
     sample: {videoCount:0, fields:[], mediaHostCandidates:[]},
     note: "A diagnostic result is technical evidence only; it does not grant content rights."
   };
-  if (!apiHost || !API_HOSTS.has(apiHost) || urlHost(provider.api_base_url) !== apiHost) {
-    result.checks.apiHost.status = "FAIL";
-  } else {
+  if (result.checks.apiHost.status === "PASS") {
     try {
       const endpoint = new URL(provider.api_base_url);
       endpoint.searchParams.set("ac","detail"); endpoint.searchParams.set("pg","1");
@@ -80,20 +77,21 @@ export async function runProviderDiagnostic(db, provider) {
           const present = fields.filter(key => first[key] !== undefined && first[key] !== null && String(first[key]) !== "");
           result.sample.videoCount = rows.length;
           result.sample.fields = present;
-          result.sample.mediaHostCandidates = [...new Set(sampleMediaUrls(rows).map(urlHost).filter(Boolean))];
+          const candidates = sampleMediaUrls(rows);
+          result.sample.mediaHostCandidates = [...new Set(candidates.map(urlHost).filter(Boolean))];
           result.checks.metadata = {status:rows.length && ["vod_id","vod_name"].every(key => present.includes(key)) ? "PASS":"FAIL",presentFields:present};
-          const mediaUrl = sampleMediaUrls(rows).find(url => hostAllowed(url,mediaHosts));
-          const candidate = sampleMediaUrls(rows)[0] || "";
-          result.checks.mediaHosts = {status: candidate ? (hostAllowed(candidate,mediaHosts) ? "PASS":"FAIL") : "UNVERIFIED",allowlist:mediaHosts,candidateHost:urlHost(candidate)||null};
+          const candidate = candidates[0] || "";
+          const mediaUrl = candidates.find(url => hostAllowed(url,mediaHosts));
+          result.checks.mediaHosts = {status: candidate ? (mediaUrl ? "PASS":"FAIL") : "UNVERIFIED",allowlist:mediaHosts,candidateHost:urlHost(candidate)||null};
           if (mediaUrl) {
             try {
               const media = await fetch(mediaUrl,{method:"GET",headers:{Range:"bytes=0-0"},redirect:"error",signal:AbortSignal.timeout(TIMEOUT_MS)});
               const mime = media.headers.get("content-type") || "";
               const contentRange = media.headers.get("content-range") || "";
-              result.checks.mime = {status:/^(video\\/|application\\/(vnd\\.apple\\.mpegurl|x-mpegurl|octet-stream))/i.test(mime) ? "PASS":"FAIL",contentType:mime};
-              result.checks.range = {status:media.status === 206 && /^bytes 0-0\\//i.test(contentRange) ? "PASS":"FAIL",httpStatus:media.status,contentRange};
+              result.checks.mime = {status:/^(video\/|application\/(vnd\.apple\.mpegurl|x-mpegurl|octet-stream))/i.test(mime) ? "PASS":"FAIL",contentType:mime};
+              result.checks.range = {status:media.status === 206 && /^bytes 0-0\//i.test(contentRange) ? "PASS":"FAIL",httpStatus:media.status,contentRange};
               await media.body?.cancel();
-            } catch (error) {
+            } catch {
               result.checks.mime = {status:"UNVERIFIED",reason:"media_probe_failed"};
               result.checks.range = {status:"UNVERIFIED",reason:"media_probe_failed"};
             }
