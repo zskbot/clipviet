@@ -8,7 +8,7 @@ const providers = [
   { id: "jipinvip1", name: "JipinVIP1 · Backup 4", baseUrl: "https://jipinvip1.com/api.php/provide/vod/" }
 ];
 
-const maxPages = Math.max(1, Math.min(5, Number(process.env.CATALOG_PAGES_PER_PROVIDER || 5)));
+const maxPages = Math.max(1, Math.min(50, Number(process.env.CATALOG_PAGES_PER_PROVIDER || 20)));\nconst targetVideoCount = Math.max(1, Math.min(1000, Number(process.env.CATALOG_TARGET_VIDEOS || 1000)));
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const safeUrl = (value) => {
   if (typeof value !== "string" || value.length > 2048) return "";
@@ -157,7 +157,7 @@ for (const video of collectedVideos) {
   const existing = deduplicated.get(key);
   if (!existing || (!existing.hasPlayback && video.hasPlayback) || (!existing.poster && video.poster) || (!existing.description && video.description)) deduplicated.set(key, video);
 }
-const videos = [...deduplicated.values()];
+const videos = [...deduplicated.values()].slice(0, targetVideoCount);
 const payload = {
   schemaVersion: 1,
   updatedAt: new Date().toISOString(),
@@ -177,10 +177,12 @@ await writeFile("site/data/catalog.json", JSON.stringify(payload));
 console.log(JSON.stringify({
   updatedAt: payload.updatedAt,
   providers: payload.providers,
-  totalVideos: videos.length,
+  targetVideos: targetVideoCount,\n  targetReached: videos.length >= targetVideoCount,\n  totalVideos: videos.length,
   playableVideos: videos.filter((video) => video.hasPlayback).length
 }, null, 2));
 
 if (!videos.length) {
   throw new Error("All AppleCMS providers returned no video records; refusing to publish an empty catalogue.");
 }
+
+// Preview deployment trigger after enabling this branch.
