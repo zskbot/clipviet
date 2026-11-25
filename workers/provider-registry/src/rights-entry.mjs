@@ -172,7 +172,7 @@ export default {
         return json({ status:"DISABLED", reason },200,cors);
       }
 
-      if (parts[0] === "providers" && parts.length === 6 && parts[2] === "content-rights" && parts[4] === "revoke" && request.method === "PATCH") {
+      if (parts[0] === "providers" && parts.length === 5 && parts[2] === "content-rights" && parts[4] === "revoke" && request.method === "PATCH") {
         if (role !== "admin" && role !== "legal") return json({ error: "Admin or legal reviewer role required." },403,cors);
         const parsedBody = await readJson(request);
         if (parsedBody.error) return json({ error: parsedBody.error },parsedBody.status,cors);
