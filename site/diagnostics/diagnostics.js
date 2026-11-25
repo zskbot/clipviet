@@ -15,8 +15,9 @@ function add(label,state,detail){
  text.textContent=label+" — "+detail;li.append(tag,text);results.append(li);
 }
 function corsState(response){
- const value=response.headers.get("access-control-allow-origin");
- return value==="*"||value===location.origin;
+  // A successful mode:cors fetch is itself proof that the browser accepted CORS.
+  // Access-Control-Allow-Origin is not necessarily exposed to page JavaScript.
+  return response.type==="cors"||response.type==="basic";
 }
 async function requestJson(path,label){
  const response=await fetch(API+path,{headers:{Accept:"application/json"},cache:"no-store",credentials:"omit",redirect:"error"});
@@ -60,10 +61,11 @@ async function testMedia(url){
   const segment=await firstHlsSegment(url);
   const probe=await rangeProbe(segment.url,"HLS segment");
   add("HLS manifest","pass",segment.manifestType);
+  add("HLS segment MIME",probe.type==="video/mp2t"||probe.type==="video/mp4"||probe.type==="application/mp4"||probe.type==="application/octet-stream"?"pass":"fail",probe.type||"missing");
   add("HLS segment Range",probe.pass?"pass":"fail","HTTP "+probe.status+" · "+probe.type+" · CORS "+(probe.cors?"OK":"FAIL")+" · Accept-Ranges "+probe.acceptRanges);
  }else{
   const probe=await rangeProbe(url,"MP4 media");
-  const mimeOk=probe.type.startsWith("video/")||probe.type==="application/octet-stream";
+  const mimeOk=probe.type==="video/mp4"||probe.type==="application/mp4";
   add("MP4 MIME",mimeOk?"pass":"fail",probe.type||"missing");
   add("MP4 byte-range + CORS",probe.pass?"pass":"fail","HTTP "+probe.status+" · CORS "+(probe.cors?"OK":"FAIL")+" · Accept-Ranges "+probe.acceptRanges);
  }
