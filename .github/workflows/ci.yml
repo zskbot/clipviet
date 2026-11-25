@@ -38,6 +38,7 @@ jobs:
           node --input-type=module --check < workers/provider-registry/src/rights-gate.mjs
           node --input-type=module --check < workers/provider-registry/src/rights-entry.mjs
           node --input-type=module --check < workers/provider-registry/src/diagnostics.mjs
+          node --input-type=module --check < workers/provider-registry/src/admin-ui.mjs
           find site -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | while IFS= read -r -d '' file; do
             echo "Checking $file"
             node --input-type=module --check < "$file"
