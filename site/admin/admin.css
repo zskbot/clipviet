@@ -20,3 +20,6 @@
 .cms-state{font-size:9px;letter-spacing:1px;color:#e7c46c}
 .cms-state[data-status=published]{color:#75d49a}
 @media(max-width:620px){.cms-item-actions button{flex:1}}
+
+/* Keep the Admin workspace hidden until the server verifies the PIN. */
+#admin-workspace.admin-locked{display:none}
