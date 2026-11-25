@@ -26,11 +26,13 @@ jobs:
           test -s site/data.js
           test -s site/admin/index.html
           test -s site/admin/admin.js
+          test -s scripts/sync-pages-catalog.mjs
           test "$(cat site/CNAME)" = "clipviet.live"
           test ! -e site/package.json
           echo "Static website is self-contained in site/."
       - name: Check all static JavaScript modules
         run: |
+          node --input-type=module --check < scripts/sync-pages-catalog.mjs
           find site -type f \( -name '*.js' -o -name '*.mjs' \) -print0 | while IFS= read -r -d '' file; do
             echo "Checking $file"
             node --input-type=module --check < "$file"

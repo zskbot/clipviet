@@ -1,56 +1,139 @@
-const API=window.CLIPVIET_API_BASE||"https://api.clipviet.live";
-const $=id=>document.getElementById(id);
-let page=1,pageCount=0,activeProvider="",categoryId="",keyword="",items=[];
-const gate=$("age-gate");
-try{if(sessionStorage.getItem("clipviet-age-confirmed")==="yes")gate.hidden=true;}catch{}
-$("confirm").addEventListener("click",()=>{try{sessionStorage.setItem("clipviet-age-confirmed","yes");}catch{}gate.hidden=true;});
-$("leave").addEventListener("click",()=>location.replace("https://www.google.com/"));
-$("year").textContent=new Date().getFullYear();
-function status(message){$("source-status").textContent=message;}
-function makeOption(label,value){const option=document.createElement("option");option.textContent=label;option.value=String(value);return option;}
-async function loadCategories(){
- const source=$("source").value;
- const url=new URL(API+"/api/catalog/categories");
- if(source)url.searchParams.set("sourceId",source);
- const response=await fetch(url,{headers:{Accept:"application/json"},cache:"no-store",redirect:"error"});
- const result=await response.json();if(!response.ok)throw new Error(result.error||"Category API error");
- activeProvider=result.sourceId;
- const select=$("category");select.replaceChildren(makeOption("Tất cả danh mục",""));
- for(const category of result.data){select.append(makeOption(category.name,category.id));}
- const sourceSelect=$("source");if(!sourceSelect.value)sourceSelect.dataset.active=activeProvider;
- status("Nguồn đang phục vụ: "+activeProvider+(result.failover?" · tự động chuyển nguồn dự phòng":"")+" · "+result.count+" danh mục lá");
+const $ = (id) => document.getElementById(id);
+const CATALOG_URL = "../data/catalog.json";
+let catalog = { videos: [], categories: [], providers: [] };
+let page = 1;
+let pageCount = 1;
+let activeProvider = "";
+let categoryId = "";
+let keyword = "";
+let items = [];
+const PAGE_SIZE = 20;
+
+const gate = $("age-gate");
+try { if (sessionStorage.getItem("clipviet-age-confirmed") === "yes") gate.hidden = true; } catch {}
+$("confirm").addEventListener("click", () => { try { sessionStorage.setItem("clipviet-age-confirmed", "yes"); } catch {} gate.hidden = true; });
+$("leave").addEventListener("click", () => location.replace("https://www.google.com/"));
+$("year").textContent = new Date().getFullYear();
+
+function status(message) { $("source-status").textContent = message; }
+function option(label, value) { const node = document.createElement("option"); node.textContent = label; node.value = String(value); return node; }
+
+function populateCategories() {
+  const select = $("category");
+  const current = select.value;
+  select.replaceChildren(option("Tất cả danh mục", ""));
+  catalog.categories
+    .filter((item) => !activeProvider || item.sourceId === activeProvider)
+    .forEach((item) => select.append(option(item.sourceName + " · " + item.name, item.sourceId + ":" + item.id)));
+  if ([...select.options].some((item) => item.value === current)) select.value = current;
 }
-function render(){
- const root=$("cards");root.replaceChildren();
- for(const item of items){
-  const a=document.createElement("a");a.className="card";
-  a.href="../watch/source.html?sourceId="+encodeURIComponent(item.sourceId)+"&vodId="+encodeURIComponent(item.id);
-  const img=document.createElement("img");img.loading="lazy";img.decoding="async";img.alt=item.title;img.src=item.poster||"../poster-fallback.svg";img.addEventListener("error",()=>{img.src="../poster-fallback.svg";},{once:true});
-  const body=document.createElement("div");body.className="card-body";
-  const title=document.createElement("h2");title.textContent=item.title||"Untitled";
-  const meta=document.createElement("p");meta.textContent=[item.year,item.area,item.categoryName].filter(Boolean).join(" · ");
-  body.append(title,meta);a.append(img,body);root.append(a);
- }
- $("empty").hidden=items.length>0;$("count").textContent=(items.length?items.length+" VIDEO · ":"")+ "TỔNG "+Number($("count").dataset.total||0).toLocaleString("vi-VN");
- $("page-label").textContent="Trang "+page+" / "+Math.max(pageCount,1);
- $("prev").disabled=page<=1;$("next").disabled=pageCount===0||page>=pageCount;
+
+function providerRows() {
+  return catalog.providers.map((provider) => provider.name + ": " + provider.state + " (" + provider.count + " video)").join(" · ");
 }
-async function loadVideos(){
- status("Đang tải trang "+page+"…");
- const url=new URL(API+"/api/catalog/videos");const pinnedSource=$("source").value||(categoryId?activeProvider:"");if(pinnedSource)url.searchParams.set("sourceId",pinnedSource);
- url.searchParams.set("page",String(page));if(categoryId)url.searchParams.set("categoryId",categoryId);if(keyword)url.searchParams.set("keyword",keyword);
- try{
-  const response=await fetch(url,{headers:{Accept:"application/json"},cache:"no-store",redirect:"error"});
-  const result=await response.json();if(!response.ok)throw new Error(result.error||"Provider request failed");
-  activeProvider=result.provider.id;items=result.items||[];page=result.page||page;pageCount=result.pageCount||0;
-  $("count").dataset.total=String(result.total||0);$("source").dataset.active=activeProvider;
-  status("Đang dùng "+result.provider.name+" · "+result.limit+" mục/trang · "+(result.failover?"đã tự động chuyển nguồn dự phòng":"API hoạt động"));
+
+function render() {
+  const root = $("cards");
+  root.replaceChildren();
+  for (const item of items) {
+    const link = document.createElement("a");
+    link.className = "card";
+    link.href = "../watch/source.html?sourceId=" + encodeURIComponent(item.sourceId) + "&vodId=" + encodeURIComponent(item.id);
+    const image = document.createElement("img");
+    image.loading = "lazy";
+    image.decoding = "async";
+    image.alt = item.title;
+    image.src = item.poster || "../poster-fallback.svg";
+    image.addEventListener("error", () => { image.src = "../poster-fallback.svg"; }, { once: true });
+    const body = document.createElement("div");
+    body.className = "card-body";
+    const title = document.createElement("h2");
+    title.textContent = item.title;
+    const meta = document.createElement("p");
+    meta.textContent = [item.year, item.area, item.categoryName, item.sourceName].filter(Boolean).join(" · ");
+    body.append(title, meta);
+    link.append(image, body);
+    root.append(link);
+  }
+  $("empty").hidden = items.length > 0;
+  $("count").textContent = Number($("count").dataset.total || 0).toLocaleString("vi-VN") + " VIDEO";
+  $("page-label").textContent = "Trang " + page + " / " + Math.max(pageCount, 1);
+  $("prev").disabled = page <= 1;
+  $("next").disabled = page >= pageCount;
+}
+
+function loadVideos() {
+  const filtered = catalog.videos.filter((item) =>
+    (!activeProvider || item.sourceId === activeProvider) &&
+    (!categoryId || item.categoryId === categoryId) &&
+    (!keyword || [item.title, item.description, item.categoryName, item.actors, item.area].join(" ").toLocaleLowerCase("vi").includes(keyword.toLocaleLowerCase("vi")))
+  );
+  const total = filtered.length;
+  pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  page = Math.min(page, pageCount);
+  items = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  $("count").dataset.total = String(total);
   render();
- }catch(error){items=[];pageCount=0;render();status("Không tải được nguồn: "+error.message);}
+  status("Catalog tĩnh GitHub Pages · " + providerRows() + " · Cập nhật " + new Date(catalog.updatedAt).toLocaleString("vi-VN"));
 }
-$("filters").addEventListener("submit",async e=>{e.preventDefault();page=1;categoryId=$("category").value;keyword=$("keyword").value.trim();await loadVideos();});
-$("source").addEventListener("change",async()=>{page=1;categoryId="";$("category").value="";try{await loadCategories();await loadVideos();}catch(e){status("Không tải được danh mục: "+e.message);}});
-$("category").addEventListener("change",()=>{categoryId=$("category").value;page=1;loadVideos();});
-$("prev").addEventListener("click",()=>{if(page>1){page--;loadVideos();}});
-$("next").addEventListener("click",()=>{if(page<pageCount){page++;loadVideos();}});
-(async()=>{try{await loadCategories();await loadVideos();}catch(e){status("API chưa sẵn sàng: "+e.message);}})();
+
+$("filters").addEventListener("submit", (event) => {
+  event.preventDefault();
+  page = 1;
+  const selected = $("category").value;
+  if (selected) {
+    const [source, ...parts] = selected.split(":");
+    activeProvider = source;
+    $("source").value = source;
+    categoryId = parts.join(":");
+  } else {
+    categoryId = "";
+  }
+  keyword = $("keyword").value.trim();
+  populateCategories();
+  if (selected) $("category").value = selected;
+  loadVideos();
+});
+
+$("source").addEventListener("change", () => {
+  activeProvider = $("source").value;
+  categoryId = "";
+  $("category").value = "";
+  populateCategories();
+  page = 1;
+  loadVideos();
+});
+
+$("category").addEventListener("change", () => {
+  const selected = $("category").value;
+  if (selected) {
+    const [source, ...parts] = selected.split(":");
+    activeProvider = source;
+    $("source").value = source;
+    categoryId = parts.join(":");
+    populateCategories();
+    $("category").value = selected;
+  } else {
+    categoryId = "";
+  }
+  page = 1;
+  loadVideos();
+});
+
+$("prev").addEventListener("click", () => { if (page > 1) { page -= 1; loadVideos(); } });
+$("next").addEventListener("click", () => { if (page < pageCount) { page += 1; loadVideos(); } });
+
+(async () => {
+  try {
+    const response = await fetch(CATALOG_URL, { cache: "no-store", headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error("catalog.json HTTP " + response.status);
+    catalog = await response.json();
+    if (!Array.isArray(catalog.videos) || !Array.isArray(catalog.providers)) throw new Error("Catalog format is invalid");
+    populateCategories();
+    $("count").dataset.total = String(catalog.videos.length);
+    loadVideos();
+  } catch (error) {
+    status("Không tải được catalog GitHub Pages: " + error.message);
+    $("empty").hidden = false;
+  }
+})();
