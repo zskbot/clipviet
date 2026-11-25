@@ -69,7 +69,7 @@ async function handle(request, env) {
     if(entry.count>=5) return json({error:"Quá nhiều lần đăng nhập sai. Thử lại sau 10 phút."},429,headers);
     let body={}; try{body=await request.json();}catch{return json({error:"Dữ liệu đăng nhập không hợp lệ."},400,headers);}
     const password=typeof body.password==="string"?body.password:"";
-    if(!env.ADMIN_PASSWORD) return json({error:"Admin password secret is not configured."},503,headers);\n    if(!password||password.length>256||!safeSecretCompare(password,env.ADMIN_PASSWORD)) {
+    if(!env.ADMIN_PASSWORD||!env.ADMIN_SESSION_SECRET) return json({error:"Admin authentication secrets are not configured."},503,headers);\n    if(!password||password.length>256||!safeSecretCompare(password,env.ADMIN_PASSWORD)) {
       entry.count++; failedLogins.set(ip,entry);
       return json({error:"Tài khoản hoặc mật khẩu không chính xác."},401,headers);
     }
