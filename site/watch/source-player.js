@@ -50,7 +50,7 @@ function renderQualityLevels(levels) {
   qualitySelect.append(auto);
   const sorted = levels.map((level, index) => ({ ...level, index }))
     .filter((item) => Number(item.height) > 0)
-    .sort((a, b) => a.height - b.height || a.bitrate - b.bitrate);
+    .sort((a, b) => a.height - b.height || b.bitrate - a.bitrate);
   const heights = new Set();
   for (const item of sorted) {
     if (heights.has(item.height)) continue;
@@ -64,6 +64,7 @@ function renderQualityLevels(levels) {
   if (heights.size) $("quality-note").textContent = "Nguồn có các mức thực tế: " + [...heights].map((height) => height + "p").join(" / ") + ". Auto tự điều chỉnh theo băng thông.";
 }
 function destroy() {
+  selectedQuality = "auto";
   if (watchdog) { clearTimeout(watchdog); watchdog = null; }
   if (hls) { hls.destroy(); hls = null; }
   video.pause();
