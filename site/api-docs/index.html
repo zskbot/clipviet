@@ -1,64 +1,44 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#08090d"><meta name="robots" content="index,follow"><title>API Documentation — ClipViet.live</title><link rel="stylesheet" href="../styles.css"><style>
-.docs{max-width:1120px;margin:auto;padding:54px 22px 90px}.docs h1{font-size:clamp(38px,6vw,64px);letter-spacing:-3px}.docs h2{margin:38px 0 12px;font-size:23px}.docs p,.docs li{color:#aaa;font-size:13px;line-height:1.85}.docs code,.docs pre{font-family:ui-monospace,SFMono-Regular,monospace}.docs code{color:#ffb9bd}.docs pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101219;border:1px solid #292a31;padding:18px;color:#ddd;font-size:11px;line-height:1.8}.endpoint{border:1px solid #292a31;padding:18px;margin:12px 0;background:#101219}.method{display:inline-block;border:1px solid #555;padding:5px 8px;font-size:9px;letter-spacing:1px;margin-right:10px}.muted{color:#777}.warning{border-left:2px solid #ef3340;padding:10px 16px;background:#141015}
-</style></head><body><header class="topbar"><a class="brand" href="../"><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a><nav><a href="../">Trang chủ</a><a href="../watch/">Trình phát</a><a href="../admin/sources/">Quản lý nguồn</a></nav></header>
-<main class="docs"><p class="eyebrow">CLIPVIET / DEVELOPER PORTAL</p><h1>Video API <span style="color:#777">Documentation</span></h1><p>API v1 cho catalog video ClipViet.live. Backend Cloudflare Worker, lưu catalog trong KV riêng, phiên quản trị dùng Telegram Authentication.</p>
-<div class="warning"><strong>Trạng thái tích hợp:</strong> Mã API đã được bổ sung vào branch phát triển. Cần tạo binding <code>VIDEO_CATALOG</code>, cấu hình hostname media, xác thực Telegram và kiểm thử trước khi bật. Không có stream hoặc nguồn bên thứ ba nào được tự động cấp quyền.</div>
-<h2>AppleCMS provider API</h2><p>Adapter tương thích AppleCMS V10 theo đặc tả tích hợp đã kiểm tra. JSON API được Worker gọi server-side để tránh lỗi CORS; media HLS/MP4 vẫn được browser tải trực tiếp từ CDN nguồn.</p><pre>GET /api/providers
-GET /api/catalog/categories?sourceId=souavzy
-GET /api/catalog/videos?sourceId=souavzy&amp;page=1
-GET /api/catalog/videos?keyword=keyword&amp;page=1
-GET /api/providers/souavzy/categories
-GET /api/providers/souavzy/videos?page=1&amp;categoryId=67
-GET /api/providers/souavzy/videos/62843
-GET /api/providers/health  (Telegram admin)</pre><p>Provider IDs: <code>souavzy</code> (main), <code>apiyutu</code>, <code>lbapi9</code>, <code>slapibf</code>, <code>jipinvip1</code> (backups). The supplied 2026-11-25 probe report measured historical catalog sizes of 130,740 / 228,064 / 340,304 / 265,410 / 74,701 respectively; live totals can change. <code>douapi.cc</code>, <code>ddapi.cc</code>, and <code>zy.xiaomaomi.cc</code> were reported offline and are excluded. <code>hsex.men</code> had no public API/OpenAPI/Swagger endpoint in that report and is not configured as a provider. Pagination luôn dùng <code>page</code>, <code>pageCount</code>, <code>limit</code>, <code>total</code> trong response; không giả định mọi nguồn trả 20 mục/trang.</p><div class="endpoint"><span class="method">GET</span><code>/api/catalog/videos</code><p>Danh sách video. Nếu không truyền <code>sourceId</code>, Worker thử nguồn chính rồi lần lượt nguồn dự phòng khi upstream lỗi. Không failover khi có <code>categoryId</code> vì category IDs không tương thích giữa các nguồn. Kết quả rỗng hợp lệ và không kích hoạt failover.</p><pre>{ "provider": { "id": "souavzy", "name": "Souavzy · Main" }, "items": [{ "uid": "souavzy:62843", "id": "62843", "sourceId": "souavzy", "title": "..." }], "page": 1, "pageCount": 6537, "total": 130740, "limit": 20 }</pre></div><div class="endpoint"><span class="method">GET</span><code>/api/providers/{sourceId}/videos/{vodId}</code><p>Chi tiết video gồm field mapping và <code>lines[].episodes[].url</code>. Chỉ HTTPS playback URL được trả về. ID nội bộ luôn ghép source ID để tránh trùng giữa các nguồn.</p></div><div class="endpoint"><span class="method">GET</span><code>/api/providers/health</code><p>Yêu cầu Telegram admin session. Kiểm tra API list/categories, metadata sample, pagination và có playback URL hay không. Đây là API health check, không thay thế kiểm thử phát thực tế trên trình duyệt.</p></div><h2>AppleCMS mapping &amp; playback parser</h2><ul><li><code>ac=list</code> chỉ dùng lấy <code>class[]</code>; lọc leaf category theo <code>type_pid</code>. <code>ac=detail</code> dùng cho list/detail.</li><li>Tham số: <code>pg</code>, <code>t</code>, <code>wd</code>, <code>ids</code>. Tìm kiếm được URL-encode UTF-8.</li><li>Mapping: <code>vod_id → id</code>, <code>vod_name → title</code>, <code>vod_pic → poster</code>, <code>vod_content → description</code> với fallback <code>vod_blurb</code>, <code>vod_time → updatedAt</code>, <code>vod_play_url → lines</code>.</li><li>Play URL parsing bắt buộc theo <code>$$</code> (line) → <code>#</code> (episode) → <code>lastIndexOf('<pre>https://api.clipviet.live/api/v1</pre><p class="muted">Origin dự kiến; DNS/custom domain chưa được tạo. Không gọi URL này cho đến khi Worker được triển khai và health check thành công. Provider API routes use the same Worker origin at <code>/api/providers</code> and <code>/api/catalog</code>.</p>
-<h2>Endpoints</h2><div class="endpoint"><span class="method">GET</span><code>/health</code><p>Trạng thái dịch vụ và cấu hình. Không trả về secret.</p></div><div class="endpoint"><span class="method">POST</span><code>/auth/telegram</code><p>Nhận payload Telegram Login Widget, xác minh chữ ký và auth_date, chống replay, cấp session cookie.</p></div><div class="endpoint"><span class="method">GET</span><code>/auth/me</code><p>Kiểm tra session hiện tại.</p></div><div class="endpoint"><span class="method">POST</span><code>/auth/logout</code><p>Hủy session cookie.</p></div><div class="endpoint"><span class="method">GET</span><code>/channel/verify</code><p>Kiểm tra bot có quyền đăng và tài khoản hiện tại có quyền quản trị channel.</p></div><div class="endpoint"><span class="method">POST</span><code>/channel/publish</code><p>Gửi video tới channel đã cấu hình phía máy chủ; cần session, quyền channel, allowlist media host và rights attestation.</p></div>
-<div class="endpoint"><span class="method">GET</span><code>/videos</code><p>Danh sách metadata video đã xuất bản. Không trả media URL trong danh sách.</p><pre>200 OK
-{ "data": [{ "id":"uuid", "title":"Video title", "poster_url":"https://cdn.example/video.jpg", "genre":"Documentary", "country":"Vietnam", "duration":"12:30", "created_at":"ISO-8601" }], "count": 1 }</pre></div>
-<div class="endpoint"><span class="method">GET</span><code>/videos/{id}</code><p>Chi tiết video đã xuất bản, bao gồm media URL đã allowlist.</p><pre>200 OK
-{ "data": { "id":"uuid", "title":"Video title", "media_url":"https://media.example/video.mp4" } }</pre></div>
-<div class="endpoint"><span class="method">GET</span><code>/admin/videos</code><p>Liệt kê catalog quản trị. Yêu cầu session Telegram hợp lệ và user ID nằm trong allowlist.</p></div>
-<div class="endpoint"><span class="method">POST</span><code>/admin/videos</code><p>Tạo video. Yêu cầu session quản trị, <code>rights_confirmed=true</code>, HTTPS media URL nằm trong <code>VIDEO_MEDIA_HOSTS</code>.</p><pre>{
-  "title":"Video title",
-  "description":"Description",
-  "media_url":"https://media.example/video.mp4",
-  "poster_url":"https://media.example/poster.jpg",
-  "genre":"Documentary",
-  "country":"Vietnam",
-  "duration":"12:30",
-  "status":"published",
-  "rights_confirmed":true
-}</pre><p>Trả về <code>201 Created</code>. Có thể đặt <code>status:"draft"</code> để lưu nháp.</p></div>
-<div class="endpoint"><span class="method">DELETE</span><code>/admin/videos/{id}</code><p>Xóa một video khỏi catalog. Yêu cầu session quản trị.</p></div>
-<h2>Authentication & authorization</h2><ul><li>Đăng nhập qua Telegram Login Widget, xác minh HMAC ở Worker.</li><li>Session cookie HttpOnly, Secure, SameSite=Strict.</li><li>Chỉ Telegram User ID nằm trong <code>TELEGRAM_ALLOWED_USER_IDS</code> được truy cập quản trị.</li><li>Không gửi Bot Token hoặc Session Secret từ trình duyệt.</li></ul>
-<h2>Rate limits & payload constraints</h2><ul><li>JSON request body tối đa 16 KiB theo parser hiện tại.</li><li>Catalog tối đa 1.000 video trong KV key đơn.</li><li>Metadata: title 160 ký tự, description 2.000, genre/country 80.</li><li>Rate limiting ở Cloudflare edge chưa được cấu hình; không mở API công khai cho đến khi có rule phù hợp.</li><li>KV là eventual-consistency storage; catalog đơn-key phù hợp giai đoạn thử nghiệm, chưa phải CMS quy mô lớn.</li></ul>
-<h2>Proxy & delivery</h2><p>JSON API được Worker gọi server-side để xử lý CORS. Playlist HLS và segment TS được phát trực tiếp từ CDN nguồn trong trình duyệt; Worker không proxy video, không relay segment và không tạo endpoint tải xuống. Player dùng native HLS trên iOS và HLS.js trên trình duyệt desktop hỗ trợ MSE. Thực tế phát vẫn cần nghiệm thu trên thiết bị thật.</p><h2>Player support</h2><ul><li>MP4/WebM: dùng HTML5 video khi máy chủ trả MIME type đúng và hỗ trợ byte-range.</li><li>HLS: Safari/iPhone dùng native HLS; desktop dùng HLS.js 1.5.18 khi Hls.isSupported().</li><li>Không proxy, tải xuống, scrape hoặc relay stream không có quyền.</li></ul>
-<h2>Error format</h2><pre>{ "error": "Human-readable error" }</pre><p>HTTP 400 dữ liệu sai; 401 thiếu session; 403 không đủ quyền; 404 không tìm thấy; 503 binding/catalog chưa sẵn sàng.</p>
-<h2>Example request</h2><pre>curl -H "Accept: application/json" \
-  https://api.clipviet.live/api/v1/videos</pre>
-</main><footer><a class="brand footer-brand" href="../"><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a><p>© <span id="year"></span> ClipViet.live · API v1</p></footer><script>document.querySelector("#year").textContent=new Date().getFullYear()</script></body></html>)</code> (name/url). Không dùng <code>indexOf</code>.</li><li>Source request: User-Agent, Accept JSON, timeout 15 giây, một lần retry sau 500 ms, cache 60 giây và throttle tuần tự tối thiểu 200 ms mỗi isolate.</li></ul><h2>Base URL</h2><pre>https://api.clipviet.live/api/v1</pre><p class="muted">Origin dự kiến; DNS/custom domain chưa được tạo. Không gọi URL này cho đến khi Worker được triển khai và health check thành công.</p>
-<h2>Endpoints</h2><div class="endpoint"><span class="method">GET</span><code>/health</code><p>Trạng thái dịch vụ và cấu hình. Không trả về secret.</p></div><div class="endpoint"><span class="method">POST</span><code>/auth/telegram</code><p>Nhận payload Telegram Login Widget, xác minh chữ ký và auth_date, chống replay, cấp session cookie.</p></div><div class="endpoint"><span class="method">GET</span><code>/auth/me</code><p>Kiểm tra session hiện tại.</p></div><div class="endpoint"><span class="method">POST</span><code>/auth/logout</code><p>Hủy session cookie.</p></div><div class="endpoint"><span class="method">GET</span><code>/channel/verify</code><p>Kiểm tra bot có quyền đăng và tài khoản hiện tại có quyền quản trị channel.</p></div><div class="endpoint"><span class="method">POST</span><code>/channel/publish</code><p>Gửi video tới channel đã cấu hình phía máy chủ; cần session, quyền channel, allowlist media host và rights attestation.</p></div>
-<div class="endpoint"><span class="method">GET</span><code>/videos</code><p>Danh sách metadata video đã xuất bản. Không trả media URL trong danh sách.</p><pre>200 OK
-{ "data": [{ "id":"uuid", "title":"Video title", "poster_url":"https://cdn.example/video.jpg", "genre":"Documentary", "country":"Vietnam", "duration":"12:30", "created_at":"ISO-8601" }], "count": 1 }</pre></div>
-<div class="endpoint"><span class="method">GET</span><code>/videos/{id}</code><p>Chi tiết video đã xuất bản, bao gồm media URL đã allowlist.</p><pre>200 OK
-{ "data": { "id":"uuid", "title":"Video title", "media_url":"https://media.example/video.mp4" } }</pre></div>
-<div class="endpoint"><span class="method">GET</span><code>/admin/videos</code><p>Liệt kê catalog quản trị. Yêu cầu session Telegram hợp lệ và user ID nằm trong allowlist.</p></div>
-<div class="endpoint"><span class="method">POST</span><code>/admin/videos</code><p>Tạo video. Yêu cầu session quản trị, <code>rights_confirmed=true</code>, HTTPS media URL nằm trong <code>VIDEO_MEDIA_HOSTS</code>.</p><pre>{
-  "title":"Video title",
-  "description":"Description",
-  "media_url":"https://media.example/video.mp4",
-  "poster_url":"https://media.example/poster.jpg",
-  "genre":"Documentary",
-  "country":"Vietnam",
-  "duration":"12:30",
-  "status":"published",
-  "rights_confirmed":true
-}</pre><p>Trả về <code>201 Created</code>. Có thể đặt <code>status:"draft"</code> để lưu nháp.</p></div>
-<div class="endpoint"><span class="method">DELETE</span><code>/admin/videos/{id}</code><p>Xóa một video khỏi catalog. Yêu cầu session quản trị.</p></div>
-<h2>Authentication & authorization</h2><ul><li>Đăng nhập qua Telegram Login Widget, xác minh HMAC ở Worker.</li><li>Session cookie HttpOnly, Secure, SameSite=Strict.</li><li>Chỉ Telegram User ID nằm trong <code>TELEGRAM_ALLOWED_USER_IDS</code> được truy cập quản trị.</li><li>Không gửi Bot Token hoặc Session Secret từ trình duyệt.</li></ul>
-<h2>Rate limits & payload constraints</h2><ul><li>JSON request body tối đa 16 KiB theo parser hiện tại.</li><li>Catalog tối đa 1.000 video trong KV key đơn.</li><li>Metadata: title 160 ký tự, description 2.000, genre/country 80.</li><li>Rate limiting ở Cloudflare edge chưa được cấu hình; không mở API công khai cho đến khi có rule phù hợp.</li><li>KV là eventual-consistency storage; catalog đơn-key phù hợp giai đoạn thử nghiệm, chưa phải CMS quy mô lớn.</li></ul>
-<h2>Proxy & delivery</h2><p>Phiên bản hiện tại phát media URL HTTPS đã allowlist trực tiếp qua HTML5 Player. Chưa bật media proxy/relay. Proxy chỉ được xem xét cho nguồn có giấy phép phân phối và sau khi kiểm tra giới hạn băng thông, Range request, chi phí Worker và điều khoản nhà cung cấp. Không có endpoint tải xuống hoặc chuyển tiếp stream của bên thứ ba.</p><h2>Player support</h2><ul><li>MP4/WebM: dùng HTML5 video khi máy chủ trả MIME type đúng và hỗ trợ byte-range.</li><li>HLS: Safari/iPhone có native HLS; các trình duyệt khác có thể cần HLS.js sau khi rà soát dependency.</li><li>Không proxy, tải xuống, scrape hoặc relay stream không có quyền.</li></ul>
-<h2>Error format</h2><pre>{ "error": "Human-readable error" }</pre><p>HTTP 400 dữ liệu sai; 401 thiếu session; 403 không đủ quyền; 404 không tìm thấy; 503 binding/catalog chưa sẵn sàng.</p>
-<h2>Example request</h2><pre>curl -H "Accept: application/json" \
-  https://api.clipviet.live/api/v1/videos</pre>
-</main><footer><a class="brand footer-brand" href="../"><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a><p>© <span id="year"></span> ClipViet.live · API v1</p></footer><script>document.querySelector("#year").textContent=new Date().getFullYear()</script></body></html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#08090d"><meta name="robots" content="index,follow"><title>Video Catalog — ClipViet.live</title><link rel="stylesheet" href="../styles.css"><style>
+.docs{max-width:1050px;margin:auto;padding:48px 20px 90px}.docs h1{font-size:clamp(36px,6vw,62px);letter-spacing:-3px}.docs h2{margin:34px 0 12px;font-size:22px}.docs p,.docs li{color:#aaa;font-size:13px;line-height:1.9}.docs code,.docs pre{font-family:ui-monospace,SFMono-Regular,monospace}.docs code{color:#ffb9bd}.docs pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101219;border:1px solid #292a31;padding:18px;color:#ddd;font-size:11px;line-height:1.8}.endpoint{border:1px solid #292a31;padding:18px;margin:12px 0;background:#101219}.method{display:inline-block;border:1px solid #555;padding:5px 8px;font-size:9px;letter-spacing:1px;margin-right:10px}.warning{border-left:2px solid #ef3340;padding:12px 16px;background:#171219}
+</style></head><body><header class="topbar"><a class="brand" href="../"><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a><nav><a href="../">Trang chủ</a><a href="../browse/">Khám phá</a><a href="../admin/sources/">Nguồn video</a></nav></header>
+<main class="docs"><p class="eyebrow">CLIPVIET / GITHUB PAGES</p><h1>Static Video <span style="color:#777">Catalog</span></h1>
+<div class="warning"><strong>Kiến trúc đang sử dụng:</strong> GitHub Pages chỉ phục vụ static HTML/CSS/JS/JSON. GitHub Actions lấy dữ liệu AppleCMS theo lịch và tạo <code>data/catalog.json</code> trong artifact Pages. Không có API server, Cloudflare Worker, Netlify hoặc Vercel trong luồng triển khai này.</div>
+<h2>Catalog endpoints</h2>
+<div class="endpoint"><span class="method">GET</span><code>../data/catalog.json</code><p>File JSON công khai chứa metadata, provider health, danh mục lá và các đường phát HTTPS. Catalog được tạo trong mỗi lần deploy; lịch đồng bộ mặc định 6 giờ.</p></div>
+<pre>{
+  "schemaVersion": 1,
+  "updatedAt": "ISO-8601",
+  "providers": [{
+    "id": "souavzy",
+    "state": "online",
+    "count": 60,
+    "total": 130740,
+    "pageCount": 6537,
+    "pagesFetched": 3
+  }],
+  "categories": [{
+    "sourceId": "souavzy",
+    "id": "67",
+    "name": "..."
+  }],
+  "videos": [{
+    "uid": "souavzy:62843",
+    "sourceId": "souavzy",
+    "id": "62843",
+    "title": "...",
+    "poster": "https://...",
+    "lines": [{
+      "name": "HLS",
+      "episodes": [{ "name": "Tập 1", "url": "https://.../index.m3u8", "type": "hls" }]
+    }]
+  }]
+}</pre>
+<h2>AppleCMS V10 source APIs</h2>
+<ul><li><code>GET {BASE}?ac=list</code>: chỉ lấy <code>class[]</code>; chỉ hiển thị danh mục lá có <code>type_pid != 0</code>.</li><li><code>GET {BASE}?ac=detail&amp;pg=1</code>: lấy danh sách phim đầy đủ metadata và poster.</li><li><code>GET {BASE}?ac=detail&amp;t={type_id}&amp;pg=1</code>: lọc theo danh mục.</li><li><code>GET {BASE}?ac=detail&amp;wd={keyword}&amp;pg=1</code>: tìm kiếm.</li><li><code>GET {BASE}?ac=detail&amp;ids={vod_id}</code>: chi tiết video.</li></ul>
+<p>Năm provider được khai báo trong <a href="https://github.com/zskbot/clipviet.live/blob/main/scripts/sync-pages-catalog.mjs">scripts/sync-pages-catalog.mjs</a>: Souavzy (main), ApiYutu, LBApi9, Slapibf và JipinVIP1. Domain/API availability và số lượng catalog có thể thay đổi; trạng thái hiển thị lấy từ lần đồng bộ gần nhất, không phải bảo đảm SLA.</p>
+<h2>Refresh and pagination</h2><p>Workflow lấy tối đa 3 trang mỗi provider mỗi lần chạy (có thể điều chỉnh 1–5 bằng workflow_dispatch). Tôn trọng <code>pagecount</code> và <code>limit</code> trả về; không giả định mọi nguồn đều có 20 video/trang. Các request được thực hiện tuần tự với khoảng nghỉ và một lần retry.</p>
+<h2>Playback delivery</h2><p>Video HLS/MP4 được phát trực tiếp từ CDN nguồn trong trình duyệt. iPhone/Safari dùng native HLS; desktop dùng HLS.js khi cần. GitHub Pages không proxy manifest hoặc segment, tránh biến Pages thành relay video. Playback thực tế phụ thuộc CORS, hotlink policy, TLS và tình trạng CDN của từng nguồn.</p>
+<h2>Source monitor</h2><p><a href="../admin/sources/">Mở trang trạng thái provider</a>. Trang monitor chỉ đọc catalog đã xuất bản. Không có API key hoặc token được nhúng trong frontend.</p>
+<h2>Rights and age safeguards</h2><p>Chỉ đưa vào catalog nội dung mà bên vận hành có quyền phân phối, cùng metadata và poster tương ứng. Cần cơ chế tiếp nhận yêu cầu gỡ nội dung và xử lý khiếu nại. Cổng 18+ là tự khai, không phải xác minh danh tính hoặc độ tuổi.</p>
+</main><footer><a class="brand footer-brand" href="../"><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a><p>© <span id="year"></span> ClipViet.live · GitHub Pages</p></footer><script>document.querySelector("#year").textContent=new Date().getFullYear()</script></body></html>
