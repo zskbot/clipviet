@@ -1,5 +1,23 @@
 import { mkdir, writeFile } from "node:fs/promises";
 
+// Bulk catalog ingestion is disabled unless distribution rights are explicitly verified.
+// The homepage reads the read-only Cloudflare Preview API directly; this build step must
+// not crawl provider catalogs or copy playback URLs into a static artifact by default.
+if (process.env.CATALOG_DISTRIBUTION_AUTHORIZED !== "true") {
+  await mkdir("site/data", { recursive: true });
+  await writeFile("site/data/catalog.json", JSON.stringify({
+    schemaVersion: 1,
+    updatedAt: new Date().toISOString(),
+    refreshHours: 6,
+    pageSize: 30,
+    providers: [],
+    categories: [],
+    videos: []
+  }));
+  console.log("Catalog bulk sync skipped: distribution authorization has not been verified.");
+  process.exit(0);
+}
+
 const providers = [
   { id: "souavzy", name: "Souavzy · Main", baseUrl: "https://api.souavzy.vip/api.php/provide/vod/" },
   { id: "apiyutu", name: "ApiYutu · Backup 1", baseUrl: "https://apiyutu.com/api.php/provide/vod/" },
