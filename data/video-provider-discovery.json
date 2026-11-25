@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "policy": "Discover documented public APIs only. Never scrape private endpoints, bypass authentication, or ingest media without documented distribution rights and adult consent.",
+  "sources": [
+    {
+      "id": "youtube-data-api",
+      "platform": "YouTube",
+      "country": "GLOBAL",
+      "regions": ["VN", "CN", "KR", "OTHER"],
+      "kind": "official-video-search-and-embed",
+      "documentationUrl": "https://developers.google.com/youtube/v3",
+      "apiBase": "https://www.googleapis.com/youtube/v3",
+      "access": "API key and quota",
+      "playback": "Official YouTube embed only; do not download/cache audiovisual content",
+      "rightsGate": "Channel/content-owner authorization and YouTube API policy compliance",
+      "status": "candidate"
+    },
+    {
+      "id": "iqiyi-developer",
+      "platform": "iQIYI",
+      "country": "CN",
+      "regions": ["CN"],
+      "kind": "official-developer-video-query",
+      "documentationUrl": "https://www.iqiyi.com/kszt/GetStarted_Overview.html",
+      "apiBase": "",
+      "access": "Developer account and per-API approval",
+      "playback": "Only through explicitly authorized API/player scope",
+      "rightsGate": "Written distribution rights and API approval",
+      "status": "approval-required"
+    },
+    {
+      "id": "youku-openapi",
+      "platform": "Youku",
+      "country": "CN",
+      "regions": ["CN"],
+      "kind": "official-open-platform",
+      "documentationUrl": "https://cloud.youku.com/docs?id=111",
+      "apiBase": "https://api.youku.com",
+      "access": "Developer credentials and endpoint-specific scopes",
+      "playback": "No public third-party playback right inferred from upload API",
+      "rightsGate": "Written distribution rights and endpoint scope verification",
+      "status": "scope-verification-required"
+    },
+    {
+      "id": "douyin-open-platform",
+      "platform": "Douyin",
+      "country": "CN",
+      "regions": ["CN"],
+      "kind": "official-creator-content-api",
+      "documentationUrl": "https://open.douyin.com/",
+      "apiBase": "https://open.douyin.com",
+      "access": "App registration, OAuth, approved scopes",
+      "playback": "Only supported official sharing/embed flow",
+      "rightsGate": "Creator authorization and platform scope",
+      "status": "approval-required"
+    },
+    {
+      "id": "tencent-vod",
+      "platform": "Tencent Cloud VOD",
+      "country": "CN",
+      "regions": ["CN", "KR", "OTHER"],
+      "kind": "licensed-owner-media-library",
+      "documentationUrl": "https://intl.cloud.tencent.com/document/product/266",
+      "apiBase": "https://vod.tencentcloudapi.com",
+      "access": "Account credentials and signed API requests",
+      "playback": "Owner-controlled VOD assets only",
+      "rightsGate": "Uploader must own or license every asset",
+      "status": "integration-platform-not-discovery"
+    }
+  ],
+  "coverageNotes": {
+    "KR": "No Korean public video-search API with verified third-party redistribution rights has been confirmed in this initial registry. Add Naver or other Korean providers only after official API scope and playback terms are verified.",
+    "VN": "Use authorized creator/channel APIs and owner-submitted libraries. No general public API grants blanket rights to re-host user videos.",
+    "OTHER": "Additional countries can be added through the same provider contract after documentation, authorization, playback and takedown requirements are verified."
+  }
+}
