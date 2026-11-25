@@ -36,7 +36,7 @@ async function rangeProbe(url,label){
  const contentLength=response.headers.get("content-length")||"";
  const acceptRanges=response.headers.get("accept-ranges")||"not exposed";
  const rangeValid=/^bytes\s+0-0\/(?:[1-9]\d*|\*)$/i.test(contentRange);
- const lengthValid=contentLength==="1"||rangeValid;
+ const lengthValid=!contentLength||contentLength==="1";
  if(response.body)await response.body.cancel().catch(()=>{});
  const pass=status===206&&cors&&rangeValid&&lengthValid;
  return {pass,status,type,cors,contentRange,contentLength,rangeValid,acceptRanges};
