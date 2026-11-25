@@ -75,6 +75,22 @@ let totalResults = 0;
 let pageSize = 30;
 const API_BASE = "https://clipviet-catalog-readonly-preview.huynhthuongg2505-f9b.workers.dev";
 
+// Real, openly licensed fallback used only when the catalog API is empty or unavailable.
+// Tears of Steel — Blender Foundation; CC BY 3.0, attribution required.
+const sampleVideo = {
+  id: "tears-of-steel-open-movie",
+  title: "Tears of Steel",
+  category: "Phim ngắn khoa học viễn tưởng",
+  year: 2012,
+  duration: "12 phút",
+  rating: "Mọi lứa tuổi",
+  description: "Video mẫu có thể phát để kiểm thử trình phát ClipViet. © Blender Foundation; được cấp phép CC BY 3.0. Giữ nguyên nội dung và credit cuối phim.",
+  poster: "https://i.ytimg.com/vi/OHOpb2fS-cM/hqdefault.jpg",
+  embedUrl: "https://www.youtube-nocookie.com/embed/OHOpb2fS-cM",
+  sourceName: "Blender Foundation",
+  isSample: true
+};
+
 function render() {
   const sequence = ++requestSequence;
   const params = new URLSearchParams({ page: String(currentPage) });
@@ -94,6 +110,10 @@ function render() {
       totalResults = Math.max(0, Number(payload.total) || 0);
       pageSize = Math.max(1, Number(payload.limit) || 30);
       totalPages = Math.max(0, Number(payload.pageCount) || Math.ceil(totalResults / pageSize));
+      if (!rows.length) {
+        renderSampleVideo("Catalog API hiện chưa có video đủ điều kiện.");
+        return;
+      }
       currentPage = Math.max(1, Math.min(currentPage, totalPages || 1));
       const pageItems = rows.map((item) => ({
         ...item,
@@ -136,13 +156,7 @@ function render() {
     })
     .catch((error) => {
       if (sequence !== requestSequence) return;
-      grid.replaceChildren();
-      setFeaturedVideos([]);
-      count.textContent = "API KHÔNG KHẢ DỤNG";
-      empty.hidden = false;
-      renderPagination(0);
-      const note = document.querySelector(".data-note");
-      if (note) note.textContent = "KHÔNG TẢI ĐƯỢC CATALOG API · " + error.message;
+      renderSampleVideo("Catalog API tạm thời không khả dụng: " + error.message);
     });
 }
 
@@ -242,12 +256,19 @@ let featuredIndex = 0;
 let featuredTimer = null;
 function renderFeatured() {
   if (!featuredRoot) return;
+  const image = $("#featured-image");
+  const player = $("#featured-player");
+  const playButton = $("#featured-play");
+  if (player) { player.hidden = true; player.src = ""; }
+  if (image) image.hidden = false;
+  if (playButton) playButton.hidden = false;
+
   if (!featuredVideos.length) {
     if ($("#featured-title")) $("#featured-title").textContent = "Chưa có video nổi bật";
-    $("#featured-description").textContent = "Chưa có video đủ điều kiện hiển thị từ nguồn API. Vui lòng thử tải lại sau.";
-    $("#featured-meta").textContent = "CATALOG ĐANG TRỐNG HOẶC NGUỒN TẠM THỜI KHÔNG KHẢ DỤNG";
-    $("#featured-image").src = "./poster-fallback.svg";
-    $("#featured-image").alt = "Chưa có video nổi bật";
+    $("#featured-description").textContent = "Chưa có video đủ điều kiện hiển thị từ nguồn API.";
+    $("#featured-meta").textContent = "CATALOG ĐANG TRỐNG";
+    image.src = "./poster-fallback.svg";
+    image.alt = "Chưa có video nổi bật";
     $("#featured-index").textContent = "—";
     $("#featured-watch").disabled = true;
     $("#featured-open").disabled = true;
@@ -256,18 +277,58 @@ function renderFeatured() {
   const video = featuredVideos[featuredIndex % featuredVideos.length];
   $("#featured-watch").disabled = false;
   $("#featured-open").disabled = false;
-  const image = $("#featured-image");
   image.src = video.poster || "./poster-fallback.svg";
   image.alt = video.title || "Video nổi bật";
   image.onerror = () => { image.src = "./poster-fallback.svg"; };
   $("#featured-title").textContent = video.title || "Video nổi bật";
-  $("#featured-meta").textContent = [video.year, video.duration, video.country, video.category].filter(Boolean).join(" · ");
+  $("#featured-meta").textContent = video.isSample
+    ? "VIDEO MẪU · CC BY 3.0 · BLENDER FOUNDATION"
+    : [video.year, video.duration, video.country, video.category].filter(Boolean).join(" · ");
   $("#featured-description").textContent = video.description || "Khám phá video đang được quan tâm trên ClipViet.";
   $("#featured-index").textContent = String(featuredIndex + 1).padStart(2, "0");
+  featuredRoot.querySelector(".eyebrow").textContent = video.isSample
+    ? "VIDEO MẪU CÓ GIẤY PHÉP / OPEN MOVIE"
+    : "CLIPVIET / MỚI CẬP NHẬT";
   $("#featured-open").onclick = () => openDetail(video);
-  $("#featured-watch").onclick = () => openDetail(video);
-  $("#featured-poster").onclick = () => openDetail(video);
+  $("#featured-watch").onclick = () => video.isSample ? playSampleVideo() : openDetail(video);
+  playButton.onclick = () => video.isSample ? playSampleVideo() : openDetail(video);
 }
+
+function playSampleVideo() {
+  const player = $("#featured-player");
+  const image = $("#featured-image");
+  const playButton = $("#featured-play");
+  if (!player) return;
+  player.src = sampleVideo.embedUrl + "?autoplay=1&rel=0";
+  player.hidden = false;
+  image.hidden = true;
+  playButton.hidden = true;
+}
+
+function renderSampleVideo(reason) {
+  grid.replaceChildren();
+  setFeaturedVideos([sampleVideo]);
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "video-card";
+  card.innerHTML = '<div class="poster"><img loading="lazy" alt=""><span class="poster-label"></span></div><div class="card-info"><h3></h3><p></p></div>';
+  const img = card.querySelector("img");
+  img.src = sampleVideo.poster;
+  img.alt = sampleVideo.title;
+  card.querySelector(".poster-label").textContent = "MẪU CC BY";
+  card.querySelector("h3").textContent = sampleVideo.title;
+  card.querySelector(".card-info p").textContent = "2012 · Blender Foundation · CC BY 3.0";
+  card.addEventListener("click", () => openDetail(sampleVideo));
+  grid.append(card);
+  count.textContent = "1 VIDEO MẪU";
+  empty.hidden = true;
+  renderPagination(0);
+  activeFiltersRoot.replaceChildren();
+  activeFiltersRoot.hidden = true;
+  const note = document.querySelector(".data-note");
+  if (note) note.textContent = reason + " · ĐANG HIỂN THỊ VIDEO MẪU CÓ GIẤY PHÉP";
+}
+
 function setFeaturedVideos(items) {
   if (!featuredRoot) return;
   const blocked = /underage|minor|loli|shota|school\\s?(girl|boy|student)|teen\\s?(girl|boy)|học sinh|nữ sinh|nam sinh|thiếu nhi/i;
@@ -292,7 +353,17 @@ function openDetail(video) {
   detail.querySelector("h2").textContent = video.title;
   detail.querySelector(".description").textContent = video.description || "";
   detail.querySelector(".meta").textContent = [video.year, video.duration, video.rating, video.country].filter(Boolean).join(" · ");
-  detail.querySelector(".detail-source").textContent = video.apiManaged ? "Nguồn: " + (video.sourceName || video.sourceId) : "Bản ghi demo.";
+  detail.querySelector(".detail-source").textContent = video.isSample
+    ? "Nguồn: Blender Foundation · CC BY 3.0 · " + "https://creativecommons.org/licenses/by/3.0/"
+    : video.apiManaged ? "Nguồn: " + (video.sourceName || video.sourceId) : "Bản ghi demo.";
+  if (video.isSample && video.embedUrl) {
+    const link = detail.querySelector(".watch-link");
+    link.hidden = false;
+    link.href = "https://www.youtube.com/watch?v=OHOpb2fS-cM";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "PHÁT VIDEO GỐC ↗";
+  }
   if (video.apiManaged && video.sourceId && video.id) {
     const link = detail.querySelector(".watch-link");
     link.hidden = false;

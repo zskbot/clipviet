@@ -516,3 +516,9 @@ body.menu-open{overflow:hidden;touch-action:none}
 @media(max-width:760px){.live-featured{grid-template-columns:1fr;gap:22px;padding-top:38px;padding-bottom:38px}.live-featured h1{font-size:42px;letter-spacing:-2px}.live-featured-poster{height:300px}.live-featured-counter{margin-top:18px}}
 
 .live-featured-title{font-size:clamp(20px,2.8vw,34px);line-height:1.2;letter-spacing:-.8px;margin:0 0 10px;color:#f4f4f5;overflow-wrap:anywhere}
+
+/* Inline player for the licensed open-movie fallback. */
+.live-featured-poster{position:relative;display:block}
+.live-featured-poster iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.live-featured-poster .live-featured-play{border:0;border-radius:0;width:100%;cursor:pointer}
+.live-featured-poster [hidden]{display:none!important}

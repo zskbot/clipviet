@@ -53,10 +53,11 @@
         </div>
         <p class="live-featured-counter">VIDEO NỔI BẬT <span id="featured-index">01</span></p>
       </div>
-      <button id="featured-poster" class="live-featured-poster" type="button" aria-label="Mở video nổi bật">
+      <div id="featured-poster" class="live-featured-poster" role="group" aria-label="Trình phát video nổi bật">
         <img id="featured-image" src="./poster-fallback.svg" alt="Video nổi bật đang tải" loading="eager">
-        <span class="live-featured-play" aria-hidden="true">▶</span>
-      </button>
+        <iframe id="featured-player" title="Trình phát video nổi bật" hidden allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <button id="featured-play" class="live-featured-play" type="button" aria-label="Phát video">▶</button>
+      </div>
     </section>
 
     <section class="catalog" id="catalog" aria-labelledby="catalog-title">
