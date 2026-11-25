@@ -318,3 +318,29 @@ body.menu-open{overflow:hidden;touch-action:none}
 .video-card:hover .poster img{transform:none}
 
 /* Trigger Preview build for corrected thumbnail framing. */
+
+
+/* Accessible responsive pagination for the video catalog */
+.video-pagination{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
+  gap:8px;margin:26px 0 8px;padding:0;
+}
+.video-pagination[hidden]{display:none}
+.page-button{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:42px;min-height:42px;padding:0 12px;
+  border:1px solid #303030;border-radius:6px;
+  background:#1f1f1f;color:#b3b3b3;
+  font-size:14px;font-weight:650;line-height:1;
+  cursor:pointer;transition:background-color .16s ease,color .16s ease,border-color .16s ease;
+}
+.page-button:hover:not(:disabled){background:#353535;border-color:#555;color:#fff}
+.page-button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.page-button.is-active{background:#4a4a4a;border-color:#666;color:#fff}
+.page-button:disabled{opacity:.45;cursor:not-allowed}
+.page-ellipsis{display:inline-flex;align-items:center;justify-content:center;min-width:12px;color:#888;font-size:15px}
+@media(max-width:480px){
+  .video-pagination{gap:6px;margin-top:22px}
+  .page-button{min-width:38px;min-height:40px;padding:0 9px;font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){.page-button{transition:none}}
