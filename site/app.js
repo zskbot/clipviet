@@ -47,69 +47,103 @@ function filterButton(label, root, current, setValue) {
 ["Việt Nam", "Hàn Quốc", "Trung Quốc", "Thái Lan", "Nhật Bản"].forEach((v) => filterButton(v, countryRoot, () => activeCountry, (v) => { activeCountry = v; }));
 ["JAV", "VLXX", "18+"].forEach((v) => filterButton(v, genreRoot, () => activeGenre, (v) => { activeGenre = v; }));
 
+let activeCategoryId = "";
+let activeCategoryName = "";
 function renderCategories(values) {
   categoryRoot.replaceChildren();
-  values.forEach((category) => {
+  const all = { id: "", name: "Tất cả" };
+  [all, ...values].forEach((category) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "category-button";
-    button.textContent = category;
-    button.setAttribute("aria-pressed", String(category === activeCategory));
+    button.textContent = category.name;
+    button.setAttribute("aria-pressed", String(category.id === activeCategoryId));
     button.addEventListener("click", () => {
-      activeCategory = category;
+      activeCategoryId = category.id;
+      activeCategoryName = category.id ? category.name : "";
       currentPage = 1;
-      categoryRoot.querySelectorAll("button").forEach((item) => item.setAttribute("aria-pressed", String(item.textContent === category)));
+      categoryRoot.querySelectorAll("button").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
       render();
     });
     categoryRoot.append(button);
   });
 }
-renderCategories(["Tất cả", "Hành động", "Tài liệu"]);
+
+let requestSequence = 0;
+let totalPages = 0;
+let totalResults = 0;
+let pageSize = 30;
+const API_BASE = "https://clipviet-catalog-api-preview.huynhthuongg2505-f9b.workers.dev";
 
 function render() {
-  const term = query.trim().toLocaleLowerCase("vi");
-  const sort = $("#sort").value;
-  const items = videos.filter((video) => {
-    const metadata = [video.title, video.category, video.genre, video.description, video.country, video.sourceName].filter(Boolean).join(" ").toLocaleLowerCase("vi");
-    return (activeCategory === "Tất cả" || video.category === activeCategory) &&
-      (!activeCountry || video.country === activeCountry) &&
-      (!activeGenre || metadata.includes(activeGenre.toLocaleLowerCase("vi"))) &&
-      metadata.includes(term);
-  });
-  if (sort === "title") items.sort((a, b) => a.title.localeCompare(b.title, "vi"));
-  else items.sort((a, b) => Number(b.year || 0) - Number(a.year || 0));
-  const totalPages = Math.ceil(items.length / itemsPerPage);
-  currentPage = Math.max(1, Math.min(currentPage, totalPages || 1));
-  const pageItems = items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  grid.replaceChildren();
-  count.textContent = items.length + " VIDEO";
-  empty.hidden = items.length > 0;
-  renderPagination(totalPages);
-  activeFiltersRoot.replaceChildren();
-  [activeCountry, activeGenre].filter(Boolean).forEach((label) => {
-    const chip = document.createElement("span");
-    chip.className = "active-filter-chip";
-    chip.textContent = label;
-    activeFiltersRoot.append(chip);
-  });
-  activeFiltersRoot.hidden = !activeCountry && !activeGenre;
-  for (const video of pageItems) {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = "video-card";
-    card.innerHTML = '<div class="poster"><img loading="lazy" alt=""><span class="poster-label"></span></div><div class="card-info"><h3></h3><p></p></div>';
-    const img = card.querySelector("img");
-    img.src = video.poster || "./poster-fallback.svg";
-    img.alt = video.title;
-    img.addEventListener("error", () => { img.src = "./poster-fallback.svg"; }, { once: true });
-    card.querySelector(".poster-label").textContent = "18+";
-    card.querySelector("h3").textContent = video.title;
-    card.querySelector(".card-info p").textContent = [video.year, video.country, video.category].filter(Boolean).join(" · ");
-    card.addEventListener("click", () => openDetail(video));
-    grid.append(card);
-  }
+  const sequence = ++requestSequence;
+  const params = new URLSearchParams({ page: String(currentPage) });
+  if (query.trim()) params.set("keyword", query.trim().slice(0, 100));
+  if (activeCategoryId) params.set("categoryId", activeCategoryId);
+  const url = API_BASE + "/api/catalog/videos?" + params.toString();
+  count.textContent = "ĐANG TẢI…";
+  empty.hidden = true;
+  fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" })
+    .then((response) => {
+      if (!response.ok) throw new Error("Catalog API HTTP " + response.status);
+      return response.json();
+    })
+    .then((payload) => {
+      if (sequence !== requestSequence) return;
+      const rows = Array.isArray(payload.items) ? payload.items : [];
+      totalResults = Math.max(0, Number(payload.total) || 0);
+      pageSize = Math.max(1, Number(payload.limit) || 30);
+      totalPages = Math.max(0, Number(payload.pageCount) || Math.ceil(totalResults / pageSize));
+      currentPage = Math.max(1, Math.min(currentPage, totalPages || 1));
+      const pageItems = rows.map((item) => ({
+        ...item,
+        category: item.categoryName || "Khác",
+        genre: item.categoryName || "",
+        country: item.area || "",
+        apiManaged: true,
+        rating: "18+"
+      }));
+      grid.replaceChildren();
+      count.textContent = totalResults.toLocaleString("vi-VN") + " VIDEO";
+      empty.hidden = pageItems.length > 0;
+      if (pageItems.length) setFeaturedVideos(pageItems);
+      renderPagination(totalPages);
+      activeFiltersRoot.replaceChildren();
+      if (activeCategoryName) {
+        const chip = document.createElement("span");
+        chip.className = "active-filter-chip";
+        chip.textContent = activeCategoryName;
+        activeFiltersRoot.append(chip);
+      }
+      activeFiltersRoot.hidden = !activeCategoryName;
+      for (const video of pageItems) {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "video-card";
+        card.innerHTML = '<div class="poster"><img loading="lazy" alt=""><span class="poster-label"></span></div><div class="card-info"><h3></h3><p></p></div>';
+        const img = card.querySelector("img");
+        img.src = video.poster || "./poster-fallback.svg";
+        img.alt = video.title || "Video";
+        img.addEventListener("error", () => { img.src = "./poster-fallback.svg"; }, { once: true });
+        card.querySelector(".poster-label").textContent = "18+";
+        card.querySelector("h3").textContent = video.title || "Video";
+        card.querySelector(".card-info p").textContent = [video.year, video.area, video.categoryName].filter(Boolean).join(" · ");
+        card.addEventListener("click", () => openDetail(video));
+        grid.append(card);
+      }
+      const note = document.querySelector(".data-note");
+      if (note) note.textContent = "CLOUDFLARE PREVIEW API · TRANG " + currentPage + "/" + totalPages + " · " + totalResults.toLocaleString("vi-VN") + " VIDEO";
+    })
+    .catch((error) => {
+      if (sequence !== requestSequence) return;
+      grid.replaceChildren();
+      count.textContent = "API KHÔNG KHẢ DỤNG";
+      empty.hidden = false;
+      renderPagination(0);
+      const note = document.querySelector(".data-note");
+      if (note) note.textContent = "KHÔNG TẢI ĐƯỢC CATALOG API · " + error.message;
+    });
 }
-
 
 function renderPagination(totalPages) {
   pagination.replaceChildren();
@@ -287,7 +321,10 @@ document.addEventListener("keydown", (event) => {
 $("#reset-filters")?.addEventListener("click", () => {
   activeCountry = "";
   activeGenre = "";
+  activeCategoryId = "";
+  activeCategoryName = "";
   currentPage = 1;
+  categoryRoot.querySelectorAll("button").forEach((button, index) => button.setAttribute("aria-pressed", String(index === 0)));
   countryRoot.querySelectorAll("button").forEach((button) => button.setAttribute("aria-pressed", "false"));
   genreRoot.querySelectorAll("button").forEach((button) => button.setAttribute("aria-pressed", "false"));
   render();
@@ -317,29 +354,18 @@ $("#confirm-age")?.addEventListener("click", () => {
 });
 $("#leave-button")?.addEventListener("click", () => { location.href = "https://www.google.com/"; });
 
-render();
 (async () => {
   try {
-    const response = await fetch("./data/catalog.json", { cache: "no-store", headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error("catalog.json HTTP " + response.status);
-    const catalog = await response.json();
-    if (!Array.isArray(catalog.videos) || !catalog.videos.length) throw new Error("Catalog chưa có video");
-    videos = catalog.videos.map((item) => ({
-      id: item.id, sourceId: item.sourceId, sourceName: item.sourceName,
-      title: item.title, category: item.categoryName || "Khác", genre: item.categoryName || "",
-      year: item.year, duration: item.duration, rating: "18+", description: item.description,
-      poster: item.poster, country: item.area, apiManaged: true,
-      views: Number(item.views || item.viewCount || item.hits || 0),
-      playCount: Number(item.playCount || 0), trendingScore: Number(item.trendingScore || 0)
-    }));
-    renderCategories(["Tất cả", ...new Set(videos.map((item) => item.category).filter(Boolean))]);
-    setFeaturedVideos(videos);
+    const response = await fetch(API_BASE + "/api/catalog/categories", { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error("Categories API HTTP " + response.status);
+    const payload = await response.json();
+    const categories = Array.isArray(payload.data) ? payload.data : [];
+    renderCategories(categories.map((item) => ({ id: String(item.id), name: String(item.name || "Khác") })));
     render();
-    const note = document.querySelector(".data-note");
-    if (note) note.textContent = "GITHUB PAGES CATALOG · " + videos.length + " VIDEO · CẬP NHẬT " + new Date(catalog.updatedAt).toLocaleString("vi-VN");
   } catch (error) {
     const note = document.querySelector(".data-note");
-    if (note) note.textContent = "CATALOG CHƯA ĐỒNG BỘ · " + error.message;
+    if (note) note.textContent = "API DANH MỤC CHƯA KHẢ DỤNG · " + error.message;
+    render();
   }
 })();
 
