@@ -53,7 +53,7 @@
       <p id="empty-state" class="empty-state" hidden>Không tìm thấy video phù hợp.</p>
       <p class="data-note">APPLECMS V10 · 5 PROVIDER · MỞ KHÁM PHÁ ĐỂ DUYỆT NGUỒN</p>
     </section>
-    <section class="about" id="about"><p class="eyebrow">ABOUT CLIPVIET.LIVE</p><h2>Một điểm đến.<br><span>Nhiều câu chuyện.</span></h2><p>Phiên bản GitHub Pages là frontend tĩnh để kiểm tra giao diện và trải nghiệm duyệt thư viện. GitHub Pages chỉ phục vụ giao diện. Video catalog, quyền quản trị và API phát cần Cloudflare Worker cùng KV binding; chỉ nguồn có quyền phân phối mới được xuất bản.</p></section>
+    <section class="about" id="about"><p class="eyebrow">ABOUT CLIPVIET.LIVE</p><h2>Một điểm đến.<br><span>Nhiều câu chuyện.</span></h2><p>ClipViet chạy trực tiếp trên GitHub Pages. GitHub Actions đồng bộ catalog AppleCMS thành JSON tĩnh theo lịch 6 giờ; trang web đọc catalog này và trình duyệt phát HLS/MP4 trực tiếp từ CDN nguồn. Không có API server, không proxy video và không cần dịch vụ hosting ứng dụng khác.</p></section>
   </main>
   <footer><a class="brand footer-brand" href="./"><img src="./clipviet-logo.svg" alt=""><span>Clip<span class="brand-accent">Viet</span><small>.live</small></span></a><p>© <span id="year"></span> ClipViet.live · Chỉ đăng tải nội dung bạn sở hữu hoặc có quyền phân phối.</p></footer>
   <dialog id="detail-dialog" class="detail-dialog"><button id="close-detail" class="close-button" aria-label="Đóng">×</button><div id="detail-content"></div></dialog>
