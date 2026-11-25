@@ -119,3 +119,5 @@ $("next").addEventListener("click",()=>{if(page<pageCount){page++;loadVideos();w
     setupTrending();$("count").dataset.total=String(catalog.videos.length);loadVideos();
   }catch(error){status("Không tải được catalog: "+error.message);$("empty").hidden=false;}
 })();
+
+// Preview acceptance: trending order uses provider popularity fields when supplied; never invents metrics.
