@@ -50,9 +50,21 @@ playbackDecision() returns a deny-by-default decision. Playback is allowed only 
 
 The result returns the original source URL and declared playback mode, not a downloaded or proxied media URL. A caller must still use the source platform's approved player/embed flow. metadata_only and none connectors must never be used as direct media streams.
 
-## Preview API routes\n\n- GET /providers/:providerId/connector — list the provider connector contract (review roles only).\n- POST /providers/:providerId/connector — register a connector contract (admin; starts PENDING).\n- PATCH /providers/:providerId/connector/approve — approve official documentation, scopes and playback mode (legal reviewer; provider must already be VERIFIED).
-- PATCH /providers/:providerId/connector/disable — immediately disable a connector (admin or legal reviewer; reason required).\n- GET /providers/:providerId/content-rights — list clip-level rights records (review roles only).\n- POST /providers/:providerId/content-rights — register an exact source clip and its rights evidence (admin; starts PENDING).\n- PATCH /providers/:providerId/content-rights/:contentId/approve — legal approval with evidence references.
-- PATCH /providers/:providerId/content-rights/:contentId/revoke — revoke clip rights immediately (admin or legal reviewer; reason required).\n- GET /playback/authorize?providerId=...&contentId=...&use=...&region=... — deny-by-default authorization decision; returns the original source URL and allowed playback mode, never a proxied media URL.\n\nAll routes are Preview-only, role-protected and use no-store responses. The legal reviewer must independently inspect all evidence.\n\n## State and safety
+## Preview API routes
+
+- GET /providers/:providerId/connector — list the provider connector contract (review roles only).
+- POST /providers/:providerId/connector — register a connector contract (admin; starts PENDING).
+- PATCH /providers/:providerId/connector/approve — approve official documentation, scopes and playback mode (legal reviewer; provider must already be VERIFIED).
+- PATCH /providers/:providerId/connector/disable — immediately disable a connector (admin or legal reviewer; reason required).
+- GET /providers/:providerId/content-rights — list clip-level rights records (review roles only).
+- POST /providers/:providerId/content-rights — register an exact source clip and its rights evidence (admin; starts PENDING).
+- PATCH /providers/:providerId/content-rights/:contentId/approve — legal approval with evidence references.
+- PATCH /providers/:providerId/content-rights/:contentId/revoke — revoke clip rights immediately (admin or legal reviewer; reason required).
+- GET /playback/authorize?providerId=...&contentId=...&use=...&region=... — deny-by-default authorization decision; returns the original source URL and allowed playback mode, never a proxied media URL.
+
+All routes are Preview-only, role-protected and use no-store responses. The legal reviewer must independently inspect all evidence.
+
+## State and safety
 
 - Provider API reachability is not proof of rights.
 - Public visibility, a playable URL, or a search result is not a redistribution license.
