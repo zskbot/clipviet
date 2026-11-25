@@ -144,3 +144,84 @@
 @media(max-width:360px){.home-quick-tags{gap:8px}.home-tag{min-height:48px;padding:7px 5px;font-size:11px}}
 
 /* Homepage category tags are linked to matching discovery quick filters. */
+
+
+/* ClipViet compact layout: bring brand, search, library heading and controls into one visual rhythm. */
+@media(max-width:700px){
+  .topbar{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    column-gap:10px;
+    row-gap:8px;
+    min-height:0;
+    height:auto;
+    padding:8px 12px 10px;
+  }
+  .topbar .brand{grid-column:1;grid-row:1;gap:7px;font-size:18px;letter-spacing:-.8px}
+  .topbar .brand img{width:30px;height:30px}
+  .topbar .menu-toggle{grid-column:2;grid-row:1;width:42px;height:42px;min-width:42px}
+  .topbar .primary-nav{display:none}
+  .topbar form{
+    grid-column:1/-1;
+    grid-row:2;
+    width:100%;
+    max-width:none;
+    height:38px;
+    margin:0;
+  }
+  .topbar form input{font-size:12px;padding:0 10px}
+  .topbar form button{padding:0 12px}
+  .catalog{padding:18px 12px 48px}
+  .section-heading{align-items:flex-end;padding-bottom:12px}
+  .section-heading .eyebrow{margin:0 0 4px;font-size:9px;letter-spacing:2px}
+  .section-heading h2{font-size:24px;line-height:1.08;letter-spacing:-.8px;margin:0}
+  .section-heading>span{font-size:8px;letter-spacing:1.1px}
+  .home-quick-tags{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:7px;
+    margin:10px 0 12px;
+  }
+  .home-tag{
+    min-height:42px;
+    padding:7px 5px;
+    border:1px solid var(--line);
+    border-radius:0;
+    background:var(--panel);
+    color:var(--muted);
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:.55px;
+    line-height:1.25;
+    text-transform:uppercase;
+  }
+  .home-tag.is-active,.home-tag:focus-visible{
+    border-color:var(--red);
+    background:#ef334018;
+    color:var(--fg);
+  }
+  .active-filters{gap:5px;padding-top:5px}
+  .filters{gap:10px;padding:10px 0 14px}
+  .category-list{
+    display:flex;
+    flex-wrap:nowrap;
+    gap:6px;
+    width:100%;
+    max-width:100%;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    padding:0 0 3px;
+    scrollbar-width:thin;
+  }
+  .category-list .category-button{flex:0 0 auto;padding:8px 10px;white-space:nowrap}
+  .sort-label{width:100%;justify-content:space-between;gap:8px}
+  .sort-label select{min-width:0;flex:1;height:38px;padding:0 9px}
+  .video-grid{gap:8px}
+  .card-info,.video-card .card-info{padding:8px}
+}
+@media(max-width:360px){
+  .catalog{padding-left:10px;padding-right:10px}
+  .home-quick-tags{gap:5px}
+  .home-tag{font-size:8px;letter-spacing:.2px;min-height:40px;padding:6px 3px}
+  .section-heading h2{font-size:22px}
+}
