@@ -75,9 +75,9 @@ async function inspectMedia(url,label){
   }catch(error){add(label+" MP4 range/CORS","fail",error.message||String(error));}
  }
 }
-async function testPlayer(url,isHls){
+async function testPlayer(url,isHls,label){
  video.src=url;video.preload="auto";video.load();
- if(isHls)add("Safari native HLS",video.canPlayType("application/vnd.apple.mpegurl")?"pass":"warn",video.canPlayType("application/vnd.apple.mpegurl")||"Không báo hỗ trợ HLS native");
+ if(isHls)add(label+" native HLS",video.canPlayType("application/vnd.apple.mpegurl")?"pass":"warn",video.canPlayType("application/vnd.apple.mpegurl")||"Không báo hỗ trợ HLS native");
  try{
   await new Promise((resolve,reject)=>{
    let done=false;const finish=(fn,value)=>{if(done)return;done=true;clearTimeout(timer);video.removeEventListener("loadeddata",ok);video.removeEventListener("error",bad);fn(value);};
@@ -86,8 +86,8 @@ async function testPlayer(url,isHls){
    video.addEventListener("loadeddata",ok,{once:true});video.addEventListener("error",bad,{once:true});
    if(video.readyState>=2)finish(resolve,true);
   });
-  add("Video frame",video.readyState>=2&&video.videoWidth>0?"pass":"fail","readyState="+video.readyState+" · "+video.videoWidth+"×"+video.videoHeight);
- }catch(error){add("Video frame","fail",error.message||String(error));}
+  add(label+" player frame",video.readyState>=2&&video.videoWidth>0?"pass":"fail","readyState="+video.readyState+" · "+video.videoWidth+"×"+video.videoHeight);
+ }catch(error){add(label+" player frame","fail",error.message||String(error));}
 }
 async function runChecks(){
  run.disabled=true;run.textContent="ĐANG KIỂM TRA…";results.replaceChildren();checks.length=0;video.removeAttribute("src");video.load();
@@ -116,8 +116,8 @@ async function runChecks(){
   else add("HLS sample","warn","10 video đầu không trả HLS .m3u8 URL");
   if(samples.mp4)await inspectMedia(samples.mp4.url,"MP4");
   else add("MP4 sample","warn","10 video đầu không trả MP4 URL");
-  const playerSample=samples.hls||samples.mp4;
-  await testPlayer(playerSample.url,Boolean(samples.hls));
+  if(samples.hls)await testPlayer(samples.hls.url,true,"HLS");
+  if(samples.mp4)await testPlayer(samples.mp4.url,false,"MP4");
   summary.textContent="Hoàn tất. Kiểm tra này chạy trên "+navigator.userAgent+" · Origin "+location.origin;
  }catch(error){
   add("Luồng kiểm tra","fail",error.message||String(error));
