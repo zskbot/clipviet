@@ -73,7 +73,7 @@ let requestSequence = 0;
 let totalPages = 0;
 let totalResults = 0;
 let pageSize = 30;
-const API_BASE = "https://clipviet-catalog-api-preview.huynhthuongg2505-f9b.workers.dev";
+const API_BASE = "https://clipviet-catalog-readonly-preview.huynhthuongg2505-f9b.workers.dev";
 
 function render() {
   const sequence = ++requestSequence;
