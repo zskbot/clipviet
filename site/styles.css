@@ -131,3 +131,6 @@
   .menu-toggle{grid-column:2;grid-row:1}
   .featured-video{margin-top:0}
 }
+
+/* Keep the featured video as the first content block after the mobile search. */
+@media(max-width:700px){.featured-heading{margin-bottom:12px}.featured-video{padding-top:20px}}
