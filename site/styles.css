@@ -297,3 +297,5 @@ body.menu-open{overflow:hidden;touch-action:none}
  .drawer-nav a{min-height:68px;font-size:14px}
  .drawer-options{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
+
+/* Preview deployment trigger: full-screen mobile navigation. */
