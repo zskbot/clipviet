@@ -1,7 +1,7 @@
 const ADMIN_API = "https://clipviet-catalog-api-preview.huynhthuongg2505-f9b.workers.dev";
 const ADMIN_SESSION_KEY = "clipviet.admin.session.v1";
 const authForm = document.querySelector("#admin-login-form");
-const authPassword = document.querySelector("#admin-password");
+const authGoogle = document.querySelector("#admin-google-login");
 const authStatus = document.querySelector("#admin-auth-status");
 const authState = document.querySelector("#admin-auth-state");
 const authSubmit = document.querySelector("#admin-login-submit");
@@ -17,12 +17,12 @@ function setAdminAccess(allowed, message) {
   authState.textContent = allowed ? "ADMIN ĐÃ ĐĂNG NHẬP" : "CHẾ ĐỘ XEM";
   authLogout.hidden = !allowed;
   authSubmit.hidden = allowed;
-  authPassword.disabled = allowed;
+  if (authGoogle) authGoogle.hidden = allowed;
   authStatus.textContent = message;
   window.dispatchEvent(new CustomEvent("clipviet-admin-auth", { detail: { allowed } }));
 }
 async function adminRequest(path, options = {}) {
-  const response = await fetch(ADMIN_API + path, {
+  const response = await fetch(ADMIN_API + path, {\n    credentials: "omit",
     ...options,
     headers: { "content-type": "application/json", ...(adminToken ? { authorization: "Bearer " + adminToken } : {}), ...(options.headers || {}) },
     cache: "no-store"
@@ -35,29 +35,27 @@ window.clipvietAdminRequest = adminRequest;
 try {
   adminToken = sessionStorage.getItem(ADMIN_SESSION_KEY) || "";
 } catch { adminToken = ""; }
-setAdminAccess(false, "Bạn đang ở chế độ xem công khai. Đăng nhập khi cần quản lý.");
+setAdminAccess(false, "Bạn đang ở chế độ xem công khai. Đăng nhập bằng Google để quản lý.");
+function readOAuthSession() {
+  const match=location.hash.match(/(?:^#|&)admin_session=([^&]+)/);
+  if(!match) return;
+  adminToken=decodeURIComponent(match[1]);
+  try { sessionStorage.setItem(ADMIN_SESSION_KEY,adminToken); } catch {}
+  history.replaceState(null,"",location.pathname+location.search);
+}
+readOAuthSession();
+const authError=new URLSearchParams(location.search).get("auth_error");
+if(authError) {
+  const messages={oauth_not_configured:"Google OAuth chưa được cấu hình trên Worker Preview.",oauth_state_invalid:"Phiên đăng nhập Google không hợp lệ. Vui lòng thử lại.",google_login_cancelled:"Bạn đã hủy đăng nhập Google.",google_token_exchange_failed:"Không thể xác minh phiên đăng nhập Google.",google_token_missing:"Google không trả về mã xác thực.",google_profile_failed:"Không thể đọc thông tin tài khoản Google.",google_account_not_allowed:"Tài khoản Google này không được cấp quyền Admin."};
+  authStatus.textContent=messages[authError]||"Đăng nhập Google thất bại.";
+  history.replaceState(null,"",location.pathname);
+}
 if (adminToken) {
-  adminRequest("/api/admin/session").then(() => setAdminAccess(true, "Phiên Admin hợp lệ. Các công cụ quản lý đã được mở khóa."))
+  adminRequest("/api/admin/session").then(() => setAdminAccess(true, "Phiên Google Admin hợp lệ. Các công cụ quản lý đã được mở khóa."))
     .catch(() => { adminToken = ""; try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch {} });
 }
-authForm.addEventListener("submit", async event => {
-  event.preventDefault();
-  const password = authPassword.value;
-  if (!password) return;
-  authSubmit.disabled = true;
-  authStatus.textContent = "Đang xác thực...";
-  try {
-    const data = await adminRequest("/api/admin/login", { method: "POST", body: JSON.stringify({ password }) });
-    adminToken = data.token;
-    try { sessionStorage.setItem(ADMIN_SESSION_KEY, adminToken); } catch {}
-    authPassword.value = "";
-    setAdminAccess(true, "Đăng nhập thành công. Phiên có hiệu lực tối đa 4 giờ; đăng xuất sẽ xóa phiên trên trình duyệt này.");
-  } catch (error) {
-    authStatus.textContent = error.message;
-  } finally { authSubmit.disabled = false; }
-});
+authGoogle?.addEventListener("click", () => { location.href=ADMIN_API+"/api/admin/google/start"; });
 authLogout.addEventListener("click", async () => {
-  try { await adminRequest("/api/admin/logout", { method: "POST", body: "{}" }); } catch {}
   adminToken = "";
   try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch {}
   setAdminAccess(false, "Đã đăng xuất. Trang vẫn xem được; thao tác quản lý đã khóa.");
