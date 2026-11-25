@@ -12,9 +12,9 @@ on:
   workflow_dispatch:
     inputs:
       pages_per_provider:
-        description: "Số trang catalog tối đa lấy từ mỗi nguồn (1-5)"
+        description: "Số trang catalog tối đa lấy từ mỗi nguồn (1-50)"
         required: false
-        default: "5"
+        default: "20"
 
 permissions:
   contents: read
@@ -44,7 +44,7 @@ jobs:
 
       - name: Build static catalog from AppleCMS providers
         env:
-          CATALOG_PAGES_PER_PROVIDER: ${{ inputs.pages_per_provider || '5' }}
+          CATALOG_PAGES_PER_PROVIDER: ${{ inputs.pages_per_provider || '20' }}
         run: node scripts/sync-pages-catalog.mjs
 
       - name: Validate generated catalogue and static pages
