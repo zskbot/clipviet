@@ -78,6 +78,9 @@ export function playbackDecision({ provider, content, requestedUse, region, now 
   let uses = []; let regions = [];
   try { uses = JSON.parse(content.permitted_uses_json || "[]"); regions = JSON.parse(content.regions_json || "[]"); } catch { return deny("rights_metadata_invalid"); }
   if (!USES.has(requestedUse) || !uses.includes(requestedUse)) return deny("requested_use_not_licensed");
+  if (provider.playback_mode === "metadata_only" || provider.playback_mode === "none") return deny("connector_does_not_support_playback");
+  if (requestedUse === "official_embed" && provider.playback_mode !== "official_embed") return deny("connector_embed_mode_mismatch");
+  if (requestedUse === "owner_hosted_stream" && provider.playback_mode !== "owner_hosted_stream") return deny("connector_stream_mode_mismatch");
   const target = clean(region, 8).toUpperCase();
   if (!target || !(regions.includes("GLOBAL") || regions.includes(target))) return deny("territory_not_licensed");
   if (content.source_verified !== 1 || content.ownership_verified !== 1 || content.performer_age_verified !== 1 || content.performer_consent_verified !== 1) return deny("provenance_or_consent_incomplete");
