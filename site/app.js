@@ -137,6 +137,7 @@ function render() {
     .catch((error) => {
       if (sequence !== requestSequence) return;
       grid.replaceChildren();
+      setFeaturedVideos([]);
       count.textContent = "API KHÔNG KHẢ DỤNG";
       empty.hidden = false;
       renderPagination(0);
@@ -242,7 +243,7 @@ let featuredTimer = null;
 function renderFeatured() {
   if (!featuredRoot) return;
   if (!featuredVideos.length) {
-    $("#featured-title")?.replaceChildren();
+    if ($("#featured-title")) $("#featured-title").textContent = "Chưa có video nổi bật";
     $("#featured-description").textContent = "Chưa có video đủ điều kiện hiển thị từ nguồn API. Vui lòng thử tải lại sau.";
     $("#featured-meta").textContent = "CATALOG ĐANG TRỐNG HOẶC NGUỒN TẠM THỜI KHÔNG KHẢ DỤNG";
     $("#featured-image").src = "./poster-fallback.svg";
