@@ -4,6 +4,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { isProviderRightsApproved, isVideoRightsApproved, filterRightsApprovedVideos } from "../lib/provider-rights-gate.mjs";
 import { searchVideos } from "../lib/video-search.mjs";
+import { searchLegalProvider } from "../lib/legal-video-providers.js";
+import { getMacCmsFeed } from "../lib/maccms-provider.mjs";
+import { importTelegramUpdate } from "../lib/telegram-importer.js";
 
 const providerApproval = {
   approved: true, enabled: true, rightsHolder: "Verified provider rights holder",
@@ -76,4 +79,46 @@ test("video API route exposes GET, HEAD, OPTIONS and both result aliases", () =>
   assert.match(source, /results:/);
   assert.match(source, /\["keyword", "q"\]/);
   assert.match(source, /\["pageSize", "limit"\]/);
+});
+
+test("MacCMS makes no upstream request until provider rights are approved", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("upstream fetch must remain blocked"); };
+  try {
+    const result = await getMacCmsFeed({
+      VIDEO_MACCMS_PROVIDERS_JSON: JSON.stringify([{ id: "catalog1", name: "Catalog 1", apiUrl: "https://maccms.example.test/api.php" }]),
+      VIDEO_API_ALLOWED_HOSTS: "maccms.example.test"
+    });
+    assert.deepEqual(result.results, []);
+    assert.deepEqual(result.providers, []);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("YouTube adapter returns PENDING without an upstream request when rights are absent", async () => {
+  const oldKey = process.env.YOUTUBE_API_KEY;
+  const oldRights = process.env.VIDEO_PROVIDER_RIGHTS_JSON;
+  const originalFetch = globalThis.fetch;
+  process.env.YOUTUBE_API_KEY = "test-only-placeholder";
+  delete process.env.VIDEO_PROVIDER_RIGHTS_JSON;
+  globalThis.fetch = async () => { throw new Error("upstream fetch must remain blocked"); };
+  try {
+    const result = await searchLegalProvider("youtube", "rights-gate-test");
+    assert.deepEqual(result.results, []);
+    assert.equal(result.rightsGate, "PENDING");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (oldKey === undefined) delete process.env.YOUTUBE_API_KEY; else process.env.YOUTUBE_API_KEY = oldKey;
+    if (oldRights === undefined) delete process.env.VIDEO_PROVIDER_RIGHTS_JSON; else process.env.VIDEO_PROVIDER_RIGHTS_JSON = oldRights;
+  }
+});
+
+test("Telegram importer rejects before token, database or media access when provider rights are absent", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("network must remain unused"); };
+  try {
+    const result = await importTelegramUpdate({
+      message: { chat: { id: -1001234567890 }, video: { file_id: "file", file_unique_id: "unique", mime_type: "video/mp4", file_size: 1024 } }
+    });
+    assert.deepEqual(result, { accepted: false, reason: "provider_rights_not_approved" });
+  } finally { globalThis.fetch = originalFetch; }
 });
