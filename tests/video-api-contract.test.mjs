@@ -19,14 +19,13 @@ test("query-dependent API route is always dynamic and never cached", () => {
 
 test("invalid search parameters are validated before provider feed access", () => {
   assert.ok(route.indexOf("searchVideos([], params)") < route.indexOf("getVideoFeed()"));
-  assert.match(route, /status:\s*400/);
+  assert.match(route, /apiJson\(\{ success: false, error: error\.message \}, 400\)/);
 });
 
 test("video API exposes HEAD and OPTIONS and explicit 404/400/405 handling", () => {
   assert.match(route, /export async function HEAD\(/);
   assert.match(route, /export async function OPTIONS\(/);
   assert.match(route, /export async function POST\(/);
-  assert.match(route, /status:\s*404/);
-  assert.match(route, /status:\s*400/);
-  assert.match(route, /status:\s*405/);
+  assert.match(route, /error: "Video not found"[\s\S]*?\}, 404\)/);
+  assert.match(route, /error: "Method not allowed"[\s\S]*?\}, 405\)/);
 });
