@@ -8,7 +8,7 @@ export async function GET(request) {
   try {
     const incoming = new URL(request.url).searchParams;
     const params = new URLSearchParams(incoming);
-    const aliases = [["keyword", "q"], ["search", "q"], ["categoryId", "category"], ["pageSize", "limit"], ["per_page", "limit"], ["currentPage", "page"]];
+    const aliases = [["keyword", "q"], ["search", "q"], ["pageSize", "limit"], ["per_page", "limit"], ["currentPage", "page"]];
     for (const [legacy, canonical] of aliases) {
       if (!params.has(canonical) && params.has(legacy)) params.set(canonical, params.get(legacy));
     }
