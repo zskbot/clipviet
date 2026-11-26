@@ -71,6 +71,7 @@ test("video API route exposes GET, HEAD, OPTIONS and both result aliases", () =>
   assert.match(source, /export async function GET/);
   assert.match(source, /export async function HEAD/);
   assert.match(source, /export async function OPTIONS/);
+  assert.match(source, /export async function POST/);
   assert.match(source, /items:/);
   assert.match(source, /results:/);
   assert.match(source, /\["keyword", "q"\]/);
