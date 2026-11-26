@@ -90,7 +90,7 @@ test("MacCMS makes no upstream request until provider rights are approved", asyn
       VIDEO_API_ALLOWED_HOSTS: "maccms.example.test"
     });
     assert.deepEqual(result.results, []);
-    assert.deepEqual(result.providers, []);
+    assert.deepEqual(result.providers.map(provider => provider.state), ["rights_pending"]);
   } finally { globalThis.fetch = originalFetch; }
 });
 
