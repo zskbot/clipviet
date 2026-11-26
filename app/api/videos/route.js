@@ -57,3 +57,10 @@ export async function OPTIONS() {
     headers: { Allow: "GET, HEAD, OPTIONS", "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS", "Access-Control-Max-Age": "600" }
   });
 }
+
+export async function POST() {
+  return NextResponse.json({ error: "Method not allowed", allow: ["GET", "HEAD", "OPTIONS"] }, {
+    status: 405,
+    headers: { Allow: "GET, HEAD, OPTIONS" }
+  });
+}
