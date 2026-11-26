@@ -6,14 +6,19 @@ import { searchVideos } from "@/lib/video-search.mjs";
 export const revalidate = 60;
 export async function GET(request) {
   try {
-    const params = new URL(request.url).searchParams;
+    const incoming = new URL(request.url).searchParams;
+    const params = new URLSearchParams(incoming);
+    const aliases = [["keyword", "q"], ["search", "q"], ["pageSize", "limit"], ["per_page", "limit"], ["currentPage", "page"]];
+    for (const [legacy, canonical] of aliases) {
+      if (!params.has(canonical) && params.has(legacy)) params.set(canonical, params.get(legacy));
+    }
     const id = params.get("id");
     if (id?.startsWith("maccms:")) {
       const result = await getMacCmsVideoById(id);
       if (!result) return NextResponse.json({ success: false, error: "Video not found" }, { status: 404 });
       return NextResponse.json({ success: true, result, source: "maccms" }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } });
     }
-    const { results, source, providerStatus, providerErrors } = await getVideoFeed();
+    const { results, source, providerStatus, providerErrors, rightsGate } = await getVideoFeed();
     if (id) {
       const result = results.find(video => video.id === id);
       if (!result) return NextResponse.json({ success: false, error: "Video not found" }, { status: 404 });
@@ -28,13 +33,35 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       ...page,
+      results: Array.isArray(page.results) ? page.results : (Array.isArray(page.items) ? page.items : []),
+      items: Array.isArray(page.items) ? page.items : (Array.isArray(page.results) ? page.results : []),
       source,
       providerStatus: providerStatus || [],
       providerErrors: providerErrors || [],
+      rightsGate: rightsGate || { policy: "deny-by-default", providers: [] },
       updatedAt: new Date().toISOString()
     }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } });
   } catch (error) {
     console.error("[videos-api]", error);
     return NextResponse.json({ success: false, error: "Video feed is temporarily unavailable" }, { status: 502 });
   }
+}
+
+export async function HEAD(request) {
+  const response = await GET(request);
+  return new NextResponse(null, { status: response.status, headers: response.headers });
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: { Allow: "GET, HEAD, OPTIONS", "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS", "Access-Control-Max-Age": "600" }
+  });
+}
+
+export async function POST() {
+  return NextResponse.json({ error: "Method not allowed", allow: ["GET", "HEAD", "OPTIONS"] }, {
+    status: 405,
+    headers: { Allow: "GET, HEAD, OPTIONS" }
+  });
 }
