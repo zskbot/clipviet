@@ -130,10 +130,18 @@ These 23 refs are not mergeable by ordinary PR ancestry because they have no com
 
 ## Implementation commit trail
 
-- Rights gate module: `c36ec9fd79be4d546daca87e8e0b54c6e49bd383`
+- Rights gate module (latest hardened revision): `6882ee90ccbc7271c0857b262ff46d003ba36b1d`
 - MacCMS provider and asset enforcement: `b8352526b9ecaaa2bc371cff503fc70714e2304e`
-- Telegram importer rights checks: `db01b6701580c2e3701ed827eef3e346bb4eb565`
+- Telegram importer rights checks: `5a71017d9f97a73a8334a37e50d5b5fd84adc680`
 - Unified video feed gate: `50c1403e12b21da9b1c81d259da459ce12ef4ed0`
 - API compatibility route: `620820424dc9501942d2cddc13801f0e51f15c1d`
 - Search compatibility: `7c3bd3a23344c3f82eeb86bf394abfb4a8aad589`
-- Unit tests: `07fbb2d172002298f8fbf451f578c81724e29ea4`
+- Legal-provider status: `35bba96695912b5cf13e27e8ab4232c5647123ee`\n- Unit tests (latest rights/network-gate additions): `4a4c6b8b5738fb6a109803494cdd40ab8ac50446`
+
+
+## Latest validation observations
+
+- Isolated local Node harness: 7/7 canonical rights/search/API-contract tests passed; 5/5 Cloudflare facade handler tests passed. These were targeted harnesses, not a full repository `npm test`, lint or Next.js build.
+- GitHub Actions on the Draft PR heads report completed failures for CI and several security workflows. The connector returned no job steps and the workflow-job log endpoint returned `BlobNotFound`; the failure cause cannot be determined from available run evidence. Do not interpret these runs as passing.
+- No full HTTP request was sent to a deployed Preview URL. The endpoint tests exercise the local handler contract only. Preview runtime, real provider network isolation and browser behavior remain unverified.
+- Consequently, no Cloudflare Preview deployment has been promoted or bound to `api.clipviet.live`; the custom domain remains out of scope until CI/log diagnosis and deployed Preview acceptance are complete.
