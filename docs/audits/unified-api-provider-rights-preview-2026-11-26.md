@@ -139,7 +139,7 @@ These 23 refs are not mergeable by ordinary PR ancestry because they have no com
 - Legal-provider status: `35bba96695912b5cf13e27e8ab4232c5647123ee`\n- Unit tests (latest playback-mode/network-gate additions): `b69cfe8f5203f6e777199211dcbbe385d28c693d`
 
 
-## Latest validation observations
+- Cloudflare compatibility facade (`functions/api/videos.js`): `0fb226e7e0dfc901a6b8315621165d02f54577f5` in `zskbot/clipviet.live`\n- Cloudflare GET/HEAD/OPTIONS/404/405 handler tests: `8eaeaece20df4a09fdcd1782114a3c3a4f72eaf9` in `zskbot/clipviet.live`\n\n## Latest validation observations
 
 - Isolated local Node harness: 8/8 canonical rights/search/API-contract tests passed; 5/5 Cloudflare facade handler tests passed. These were targeted harnesses, not a full repository `npm test`, lint or Next.js build.
 - GitHub Actions on the Draft PR heads report completed failures for CI and several security workflows. The connector returned no job steps and the workflow-job log endpoint returned `BlobNotFound`; the failure cause cannot be determined from available run evidence. Do not interpret these runs as passing.
