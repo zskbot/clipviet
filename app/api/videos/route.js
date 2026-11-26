@@ -18,7 +18,7 @@ export async function GET(request) {
       if (!result) return NextResponse.json({ success: false, error: "Video not found" }, { status: 404 });
       return NextResponse.json({ success: true, result, source: "maccms" }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } });
     }
-    const { results, source, providerStatus, providerErrors } = await getVideoFeed();
+    const { results, source, providerStatus, providerErrors, rightsGate } = await getVideoFeed();
     if (id) {
       const result = results.find(video => video.id === id);
       if (!result) return NextResponse.json({ success: false, error: "Video not found" }, { status: 404 });
@@ -38,6 +38,7 @@ export async function GET(request) {
       source,
       providerStatus: providerStatus || [],
       providerErrors: providerErrors || [],
+      rightsGate: rightsGate || { policy: "deny-by-default", providers: [] },
       updatedAt: new Date().toISOString()
     }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } });
   } catch (error) {
