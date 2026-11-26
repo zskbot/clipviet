@@ -5,37 +5,53 @@ import { fileURLToPath } from "node:url";
 import { isProviderRightsApproved, isVideoRightsApproved, filterRightsApprovedVideos } from "../lib/provider-rights-gate.mjs";
 import { searchVideos } from "../lib/video-search.mjs";
 
-const approval = {
-  approved: true,
-  enabled: true,
-  rightsHolder: "Verified rights holder",
-  licenseReference: "LIC-TEST-001",
-  evidenceUrl: "https://rights.example.test/license/LIC-TEST-001",
-  expiresAt: "2099-12-31T23:59:59.000Z"
+const providerApproval = {
+  approved: true, enabled: true, rightsHolder: "Verified provider rights holder",
+  licenseReference: "PROVIDER-LIC-001", evidenceUrl: "https://rights.example.test/provider",
+  expiresAt: "2099-12-31T23:59:59.000Z", documentationUrl: "https://api.example.test/docs",
+  authMode: "api_key", playbackMode: "official_embed", regions: ["VN"]
+};
+const videoApproval = {
+  approved: true, enabled: true, providerId: "youtube", rightsHolder: "Verified creator rights holder",
+  creator: "Verified creator", sourceContentId: "abc", sourceUrl: "https://youtube.com/watch?v=abc",
+  licenseReference: "VIDEO-LIC-001", evidenceUrl: "https://rights.example.test/video/abc",
+  expiresAt: "2099-12-31T23:59:59.000Z", permittedUses: ["metadata_only"],
+  regions: ["VN"], sourceVerified: true, ownershipVerified: true,
+  performerAgeVerified: true, performerConsentVerified: true
+};
+const env = {
+  VIDEO_PROVIDER_RIGHTS_JSON: JSON.stringify({ youtube: providerApproval }),
+  VIDEO_VIDEO_RIGHTS_JSON: JSON.stringify({ "youtube:abc": videoApproval })
 };
 
-test("provider gate denies by default", () => {
+test("provider gate denies by default and does not trust credentials or host allowlists", () => {
   assert.equal(isProviderRightsApproved("youtube", {}), false);
   assert.deepEqual(filterRightsApprovedVideos([{ id: "youtube:abc" }], "youtube", {}), []);
 });
 
-test("provider and exact video approvals are both required", () => {
-  const env = {
-    VIDEO_PROVIDER_RIGHTS_JSON: JSON.stringify({ youtube: approval }),
-    VIDEO_VIDEO_RIGHTS_JSON: JSON.stringify({
-      "youtube:abc": { ...approval, providerId: "youtube" }
-    })
-  };
+test("provider approval requires documented connector contract and future license", () => {
   assert.equal(isProviderRightsApproved("youtube", env), true);
+  const invalid = { VIDEO_PROVIDER_RIGHTS_JSON: JSON.stringify({ youtube: { ...providerApproval, documentationUrl: "http://insecure.test" } }) };
+  assert.equal(isProviderRightsApproved("youtube", invalid), false);
+});
+
+test("exact video approval requires provenance, ownership, age, consent, use and territory", () => {
   assert.equal(isVideoRightsApproved("youtube:abc", "youtube", env), true);
   assert.equal(isVideoRightsApproved("youtube:abc", "vimeo", env), false);
-  assert.deepEqual(filterRightsApprovedVideos([{ id: "youtube:abc" }, { id: "youtube:def" }], "youtube", env), [{ id: "youtube:abc" }]);
+  const incomplete = { ...env, VIDEO_VIDEO_RIGHTS_JSON: JSON.stringify({ "youtube:abc": { ...videoApproval, performerConsentVerified: false } }) };
+  assert.equal(isVideoRightsApproved("youtube:abc", "youtube", incomplete), false);
+});
+
+test("metadata-only approval never exposes embed or hosted media URLs", () => {
+  const filtered = filterRightsApprovedVideos([{ id: "youtube:abc", embedUrl: "https://youtube-nocookie.com/embed/abc", videoUrl: "https://cdn.example.test/abc.mp4" }], "youtube", env);
+  assert.equal(filtered.length, 1);
+  assert.equal(filtered[0].embedUrl, "");
+  assert.equal(filtered[0].videoUrl, "");
 });
 
 test("expired or incomplete provider records stay disabled", () => {
-  const env = { VIDEO_PROVIDER_RIGHTS_JSON: JSON.stringify({ maccms: { ...approval, expiresAt: "2000-01-01T00:00:00Z" } }) };
-  assert.equal(isProviderRightsApproved("maccms", env), false);
-  assert.equal(isProviderRightsApproved("missing", env), false);
+  const invalid = { VIDEO_PROVIDER_RIGHTS_JSON: JSON.stringify({ youtube: { ...providerApproval, expiresAt: "2000-01-01T00:00:00Z" } }) };
+  assert.equal(isProviderRightsApproved("youtube", invalid), false);
 });
 
 test("legacy categoryId and pageSize-compatible search filters work", () => {
