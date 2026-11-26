@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { isProviderRightsApproved, isVideoRightsApproved, filterRightsApprovedVideos } from "../lib/provider-rights-gate.mjs";
+import { isProviderRightsApproved, isVideoRightsApproved, hasVideoPermittedUse, filterRightsApprovedVideos } from "../lib/provider-rights-gate.mjs";
 import { searchVideos } from "../lib/video-search.mjs";
 import { searchLegalProvider } from "../lib/legal-video-providers.js";
 import { getMacCmsFeed } from "../lib/maccms-provider.mjs";
@@ -121,4 +121,13 @@ test("Telegram importer rejects before token, database or media access when prov
     });
     assert.deepEqual(result, { accepted: false, reason: "provider_rights_not_approved" });
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test("connector playback mode must match the exact clip's permitted use", () => {
+  const metadataOnlyEnv = {
+    VIDEO_PROVIDER_RIGHTS_JSON: JSON.stringify({ youtube: { ...providerApproval, playbackMode: "metadata_only" } }),
+    VIDEO_VIDEO_RIGHTS_JSON: JSON.stringify({ "youtube:abc": { ...videoApproval, permittedUses: ["metadata_only", "official_embed"] } })
+  };
+  assert.equal(hasVideoPermittedUse("youtube:abc", "youtube", "metadata_only", metadataOnlyEnv), true);
+  assert.equal(hasVideoPermittedUse("youtube:abc", "youtube", "official_embed", metadataOnlyEnv), false);
 });
