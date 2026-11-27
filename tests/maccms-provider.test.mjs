@@ -28,7 +28,7 @@ test("MacCMS list item maps provider metadata and only allows configured media h
 });
 
 
-test("MacCMS video feed uses ac=detail and preserves provider pagination metadata", async () => {
+test("MacCMS video feed uses ac=list and preserves provider pagination metadata", async () => {
   const originalFetch = globalThis.fetch;
   let requestedUrl;
   globalThis.fetch = async (input) => {
@@ -85,7 +85,7 @@ test("MacCMS video feed uses ac=detail and preserves provider pagination metadat
       })
     };
     const result = await getMacCmsFeed(env);
-    assert.equal(requestedUrl.searchParams.get("ac"), "detail");
+    assert.equal(requestedUrl.searchParams.get("ac"), "list");
     assert.equal(requestedUrl.searchParams.get("pg"), "1");
     assert.equal(requestedUrl.searchParams.get("pagesize"), "100");
     assert.equal(result.results.length, 1);
