@@ -11,8 +11,12 @@ function json(data, status=200, headers={}) {
 function allowedOrigin(request, env) {
   const origin=request.headers.get("Origin");
   if (!origin) return "";
+  let parsed;
+  try { parsed=new URL(origin); } catch { return null; }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;
   const allowed=new Set(String(env.ALLOWED_ORIGINS||"").split(",").map(x=>x.trim()).filter(Boolean));
-  return allowed.has(origin) ? origin : null;
+  const previewHost = parsed.hostname === "clipviet-live-preview.pages.dev" || parsed.hostname.endsWith(".clipviet-live-preview.pages.dev") || parsed.hostname === "clipviet-live-independent-preview.pages.dev" || parsed.hostname.endsWith(".clipviet-live-independent-preview.pages.dev");
+  return allowed.has(origin) || previewHost ? origin : null;
 }
 function corsHeaders(origin) {
   return origin ? {
