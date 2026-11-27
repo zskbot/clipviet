@@ -1,4 +1,4 @@
-import { listProviders, getProviderCategories, listProviderVideos, getProviderVideo } from "./applecms.js";
+import { listProviders, getProviderCategories, listProviderVideos, getProviderVideo, getProviderPlayback } from "./applecms.js";
 
 function json(data, status=200, headers={}) {
   return new Response(JSON.stringify(data), { status, headers: {
@@ -188,6 +188,16 @@ async function handle(request, env) {
       } catch(error) { lastError=error; if(explicit||categoryId) break; }
     }
     return json({error:"All eligible providers failed",providerId:lastError?.providerId||explicit||"souavzy"},lastError?.status||502,headers);
+  }
+  const playbackMatch=path.match(/^\\/api\\/providers\\/([a-z0-9-]+)\\/videos\\/([0-9]+)\\/playback$/);
+  if(playbackMatch) {
+    const [,providerId,videoId]=playbackMatch;
+    try {
+      const data=await getProviderPlayback(providerId,videoId,env);
+      return json({success:true,data,rightsGate:{policy:"deny-by-default",providerApproved:true,perVideoApproved:true}},200,headers);
+    } catch(error) {
+      return json({success:false,error:error?.message||"Playback is not approved",code:error?.status===403?"PLAYBACK_RIGHTS_PENDING":"PROVIDER_ERROR"},error?.status||502,headers);
+    }
   }
   const match=path.match(/^\/api\/providers\/([a-z0-9-]+)\/(categories|videos)(?:\/([0-9]+))?$/);
   if(match) {
