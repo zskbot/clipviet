@@ -17,7 +17,7 @@ async function getJson(url, origin) {
   return payload;
 }
 
-const origin = process.env.CF_PAGES_URL || EXPECTED_PREVIEW_ORIGIN;
+const origin = EXPECTED_PREVIEW_ORIGIN;
 if (!origin.startsWith("https://")) throw new Error("CF_PAGES_URL must be an HTTPS Preview URL.");
 
 const providerPayload = await getJson(API_BASE + "/api/providers", origin);
