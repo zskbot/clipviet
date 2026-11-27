@@ -8,7 +8,7 @@ const PROVIDERS = [
 // Empty by design: no provider has independently verified distribution rights yet.
 // Add an ID only in a reviewed change that includes title-level evidence and scope.
 const APPROVED_PROVIDER_IDS = new Set([]);
-const EXCLUDED_AGE_LABEL = /(?:học[\\s_-]*sinh|nữ[\\s_-]*sinh|nam[\\s_-]*sinh|thiếu[\\s_-]*niên|vị[\\s_-]*thành[\\s_-]*niên|under[\\s_-]*age|minor|loli|shota|school[\\s_-]*(?:girl|boy|student)|teen[\\s_-]*(?:girl|boy))/i;
+const EXCLUDED_AGE_LABEL = /(?:học[\s_-]*sinh|nữ[\s_-]*sinh|nam[\s_-]*sinh|thiếu[\s_-]*niên|vị[\s_-]*thành[\s_-]*niên|under[\s_-]*age|minor|loli|shota|school[\s_-]*(?:girl|boy|student)|teen[\s_-]*(?:girl|boy))/i;
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=30", "x-content-type-options": "nosniff" };
 function json(data, status = 200, headers = {}) { return new Response(JSON.stringify(data), { status, headers: { ...JSON_HEADERS, ...headers } }); }
 function corsOrigin(request) {
