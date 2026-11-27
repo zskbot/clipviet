@@ -277,19 +277,21 @@ function playFeaturedVideo(video) {
     loadHlsLibrary().then((Hls) => {
       if (!Hls.isSupported()) throw new Error("Trình duyệt không hỗ trợ HLS/MSE");
       hlsEngine = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        capLevelToPlayerSize: false,
-        capLevelOnFPSDrop: true,
-        startLevel: -1,
-        maxBufferLength: 18,
-        maxMaxBufferLength: 36,
-        maxBufferSize: 32 * 1024 * 1024,
-        backBufferLength: 18,
-        maxBufferHole: 0.15,
-        abrBandWidthFactor: 0.95,
-        abrBandWidthUpFactor: 0.75
-      });
+      enableWorker: true,
+      lowLatencyMode: false,
+      startLevel: -1,
+      capLevelToPlayerSize: false,
+      capLevelOnFPSDrop: true,
+      maxBufferLength: 18,
+      maxMaxBufferLength: 36,
+      maxBufferSize: 32 * 1024 * 1024,
+      backBufferLength: 18,
+      maxBufferHole: 0.15,
+      abrBandWidthFactor: 0.95,
+      abrBandWidthUpFactor: 0.75,
+      manifestLoadingTimeOut: 20000,
+      fragLoadingTimeOut: 25000
+    });
       hlsEngine.on(Hls.Events.MEDIA_ATTACHED, () => hlsEngine.loadSource(source.url));
       hlsEngine.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
         const levels = data.levels || hlsEngine.levels;
@@ -322,14 +324,15 @@ function playFeaturedVideo(video) {
 
   player.src = source.url;
   player.load();
+  attemptPlayback();
   player.addEventListener("loadedmetadata", () => {
     const width = player.videoWidth, height = player.videoHeight;
     setResolution(width, height);
     resetQualityOptions(width && height ? "Nguồn gốc · " + height + "p" : "Nguồn đơn");
     if (settingsNote) settingsNote.textContent = "Nguồn MP4 chỉ có một độ phân giải gốc. Muốn chọn Full HD hoặc 4K, nhà cung cấp phải cung cấp luồng tương ứng; không dùng upscale giả.";
     showFeaturedPlayOverlay("Video đã sẵn sàng. Chạm XEM NGAY hoặc Play trên video.");
+    showFeaturedPlayOverlay("Video đã sẵn sàng. Chạm XEM NGAY hoặc Play trên video.");
   }, { once: true });
-  attemptPlayback();
 }
 function resetFeaturedPlayer() {
   destroyHls();
