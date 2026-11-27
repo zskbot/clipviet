@@ -14,7 +14,7 @@ function corsOrigin(request) {
   if (!origin) return "";
   try {
     const u = new URL(origin), h = u.hostname.toLowerCase();
-    if (u.protocol === "https:" && !u.username && !u.password && h.endsWith(".clipviet-live-independent-preview.pages.dev") && h.split(".").length === 4) return origin;
+    if (u.protocol === "https:" && !u.username && !u.password && (h.endsWith(".clipviet-live-independent-preview.pages.dev") || h.endsWith(".clipviet-live-preview.pages.dev")) && h.split(".").length === 4) return origin;
   } catch {}
   return null;
 }
