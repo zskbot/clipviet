@@ -124,7 +124,7 @@ function play() {
   $("external").hidden = false;
   $("external").href = mediaUrl.href;
   say("Đang tải video trực tiếp từ CDN nguồn…");
-  const isHls = String(episode.type || mediaUrl.pathname).toLowerCase().includes("hls") || /\.m3u8(?:$|\?)/i.test(mediaUrl.href);
+  const isHls = /\.m3u8(?:$|\?)/i.test(mediaUrl.href) || /hls|mpegurl/i.test(String(episode.type || episode.format || episode.mimeType || episode.mime_type || ""));
   let ready = false;
   const markReady = () => {
     if (ready) return;
@@ -235,10 +235,11 @@ setImageFilter();
     data.lines = (Array.isArray(data.lines) ? data.lines : []).map((line) => ({
       ...line,
       name: line.name || line.lineName || "Nguồn phát",
-      episodes: (Array.isArray(line.episodes) ? line.episodes : []).map((episode) => ({
-        ...episode,
-        name: episode.name || ("Tập " + (Number(episode.index) + 1))
-      }))
+      episodes: (Array.isArray(line.episodes) ? line.episodes : []).map((episode) => {
+        const url = episode.url || episode.playUrl || episode.play_url || episode.src || episode.file || "";
+        const hls = /\.m3u8(?:$|\?)/i.test(String(url)) || /hls|mpegurl/i.test(String(episode.type || episode.format || episode.mimeType || episode.mime_type || ""));
+        return { ...episode, url, type: hls ? "hls" : (episode.type || episode.format || "mp4"), name: episode.name || ("Tập " + (Number(episode.index) + 1)) };
+      })
     }));
     if (!data.lines.length || !data.lines.some((line) => line.episodes.length)) throw new Error("Nguồn không cung cấp đường phát HTTPS hợp lệ.");
     title.textContent = data.title;
