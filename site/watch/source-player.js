@@ -223,7 +223,7 @@ setImageFilter();
 (async () => {
   if (!sourceId || !vodId) { say("Thiếu sourceId hoặc vodId."); return; }
   try {
-    const apiBase = "https://clipviet-catalog-readonly-preview.huynhthuongg2505-f9b.workers.dev";
+    const apiBase = "https://clipviet-catalog-metadata-preview.huynhthuongg2505-f9b.workers.dev";
     const response = await fetch(apiBase + "/api/providers/" + encodeURIComponent(sourceId) + "/videos/" + encodeURIComponent(vodId), {
       cache: "no-store",
       headers: { Accept: "application/json" }

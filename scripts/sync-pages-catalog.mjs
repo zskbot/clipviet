@@ -1,6 +1,6 @@
 import { access, readFile } from "node:fs/promises";
 
-const API_BASE = "https://clipviet-catalog-readonly-preview.huynhthuongg2505-f9b.workers.dev";
+const API_BASE = "https://clipviet-catalog-metadata-preview.huynhthuongg2505-f9b.workers.dev";
 const REQUIRED_FILES = [
   "site/app.js",
   "site/browse/browse.js",
