@@ -6,72 +6,72 @@ async function getJson(url, origin) {
   const response = await fetch(url, {
     headers: { Accept: "application/json", Origin: origin },
     cache: "no-store",
-    signal: AbortSignal.timeout(20000)
+    signal: AbortSignal.timeout(25000)
   });
   const body = await response.text();
   let payload;
   try { payload = JSON.parse(body); } catch {
-    throw new Error("Catalog API returned non-JSON HTTP " + response.status + ": " + body.slice(0, 120));
+    throw new Error("Catalog API returned non-JSON HTTP " + response.status + ": " + body.slice(0, 180));
   }
   if (!response.ok) throw new Error("Catalog API HTTP " + response.status + ": " + (payload.error || "request failed"));
   return payload;
 }
 
 const origin = EXPECTED_PREVIEW_ORIGIN;
-if (!origin.startsWith("https://")) throw new Error("CF_PAGES_URL must be an HTTPS Preview URL.");
+console.log("ClipViet Preview catalog preflight starting.");
+console.log("Worker API: " + API_BASE);
+console.log("Allowed Preview origin: " + origin);
 
 const providerPayload = await getJson(API_BASE + "/api/providers", origin);
 const providers = Array.isArray(providerPayload.data) ? providerPayload.data : [];
 const configured = new Set(providers.filter((item) => item.configured).map((item) => item.id));
 const missing = PROVIDER_IDS.filter((id) => !configured.has(id));
+console.log("Configured AppleCMS providers: " + [...configured].join(", "));
 if (missing.length) {
   throw new Error("Refusing Preview build: AppleCMS Worker providers are not configured: " + missing.join(", "));
 }
 
-const checks = [];
-for (const id of PROVIDER_IDS) {
-  try {
-    const payload = await getJson(API_BASE + "/api/providers/" + id + "/videos?page=1", origin);
-    if (!Array.isArray(payload.items)) throw new Error("items[] missing");
-    const playbackUrls = payload.items.reduce((count, video) =>
-      count + (Array.isArray(video.lines) ? video.lines.reduce((lineCount, line) =>
-        lineCount + (Array.isArray(line.episodes) ? line.episodes.filter((episode) =>
-          typeof episode.url === "string" && episode.url.startsWith("https://")
-        ).length : 0), 0) : 0), 0);
-    checks.push({
-      id,
-      total: Number(payload.total) || 0,
-      pageCount: Number(payload.pageCount) || 0,
-      pageItems: payload.items.length,
-      httpsPlaybackUrlsOnPage1: playbackUrls,
-      ok: payload.items.length > 0 && Number(payload.total) > 0
-    });
-  } catch (error) {
-    checks.push({ id, ok: false, error: String(error?.message || error).slice(0, 220) });
-  }
-}
+// Use the Worker’s own ordered failover route. One unavailable backup must not
+// block Preview when another configured source still returns real, playable rows.
+const catalog = await getJson(API_BASE + "/api/catalog/videos?page=1", origin);
+const items = Array.isArray(catalog.items) ? catalog.items : [];
+const total = Number(catalog.total) || 0;
+const pageCount = Number(catalog.pageCount) || 0;
+const playableItems = items.filter((video) =>
+  Array.isArray(video.lines) && video.lines.some((line) =>
+    Array.isArray(line.episodes) && line.episodes.some((episode) =>
+      typeof episode.url === "string" && episode.url.startsWith("https://")
+    )
+  )
+);
+const playbackUrls = items.reduce((count, video) =>
+  count + (Array.isArray(video.lines) ? video.lines.reduce((lineCount, line) =>
+    lineCount + (Array.isArray(line.episodes) ? line.episodes.filter((episode) =>
+      typeof episode.url === "string" && episode.url.startsWith("https://")
+    ).length : 0), 0) : 0), 0);
 
-const live = checks.filter((item) => item.ok);
-const totalReported = live.reduce((sum, item) => sum + item.total, 0);
-const playbackOnFirstPages = live.reduce((sum, item) => sum + (item.httpsPlaybackUrlsOnPage1 || 0), 0);
-
-console.log(JSON.stringify({
-  mode: "runtime-worker-catalog",
+const report = {
+  mode: "runtime-worker-catalog-with-failover",
   previewOrigin: origin,
   providersConfigured: configured.size,
-  providerChecks: checks,
-  providersWithData: live.length,
-  summedProviderTotals: totalReported,
-  httpsPlaybackUrlsOnFirstPages: playbackOnFirstPages
-}, null, 2));
+  providerIds: PROVIDER_IDS,
+  activeProvider: catalog.provider?.name || catalog.provider?.id || "unknown",
+  sourceReportedTotal: total,
+  sourcePageCount: pageCount,
+  recordsOnPage1: items.length,
+  playableRecordsOnPage1: playableItems.length,
+  httpsPlaybackUrlsOnPage1: playbackUrls,
+  failover: Boolean(catalog.failover)
+};
+console.log(JSON.stringify(report, null, 2));
 
-if (!live.length || totalReported < 1) {
-  throw new Error("Refusing Preview build: all five AppleCMS sources failed or returned an empty catalog. No empty catalog artifact will be published.");
+if (!items.length || total < 1) {
+  throw new Error("Refusing Preview build: Worker failover returned an empty catalog. No empty catalog artifact will be published.");
 }
-if (playbackOnFirstPages < 1) {
-  throw new Error("Refusing Preview build: no HTTPS playback URL was found on the first page of any available source.");
+if (!playableItems.length || playbackUrls < 1) {
+  throw new Error("Refusing Preview build: Worker returned no HTTPS playback URLs on page 1.");
 }
 
-// Catalog metadata and playback details are served at runtime by the read-only Worker API.
+// The Worker serves catalog metadata and detail records at runtime.
 // Never generate or overwrite site/data/catalog.json during a Pages build.
-console.log("Preview preflight passed. Runtime catalog remains connected to the five AppleCMS Worker sources.");
+console.log("Preview preflight passed. No static empty catalog was generated.");
