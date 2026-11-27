@@ -5,6 +5,9 @@ const PROVIDERS = [
   { id: "slapibf", name: "Slapibf", role: "backup", envKey: "APPLECMS_SLAPIBF_URL", host: "slapibf.com" },
   { id: "jipinvip1", name: "JipinVIP1", role: "backup", envKey: "APPLECMS_JIPINVIP1_URL", host: "jipinvip1.com" }
 ];
+// Empty by design: no provider has independently verified distribution rights yet.
+// Add an ID only in a reviewed change that includes title-level evidence and scope.
+const APPROVED_PROVIDER_IDS = new Set([]);
 const EXCLUDED_AGE_LABEL = /(?:học[\\s_-]*sinh|nữ[\\s_-]*sinh|nam[\\s_-]*sinh|thiếu[\\s_-]*niên|vị[\\s_-]*thành[\\s_-]*niên|under[\\s_-]*age|minor|loli|shota|school[\\s_-]*(?:girl|boy|student)|teen[\\s_-]*(?:girl|boy))/i;
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=30", "x-content-type-options": "nosniff" };
 function json(data, status = 200, headers = {}) { return new Response(JSON.stringify(data), { status, headers: { ...JSON_HEADERS, ...headers } }); }
@@ -29,6 +32,7 @@ function corsHeaders(origin) {
 function provider(id, env) {
   const p = PROVIDERS.find(x => x.id === id);
   if (!p) throw new Error("Unknown provider");
+  if (!APPROVED_PROVIDER_IDS.has(id)) throw new Error("Provider rights approval is pending");
   const raw = env[p.envKey];
   if (!raw) throw new Error("Provider is not configured");
   const u = new URL(raw);
@@ -100,47 +104,10 @@ async function handle(request, env) {
   const headers = corsHeaders(origin);
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
   if (request.method !== "GET") return json({ error: "Method not allowed" }, 405, { allow: "GET, OPTIONS", ...headers });
-  if (path === "/health") return json({ ok: true, service: "clipviet-catalog-metadata-preview", mode: "metadata-only", providers: PROVIDERS.map(p => ({ id:p.id, name:p.name, role:p.role, configured:Boolean(env[p.envKey]) })) }, 200, headers);
-  if (path === "/api/providers") return json({ data: PROVIDERS.map(p => ({ id:p.id, name:p.name, role:p.role, protocol:"AppleCMS V10", configured:Boolean(env[p.envKey]) })), count: PROVIDERS.length }, 200, headers);
-  if (path === "/api/catalog/categories") {
-    const explicit = url.searchParams.get("sourceId");
-    const ids = explicit ? [explicit] : PROVIDERS.map(p => p.id);
-    try {
-      const result = await withFailover(ids, async id => {
-        const p = provider(id, env), payload = await upstream(p, { ac:"list" });
-        const all = (payload.class || []).map(x => ({ id:Number(x.type_id)||0, parentId:Number(x.type_pid)||0, name:String(x.type_name||"") })).filter(x => x.id && x.name);
-        const parents = new Set(all.map(x => x.parentId).filter(Boolean));
-        return { sourceId:id, data:all.filter(x => !parents.has(x.id)), count:all.filter(x => !parents.has(x.id)).length };
-      });
-      return json(result, 200, headers);
-    } catch (e) { return json({ error:"Catalog categories unavailable", detail:String(e.message||"") }, 502, headers); }
-  }
-  if (path === "/api/catalog/videos") {
-    const explicit = url.searchParams.get("sourceId");
-    const ids = explicit ? [explicit] : PROVIDERS.map(p => p.id);
-    const page = Math.max(1, Math.min(1000000, Number.parseInt(url.searchParams.get("page") || "1",10) || 1));
-    const categoryId = url.searchParams.get("categoryId") || "";
-    const keyword = (url.searchParams.get("keyword") || "").trim().slice(0,100);
-    try {
-      const result = await withFailover(ids, async id => {
-        const p = provider(id, env), params = { ac:"detail", pg:page };
-        if (categoryId) params.t = categoryId.slice(0,20);
-        if (keyword) params.wd = keyword;
-        const payload = await upstream(p, params);
-        const items = (payload.list || []).map(row => mapMetadata(p,row)).filter(Boolean);
-        return { provider:{id:p.id,name:p.name}, items, page:Number(payload.page)||page, pageCount:Number(payload.pagecount)||0, total:Number(payload.total)||0, limit:Number(payload.limit)||items.length, playback:"locked" };
-      });
-      return json(result, 200, headers);
-    } catch (e) { return json({ error:"Catalog providers unavailable", detail:String(e.message||"") }, 502, headers); }
-  }
-  const detail = path.match(/^\/api\/providers\/([a-z0-9-]+)\/videos\/([0-9]+)$/);
-  if (detail) {
-    try {
-      const p = provider(detail[1],env), payload = await upstream(p,{ac:"detail",ids:detail[2]});
-      const row = (payload.list||[]).find(x => String(x.vod_id) === detail[2]);
-      const data = row ? mapMetadata(p,row) : null;
-      return data ? json({data,playback:"locked"},200,headers) : json({error:"Video not found"},404,headers);
-    } catch (e) { return json({error:"Metadata unavailable"},502,headers); }
+  if (path === "/health") return json({ ok: true, service: "clipviet-catalog-metadata-preview", mode: "metadata-only", rightsPolicy: "deny-by-default", approvedProviderCount: APPROVED_PROVIDER_IDS.size, providers: PROVIDERS.map(p => ({ id:p.id, name:p.name, role:p.role, configured:Boolean(env[p.envKey]) && APPROVED_PROVIDER_IDS.has(p.id), rightsStatus: APPROVED_PROVIDER_IDS.has(p.id) ? "APPROVED" : "PENDING" })) }, 200, headers);
+  if (path === "/api/providers") return json({ data: PROVIDERS.map(p => ({ id:p.id, name:p.name, role:p.role, protocol:"AppleCMS V10", configured:Boolean(env[p.envKey]) && APPROVED_PROVIDER_IDS.has(p.id), rightsStatus: APPROVED_PROVIDER_IDS.has(p.id) ? "APPROVED" : "PENDING" })), count: PROVIDERS.length, approvedCount: APPROVED_PROVIDER_IDS.size }, 200, headers);
+  if (path === "/api/catalog/categories" || path === "/api/catalog/videos" || /^\/api\/providers\/[a-z0-9-]+\/videos\/[0-9]+$/.test(path)) {
+    return json({ error: "Catalog unavailable: no source has verified distribution rights", code: "PROVIDER_RIGHTS_PENDING", rightsPolicy: "deny-by-default", approvedProviderCount: APPROVED_PROVIDER_IDS.size, items: [], total: 0, page: Math.max(1, Number.parseInt(url.searchParams.get("page") || "1", 10) || 1), limit: 30, pageCount: 0, playbackEnabled: false }, 503, headers);
   }
   return json({ error:"Not found" },404,headers);
 }
