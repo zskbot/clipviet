@@ -94,14 +94,41 @@ const sampleVideo = {
   isSample: true
 };
 
-function render() {
+let catalogLoading = false;
+let catalogLoadedPages = new Set();
+let loadMoreButton = null;
+
+function ensureLoadMoreButton() {
+  if (loadMoreButton) return loadMoreButton;
+  loadMoreButton = document.createElement("button");
+  loadMoreButton.type = "button";
+  loadMoreButton.className = "page-button catalog-load-more";
+  loadMoreButton.textContent = "TẢI THÊM VIDEO";
+  loadMoreButton.addEventListener("click", () => {
+    if (currentPage < totalPages && !catalogLoading) {
+      currentPage += 1;
+      render({ append: true });
+    }
+  });
+  pagination.insertAdjacentElement("afterend", loadMoreButton);
+  return loadMoreButton;
+}
+
+function render(options = {}) {
+  const append = options.append === true;
+  if (catalogLoading) return;
   const sequence = ++requestSequence;
-  const params = new URLSearchParams({ page: String(currentPage) });
+  const requestedPage = currentPage;
+  const params = new URLSearchParams({ page: String(requestedPage) });
   if (query.trim()) params.set("keyword", query.trim().slice(0, 100));
   if (activeCategoryId) params.set("categoryId", activeCategoryId);
   const url = API_BASE + "/api/catalog/videos?" + params.toString();
-  count.textContent = "ĐANG TẢI…";
+  catalogLoading = true;
+  count.textContent = totalResults ? totalResults.toLocaleString("vi-VN") + " VIDEO · ĐANG TẢI…" : "ĐANG TẢI…";
   empty.hidden = true;
+  const more = ensureLoadMoreButton();
+  more.disabled = true;
+  more.textContent = "ĐANG TẢI VIDEO…";
   fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" })
     .then((response) => {
       if (!response.ok) throw new Error("Catalog API HTTP " + response.status);
@@ -114,10 +141,10 @@ function render() {
       pageSize = Math.max(1, Number(payload.limit) || 30);
       totalPages = Math.max(0, Number(payload.pageCount) || Math.ceil(totalResults / pageSize));
       if (!rows.length) {
-        renderSampleVideo("Catalog API hiện chưa có video đủ điều kiện.");
+        if (!append) renderSampleVideo("Catalog API hiện chưa có video đủ điều kiện.");
         return;
       }
-      currentPage = Math.max(1, Math.min(currentPage, totalPages || 1));
+      currentPage = Math.max(1, Math.min(requestedPage, totalPages || 1));
       const pageItems = rows.map((item) => ({
         ...item,
         category: item.categoryName || "Khác",
@@ -126,10 +153,15 @@ function render() {
         apiManaged: true,
         rating: "18+"
       }));
-      grid.replaceChildren();
+      if (!append) {
+        grid.replaceChildren();
+        catalogLoadedPages.clear();
+      }
+      if (catalogLoadedPages.has(currentPage)) return;
+      catalogLoadedPages.add(currentPage);
       count.textContent = totalResults.toLocaleString("vi-VN") + " VIDEO";
-      empty.hidden = pageItems.length > 0;
-      setFeaturedVideos(pageItems);
+      empty.hidden = grid.children.length + pageItems.length > 0;
+      if (!append || !featuredVideos.length) setFeaturedVideos(pageItems);
       renderPagination(totalPages);
       activeFiltersRoot.replaceChildren();
       if (activeCategoryName) {
@@ -143,7 +175,7 @@ function render() {
         const card = document.createElement("button");
         card.type = "button";
         card.className = "video-card";
-        card.innerHTML = '<div class="poster"><img loading="lazy" alt=""><span class="poster-label"></span></div><div class="card-info"><h3></h3><p></p></div>';
+        card.innerHTML = '<div class="poster"><img loading="lazy" decoding="async" alt=""><span class="poster-label"></span></div><div class="card-info"><h3></h3><p></p></div>';
         const img = card.querySelector("img");
         img.src = video.poster || "./poster-fallback.svg";
         img.alt = video.title || "Video";
@@ -155,12 +187,18 @@ function render() {
         grid.append(card);
       }
       const note = document.querySelector(".data-note");
-      if (note) note.textContent = "CLOUDFLARE PREVIEW API · TRANG " + currentPage + "/" + totalPages + " · " + totalResults.toLocaleString("vi-VN") + " VIDEO";
+      if (note) note.textContent = "CLOUDFLARE PREVIEW API · ĐÃ TẢI " + grid.children.length.toLocaleString("vi-VN") + "/" + totalResults.toLocaleString("vi-VN") + " VIDEO";
+      more.hidden = currentPage >= totalPages;
+      more.disabled = false;
+      more.textContent = currentPage >= totalPages ? "ĐÃ TẢI HẾT VIDEO" : "TẢI THÊM VIDEO · " + Math.min(totalResults, grid.children.length + pageSize).toLocaleString("vi-VN") + "/" + totalResults.toLocaleString("vi-VN");
     })
     .catch((error) => {
       if (sequence !== requestSequence) return;
-      renderSampleVideo("Catalog API tạm thời không khả dụng: " + error.message);
-    });
+      if (!append) renderSampleVideo("Catalog API tạm thời không khả dụng: " + error.message);
+      more.disabled = false;
+      more.textContent = "THỬ TẢI LẠI";
+    })
+    .finally(() => { catalogLoading = false; });
 }
 
 function renderPagination(totalPages) {
