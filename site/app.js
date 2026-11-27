@@ -77,6 +77,7 @@ let pageSize = 30;
 const API_BASE = "https://clipviet-catalog-metadata-preview.huynhthuongg2505-f9b.workers.dev";
 
 let catalogLoading = false;
+let catalogRequestController = null;
 let catalogLoadedPages = new Set();
 let loadMoreButton = null;
 
@@ -98,7 +99,9 @@ function ensureLoadMoreButton() {
 
 function render(options = {}) {
   const append = options.append === true;
-  if (catalogLoading) return;
+  if (catalogRequestController) catalogRequestController.abort();
+  const controller = new AbortController();
+  catalogRequestController = controller;
   const sequence = ++requestSequence;
   const requestedPage = currentPage;
   const params = new URLSearchParams({ page: String(requestedPage) });
@@ -111,7 +114,7 @@ function render(options = {}) {
   const more = ensureLoadMoreButton();
   more.disabled = true;
   more.textContent = "ĐANG TẢI VIDEO…";
-  fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" })
+  fetch(url, { headers: { Accept: "application/json" }, cache: "no-store", signal: controller.signal })
     .then((response) => {
       if (!response.ok) throw new Error("Catalog API HTTP " + response.status);
       return response.json();
@@ -162,7 +165,7 @@ function render(options = {}) {
       if (catalogLoadedPages.has(currentPage)) return;
       catalogLoadedPages.add(currentPage);
       count.textContent = totalResults.toLocaleString("vi-VN") + " VIDEO";
-      empty.hidden = grid.children.length + pageItems.length > 0;
+      empty.hidden = true;
       if (!append || !featuredVideos.length) {
         setFeaturedVideos(pageItems);
       }
@@ -183,7 +186,7 @@ function render(options = {}) {
         img.src = video.poster || "./poster-fallback.svg";
         img.alt = video.title || "Video";
         img.addEventListener("error", () => { img.src = "./poster-fallback.svg"; }, { once: true });
-        card.querySelector(".poster-label").textContent = "18+";
+        card.querySelector(".poster-label").textContent = video.playbackRightsApproved === true ? "18+" : "CHỈ XEM";
         card.querySelector("h3").textContent = video.title || "Video";
         card.querySelector(".card-info p").textContent = [video.year, video.area, video.categoryName].filter(Boolean).join(" · ");
         card.querySelector(".card-watch").addEventListener("click", () => openDetail(video));
@@ -201,7 +204,7 @@ function render(options = {}) {
       more.disabled = false;
       more.textContent = "THỬ TẢI LẠI";
     })
-    .finally(() => { catalogLoading = false; });
+    .finally(() => { if (sequence === requestSequence) { catalogLoading = false; if (catalogRequestController === controller) catalogRequestController = null; } });
 }
 
 function renderPagination(totalPages) {
@@ -352,6 +355,7 @@ function renderEmptyCatalog(reason) {
   count.textContent = "0 VIDEO KHẢ DỤNG";
   empty.hidden = false;
   empty.textContent = reason;
+  if (loadMoreButton) { loadMoreButton.hidden = true; loadMoreButton.disabled = false; }
   renderPagination(0);
   activeFiltersRoot.replaceChildren();
   activeFiltersRoot.hidden = true;
@@ -359,7 +363,7 @@ function renderEmptyCatalog(reason) {
   if (note) note.textContent = reason;
 }
 
-const isHttpUrl = (value) => typeof value === "string" && (value.startsWith("https://") || value.startsWith("http://"));
+const isHttpUrl = (value) => typeof value === "string" && value.startsWith("https://");
 
 function setFeaturedVideos(items) {
   if (!featuredRoot) return;
