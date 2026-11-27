@@ -97,6 +97,14 @@ const sampleVideo = {
 let catalogLoading = false;
 let catalogLoadedPages = new Set();
 let loadMoreButton = null;
+let loadMoreSentinel = null;
+let loadMoreObserver = null;
+
+function loadNextCatalogPage() {
+  if (catalogLoading || currentPage >= totalPages) return;
+  currentPage += 1;
+  render({ append: true });
+}
 
 function ensureLoadMoreButton() {
   if (loadMoreButton) return loadMoreButton;
@@ -104,13 +112,26 @@ function ensureLoadMoreButton() {
   loadMoreButton.type = "button";
   loadMoreButton.className = "page-button catalog-load-more";
   loadMoreButton.textContent = "TẢI THÊM VIDEO";
-  loadMoreButton.addEventListener("click", () => {
-    if (currentPage < totalPages && !catalogLoading) {
-      currentPage += 1;
-      render({ append: true });
-    }
-  });
+  loadMoreButton.setAttribute("aria-label", "Tải thêm video khi cuộn hoặc chạm nút");
+  loadMoreButton.addEventListener("click", loadNextCatalogPage);
   pagination.insertAdjacentElement("afterend", loadMoreButton);
+
+  // A small sentinel loads the next API page before the user reaches the end.
+  // Only one page is requested at a time; image elements remain native lazy-loaded.
+  loadMoreSentinel = document.createElement("div");
+  loadMoreSentinel.className = "catalog-load-sentinel";
+  loadMoreSentinel.setAttribute("aria-hidden", "true");
+  loadMoreSentinel.style.cssText = "height:1px;width:100%;";
+  loadMoreButton.insertAdjacentElement("afterend", loadMoreSentinel);
+
+  if ("IntersectionObserver" in window) {
+    loadMoreObserver = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting) && !loadMoreButton.hidden && !loadMoreButton.disabled) {
+        loadNextCatalogPage();
+      }
+    }, { root: null, rootMargin: "900px 0px", threshold: 0 });
+    loadMoreObserver.observe(loadMoreSentinel);
+  }
   return loadMoreButton;
 }
 
@@ -198,7 +219,13 @@ function render(options = {}) {
       more.disabled = false;
       more.textContent = "THỬ TẢI LẠI";
     })
-    .finally(() => { catalogLoading = false; });
+    .finally(() => {
+      catalogLoading = false;
+      if (loadMoreObserver && loadMoreSentinel && loadMoreButton && !loadMoreButton.hidden) {
+        loadMoreObserver.unobserve(loadMoreSentinel);
+        loadMoreObserver.observe(loadMoreSentinel);
+      }
+    });
 }
 
 function renderPagination(totalPages) {
