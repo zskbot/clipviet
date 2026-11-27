@@ -402,10 +402,12 @@ function setFeaturedVideos(items) {
   featuredIndex = 0;
   renderFeatured();
   if (featuredTimer) clearInterval(featuredTimer);
-  if (featuredVideos.length > 1) featuredTimer = setInterval(() => {
-    featuredIndex = (featuredIndex + 1) % featuredVideos.length;
-    renderFeatured();
-  }, 10000);
+  if (featuredVideos.length > 1 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches && document.visibilityState === "visible") {
+    featuredTimer = setInterval(() => {
+      featuredIndex = (featuredIndex + 1) % featuredVideos.length;
+      renderFeatured();
+    }, 10000);
+  }
 }
 
 function openDetail(video) {
@@ -537,3 +539,19 @@ suggestionForm?.addEventListener("submit", async (event) => {
 });
 
 // Preview build trigger: enable the all-catalog lazy-loading branch deployment.
+
+
+// Pause featured rotation while the tab is hidden; respect reduced-motion preferences.
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    if (featuredTimer) clearInterval(featuredTimer);
+    featuredTimer = null;
+    return;
+  }
+  if (featuredVideos.length > 1 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches && !featuredTimer) {
+    featuredTimer = setInterval(() => {
+      featuredIndex = (featuredIndex + 1) % featuredVideos.length;
+      renderFeatured();
+    }, 10000);
+  }
+});
