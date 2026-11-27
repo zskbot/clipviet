@@ -11,6 +11,42 @@ function hasExcludedAgeLabel(item) { return EXCLUDED_AGE_LABEL.test([item?.title
 const REQUEST_TIMEOUT_MS = 15000;
 const RETRY_DELAY_MS = 500;
 const CACHE_TTL_SECONDS = 60;
+const PLAYBACK_MODES = new Set(["metadata_only", "official_embed", "owner_hosted_stream"]);
+const RIGHTS_USES = new Set(["metadata_only", "official_embed", "owner_hosted_stream", "redistribute"]);
+function rightsRegistry(raw) {
+  try { const value = JSON.parse(raw || "{}"); return value && typeof value === "object" && !Array.isArray(value) ? value : {}; }
+  catch { return {}; }
+}
+function validEvidenceUrl(value) {
+  try { const u = new URL(String(value || "")); return u.protocol === "https:" && !u.username && !u.password && !u.port && u.hostname.includes("."); }
+  catch { return false; }
+}
+function providerRightsValid(record) {
+  const expiry = Date.parse(record?.expiresAt || "");
+  return record?.approved === true && record?.enabled === true &&
+    Boolean(String(record.rightsHolder || "").trim()) && Boolean(String(record.licenseReference || "").trim()) &&
+    validEvidenceUrl(record.evidenceUrl) && validEvidenceUrl(record.documentationUrl) &&
+    Number.isFinite(expiry) && expiry > Date.now() &&
+    Array.isArray(record.regions) && (record.regions.includes("GLOBAL") || record.regions.includes("VN")) &&
+    ["none", "api_key", "oauth2", "signed_request"].includes(record.authMode) && PLAYBACK_MODES.has(record.playbackMode);
+}
+function videoRightsValid(record, providerId, videoId, use) {
+  const expiry = Date.parse(record?.expiresAt || "");
+  return record?.providerId === providerId && record?.approved === true && record?.enabled === true &&
+    String(record.sourceContentId || "") === String(videoId) &&
+    Boolean(String(record.rightsHolder || "").trim()) && Boolean(String(record.licenseReference || "").trim()) &&
+    Boolean(String(record.creator || "").trim()) && validEvidenceUrl(record.sourceUrl) && validEvidenceUrl(record.evidenceUrl) &&
+    Number.isFinite(expiry) && expiry > Date.now() &&
+    record.sourceVerified === true && record.ownershipVerified === true &&
+    record.performerAgeVerified === true && record.performerConsentVerified === true &&
+    Array.isArray(record.permittedUses) && record.permittedUses.includes(use) &&
+    record.permittedUses.every(item => RIGHTS_USES.has(item)) &&
+    Array.isArray(record.regions) && (record.regions.includes("GLOBAL") || record.regions.includes("VN"));
+}
+function getVideoRecord(env, providerId, videoId) {
+  const registry = rightsRegistry(env.VIDEO_VIDEO_RIGHTS_JSON);
+  return registry[providerId + ":" + videoId] || registry[videoId] || null;
+}
 const providerQueues = new Map();
 const lastProviderRequestAt = new Map();
 async function withProviderThrottle(providerId, operation) {
@@ -38,18 +74,31 @@ export class ProviderError extends Error {
     this.status = status;
   }
 }
-export function listProviders(env) {
-  return PROVIDERS.filter(p => p.enabled).map(({ id, name, role, envKey }) => ({ id, name, role, protocol: "AppleCMS V10", configured: Boolean(env?.[envKey]) }));
+export function listProviders(env = {}) {
+  const rights = rightsRegistry(env.VIDEO_PROVIDER_RIGHTS_JSON);
+  return PROVIDERS.filter(p => p.enabled).map(provider => {
+    const configured = Boolean(env[provider.envKey]);
+    const approved = providerRightsValid(rights[provider.id]);
+    return {
+      id: provider.id, name: provider.name, role: provider.role, protocol: "AppleCMS V10",
+      configured, rightsApproved: approved, playbackMode: approved ? rights[provider.id].playbackMode : "none",
+      status: !configured ? "NOT_CONFIGURED" : !approved ? "PENDING_RIGHTS" :
+        rights[provider.id].playbackMode === "metadata_only" ? "METADATA_ONLY" : "PLAYBACK_APPROVED",
+      operationalState: "NOT_CHECKED"
+    };
+  });
 }
 function getProvider(id, env) {
   const configured = PROVIDERS.find(p => p.id === id && p.enabled);
   if (!configured) throw new ProviderError(String(id || ""), "Unknown or disabled provider", 404);
   const raw = env?.[configured.envKey];
   if (!raw) throw new ProviderError(configured.id, "Provider URL is not configured", 503);
+  const rights = rightsRegistry(env?.VIDEO_PROVIDER_RIGHTS_JSON)[configured.id];
+  if (!providerRightsValid(rights)) throw new ProviderError(configured.id, "Provider rights are pending review", 403);
   let url;
   try { url = new URL(raw); } catch { throw new ProviderError(configured.id, "Provider URL is invalid", 503); }
   if (url.protocol !== "https:" || url.hostname.toLowerCase() !== configured.host || url.pathname !== "/api.php/provide/vod/" || url.username || url.password || url.search || url.hash) throw new ProviderError(configured.id, "Provider URL does not match the approved AppleCMS endpoint", 503);
-  return { ...configured, baseUrl: url.toString() };
+  return { ...configured, baseUrl: url.toString(), rights };
 }
 export function parsePlayUrls(raw, playFrom) {
   if (!raw) return [];
@@ -69,9 +118,11 @@ export function parsePlayUrls(raw, playFrom) {
     }).filter(ep => ep.url)
   })).filter(line => line.episodes.length);
 }
-export function mapVideo(provider, row) {
+export function mapVideo(provider, row, env = {}) {
   const sourceId = String(row.vod_id ?? "");
   if (!sourceId) return null;
+  const approval = getVideoRecord(env, provider.id, sourceId);
+  if (!videoRightsValid(approval, provider.id, sourceId, "metadata_only")) return null;
   const rawDescription = String(row.vod_content || "");
   const blurb = String(row.vod_blurb || "");
   return {
@@ -100,9 +151,10 @@ export function mapVideo(provider, row) {
     updatedAt: String(row.vod_time || ""),
     views: Number(row.vod_hits) || 0,
     score: String(row.vod_score || ""),
-    playFrom: String(row.vod_play_from || ""),
-    playServer: String(row.vod_play_server || ""),
-    lines: parsePlayUrls(row.vod_play_url, row.vod_play_from)
+    playbackEnabled: false,
+    playbackRightsApproved: false,
+    rightsStatus: "METADATA_APPROVED",
+    lines: String(row.vod_play_from || "").split("$$").map((name, index) => ({ lineName: name || "线路" + (index + 1), episodes: [] }))
   };
 }
 async function fetchProviderJson(provider, params) {
@@ -111,8 +163,9 @@ async function fetchProviderJson(provider, params) {
     if (value !== undefined && value !== null && String(value) !== "") url.searchParams.set(key, String(value));
   }
   const cacheKey = new Request(url.toString(), { method: "GET" });
+  const categoryRequest = params.ac === "list";
   const cache = caches.default;
-  const cached = await cache.match(cacheKey);
+  const cached = categoryRequest ? await cache.match(cacheKey) : null;
   if (cached) return cached.json();
 
   let lastError;
@@ -133,7 +186,7 @@ async function fetchProviderJson(provider, params) {
       const cacheResponse = new Response(JSON.stringify(payload), {
         headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=0, s-maxage=" + CACHE_TTL_SECONDS }
       });
-      await cache.put(cacheKey, cacheResponse);
+      if (categoryRequest) await cache.put(cacheKey, cacheResponse);
       return payload;
     } catch (error) {
       lastError = error;
@@ -161,7 +214,7 @@ export async function listProviderVideos(providerId, options = {}, env) {
   if (options.categoryId) params.t = String(options.categoryId).slice(0, 20);
   if (options.keyword) params.wd = String(options.keyword).trim().slice(0, 100);
   const payload = await fetchProviderJson(provider, params);
-  const items = (payload.list || []).map(row => mapVideo(provider, row)).filter(item => item && !hasExcludedAgeLabel(item));
+  const items = (payload.list || []).map(row => mapVideo(provider, row, env)).filter(item => item && !hasExcludedAgeLabel(item));
   return {
     provider: { id: provider.id, name: provider.name },
     items,
@@ -177,8 +230,40 @@ export async function getProviderVideo(providerId, vodId, env) {
   if (!/^[0-9,]+$/.test(id)) throw new ProviderError(provider.id, "Invalid video ID", 400);
   const payload = await fetchProviderJson(provider, { ac: "detail", ids: id });
   const row = (payload.list || []).find(item => String(item.vod_id) === id);
-  const item = row ? mapVideo(provider, row) : null;
+  const item = row ? mapVideo(provider, row, env) : null;
   return item && !hasExcludedAgeLabel(item) ? item : null;
+}
+export async function getProviderPlayback(providerId, vodId, env) {
+  const provider = getProvider(providerId, env);
+  const id = String(vodId || "").trim().slice(0, 40);
+  if (!/^[0-9]+$/.test(id)) throw new ProviderError(provider.id, "Invalid video ID", 400);
+  const payload = await fetchProviderJson(provider, { ac: "detail", ids: id });
+  const row = (payload.list || []).find(item => String(item.vod_id) === id);
+  if (!row) throw new ProviderError(provider.id, "Video not found", 404);
+  const mode = provider.rights.playbackMode;
+  const use = mode === "official_embed" ? "official_embed" : "owner_hosted_stream";
+  if (mode === "metadata_only" || !videoRightsValid(getVideoRecord(env, provider.id, id), provider.id, id, use)) {
+    throw new ProviderError(provider.id, "Playback rights are not approved for this video", 403);
+  }
+  const hostAllowed = (value, hosts) => {
+    try {
+      const u = new URL(String(value || ""));
+      return u.protocol === "https:" && !u.username && !u.password && !u.port &&
+        Array.isArray(hosts) && hosts.some(host => String(host).toLowerCase() === u.hostname.toLowerCase());
+    } catch { return false; }
+  };
+  if (mode === "official_embed") {
+    const embed = String(row.vod_embed || row.embed_url || row.vod_player_url || "");
+    if (!hostAllowed(embed, provider.rights.embedHosts)) throw new ProviderError(provider.id, "Official embed host is not approved", 403);
+    return { providerId, videoId: id, playbackMode: mode, sources: [{ name: "Official embed", url: new URL(embed).href }] };
+  }
+  const sources = parsePlayUrls(row.vod_play_url, row.vod_play_from).map(line => ({
+    lineName: line.lineName,
+    episodes: line.episodes.filter(episode => hostAllowed(episode.url, provider.rights.mediaHosts))
+      .map(episode => ({ name: episode.name, url: episode.url }))
+  })).filter(line => line.episodes.length);
+  if (!sources.length) throw new ProviderError(provider.id, "No URL matches the approved media host list", 403);
+  return { providerId, videoId: id, playbackMode: mode, delivery: "direct-browser", sources };
 }
 export async function checkProviderHealth(providerId, env) {
   const started = Date.now();
@@ -186,16 +271,25 @@ export async function checkProviderHealth(providerId, env) {
     const provider = getProvider(providerId, env);
     const categories = await getProviderCategories(providerId, env);
     const page = await listProviderVideos(providerId, { page: 1 }, env);
-    const playbackUrlsPresent = page.items.some(item => item.lines.some(line => line.episodes.length > 0));
     return {
-      id: provider.id, name: provider.name, status: page.items.length > 0 && categories.length > 0 && playbackUrlsPresent ? "api-ok" : "degraded",
-      latencyMs: Date.now() - started, categoryCount: categories.length,
-      pageCount: page.pageCount, total: page.total, sampleCount: page.items.length,
-      playbackUrlsPresent
+      id: provider.id, name: provider.name, status: "api-ok",
+      rightsStatus: provider.rights.playbackMode === "metadata_only" ? "METADATA_ONLY" : "PLAYBACK_APPROVED",
+      operationalState: "ACTIVE", latencyMs: Date.now() - started,
+      categoryCount: categories.length, pageCount: page.pageCount,
+      total: page.total, sampleCount: page.items.length
     };
   } catch (error) {
-    const provider = PROVIDERS.find(item => item.id === providerId);
-    return { id: providerId, name: provider?.name || providerId, status: error?.status === 503 ? "not-configured" : "offline", latencyMs: Date.now() - started };
+    const status = error?.status;
+    const pendingRights = status === 403;
+    const notConfigured = status === 503;
+    return {
+      id: providerId,
+      name: PROVIDERS.find(item => item.id === providerId)?.name || providerId,
+      status: pendingRights ? "pending-rights" : notConfigured ? "not-configured" : "offline",
+      rightsStatus: pendingRights ? "PENDING_RIGHTS" : "UNKNOWN",
+      operationalState: pendingRights || notConfigured ? "NOT_CHECKED" : "ERROR",
+      latencyMs: Date.now() - started
+    };
   }
 }
 export async function checkAllProviderHealth(env) {

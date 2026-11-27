@@ -1,4 +1,4 @@
-import { listProviders, getProviderCategories, listProviderVideos, getProviderVideo } from "./applecms.js";
+import { listProviders, getProviderCategories, listProviderVideos, getProviderVideo, getProviderPlayback } from "./applecms.js";
 
 function json(data, status=200, headers={}) {
   return new Response(JSON.stringify(data), { status, headers: {
@@ -174,7 +174,7 @@ async function handle(request, env) {
         return json({sourceId:providerId,data,count:data.length,failover:!explicit&&providerId!=="souavzy"},200,headers);
       } catch(error) { lastError=error; if(explicit) break; }
     }
-    return json({error:"All eligible providers failed",providerId:lastError?.providerId||explicit||"souavzy"},lastError?.status||502,headers);
+    return json({success:false,error:"All eligible providers failed",code:lastError?.status===403?"PROVIDER_RIGHTS_PENDING":"PROVIDER_ERROR",providerId:lastError?.providerId||explicit||"souavzy"},lastError?.status||502,headers);
   }
   if(path==="/api/catalog/videos") {
     const explicit=url.searchParams.get("sourceId"), categoryId=url.searchParams.get("categoryId")||undefined;
@@ -188,6 +188,17 @@ async function handle(request, env) {
       } catch(error) { lastError=error; if(explicit||categoryId) break; }
     }
     return json({error:"All eligible providers failed",providerId:lastError?.providerId||explicit||"souavzy"},lastError?.status||502,headers);
+  }
+  const playbackParts=path.split("/");
+  const playbackMatch=playbackParts.length===7 && playbackParts[1]==="api" && playbackParts[2]==="providers" && playbackParts[4]==="videos" && playbackParts[6]==="playback" ? [null,playbackParts[3],playbackParts[5]] : null;
+  if(playbackMatch) {
+    const [,providerId,videoId]=playbackMatch;
+    try {
+      const data=await getProviderPlayback(providerId,videoId,env);
+      return json({success:true,data,rightsGate:{policy:"deny-by-default",providerApproved:true,perVideoApproved:true}},200,headers);
+    } catch(error) {
+      return json({success:false,error:error?.message||"Playback is not approved",code:error?.status===403?"PLAYBACK_RIGHTS_PENDING":"PROVIDER_ERROR"},error?.status||502,headers);
+    }
   }
   const match=path.match(/^\/api\/providers\/([a-z0-9-]+)\/(categories|videos)(?:\/([0-9]+))?$/);
   if(match) {
@@ -208,7 +219,7 @@ async function handle(request, env) {
       },env);
       return json(data,200,headers);
     } catch(error) {
-      return json({error:error?.message||"Provider request failed",providerId},error?.status||502,headers);
+      return json({success:false,error:error?.message||"Provider request failed",code:error?.status===403?"PROVIDER_RIGHTS_PENDING":"PROVIDER_ERROR",providerId},error?.status||502,headers);
     }
   }
   return json({error:"Not found"},404,headers);
