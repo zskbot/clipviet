@@ -130,7 +130,11 @@ function play() {
     mediaUrl = new URL(episode.url);
     if (mediaUrl.protocol !== "https:" || mediaUrl.username || mediaUrl.password) throw new Error("Chỉ cho phép media URL HTTPS không chứa thông tin đăng nhập.");
   } catch (error) { failed(error.message || "Media URL không hợp lệ."); return; }
-  if (playNowButton) playNowButton.hidden = false;
+  if (playNowButton) {
+    playNowButton.hidden = false;
+    playNowButton.disabled = false;
+    playNowButton.textContent = "XEM NGAY ▶";
+  }
   destroy();
   $("external").hidden = false;
   $("external").href = mediaUrl.href;
@@ -259,6 +263,10 @@ setImageFilter();
 
 const playNowButton = $("play-now");
 playNowButton?.addEventListener("click", async () => {
+  if (!isPlaybackAuthorized(data)) {
+    say("Quyền phát chưa được duyệt cho video này.");
+    return;
+  }
   if (!video.currentSrc && !video.src) {
     say("Chưa có luồng video hợp lệ để phát.");
     return;
@@ -272,7 +280,18 @@ playNowButton?.addEventListener("click", async () => {
 });
 video.addEventListener("playing", () => { if (playNowButton) playNowButton.hidden = true; });
 video.addEventListener("pause", () => {
-  if (playNowButton && !video.ended && video.currentTime > 0) playNowButton.hidden = false;
+  if (playNowButton && !video.ended && video.currentTime > 0) {
+    playNowButton.hidden = false;
+    playNowButton.disabled = false;
+    playNowButton.textContent = "TIẾP TỤC ▶";
+  }
+});
+video.addEventListener("ended", () => {
+  if (playNowButton) {
+    playNowButton.hidden = false;
+    playNowButton.disabled = false;
+    playNowButton.textContent = "PHÁT LẠI ▶";
+  }
 });
 
 (async () => {
