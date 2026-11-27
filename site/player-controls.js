@@ -279,7 +279,7 @@ function playFeaturedVideo(video) {
       hlsEngine = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-        capLevelToPlayerSize: true,
+        capLevelToPlayerSize: false,
         capLevelOnFPSDrop: true,
         startLevel: -1,
         maxBufferLength: 18,
