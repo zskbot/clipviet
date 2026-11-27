@@ -48,7 +48,41 @@ test("MacCMS video feed uses ac=detail and preserves provider pagination metadat
         apiUrl: "https://api.souavzy.vip/api.php/provide/vod/"
       }]),
       VIDEO_API_ALLOWED_HOSTS: "api.souavzy.vip",
-      VIDEO_MEDIA_ALLOWED_HOSTS: "media.example.test"
+      VIDEO_MEDIA_ALLOWED_HOSTS: "media.example.test",
+      VIDEO_PROVIDER_RIGHTS_JSON: JSON.stringify({
+        "maccms:souavzy": {
+          approved: true,
+          enabled: true,
+          rightsHolder: "Test rights holder",
+          licenseReference: "TEST-LICENSE-001",
+          evidenceUrl: "https://rights.example.test/provider-evidence",
+          documentationUrl: "https://rights.example.test/provider-docs",
+          expiresAt: "2099-01-01T00:00:00.000Z",
+          authMode: "none",
+          playbackMode: "owner_hosted_stream",
+          regions: ["VN"]
+        }
+      }),
+      VIDEO_VIDEO_RIGHTS_JSON: JSON.stringify({
+        "maccms:souavzy:42": {
+          providerId: "maccms:souavzy",
+          approved: true,
+          enabled: true,
+          rightsHolder: "Test rights holder",
+          licenseReference: "TEST-LICENSE-001",
+          creator: "Test creator",
+          sourceContentId: "42",
+          sourceUrl: "https://api.souavzy.vip/video/42",
+          evidenceUrl: "https://rights.example.test/video-evidence/42",
+          expiresAt: "2099-01-01T00:00:00.000Z",
+          sourceVerified: true,
+          ownershipVerified: true,
+          performerAgeVerified: true,
+          performerConsentVerified: true,
+          permittedUses: ["metadata_only", "owner_hosted_stream"],
+          regions: ["VN"]
+        }
+      })
     };
     const result = await getMacCmsFeed(env);
     assert.equal(requestedUrl.searchParams.get("ac"), "detail");
