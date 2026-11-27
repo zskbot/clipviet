@@ -223,12 +223,24 @@ setImageFilter();
 (async () => {
   if (!sourceId || !vodId) { say("Thiếu sourceId hoặc vodId."); return; }
   try {
-    const response = await fetch("../data/catalog.json", { cache: "no-store", headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error("Không tải được catalog GitHub Pages.");
-    const catalog = await response.json();
-    data = catalog.videos.find((item) => item.sourceId === sourceId && item.id === vodId);
-    if (!data) throw new Error("Video không còn trong catalog hiện tại. Hãy quay lại thư viện.");
-    if (!Array.isArray(data.lines) || !data.lines.length) throw new Error("Nguồn không cung cấp đường phát trực tiếp.");
+    const apiBase = "https://clipviet-catalog-readonly-preview.huynhthuongg2505-f9b.workers.dev";
+    const response = await fetch(apiBase + "/api/providers/" + encodeURIComponent(sourceId) + "/videos/" + encodeURIComponent(vodId), {
+      cache: "no-store",
+      headers: { Accept: "application/json" }
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || ("Catalog API HTTP " + response.status));
+    data = payload.data || null;
+    if (!data) throw new Error("Video không còn tồn tại trên nguồn AppleCMS.");
+    data.lines = (Array.isArray(data.lines) ? data.lines : []).map((line) => ({
+      ...line,
+      name: line.name || line.lineName || "Nguồn phát",
+      episodes: (Array.isArray(line.episodes) ? line.episodes : []).map((episode) => ({
+        ...episode,
+        name: episode.name || ("Tập " + (Number(episode.index) + 1))
+      }))
+    }));
+    if (!data.lines.length || !data.lines.some((line) => line.episodes.length)) throw new Error("Nguồn không cung cấp đường phát HTTPS hợp lệ.");
     title.textContent = data.title;
     $("meta").textContent = [data.sourceName, data.year, data.area, data.categoryName, data.duration].filter(Boolean).join(" · ");
     $("description").textContent = data.description || "";

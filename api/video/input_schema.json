@@ -1,0 +1,35 @@
+{
+    "$schema": "https://apify.com/schemas/v1/input.ide.json",
+    "title": "Video list crawler",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "startUrls": {
+            "title": "Source page URLs",
+            "type": "array",
+            "description": "Listing pages to crawl. Each source is crawled across its pagination.",
+            "editor": "requestListSources",
+            "prefill": [
+                { "url": "https://hsex.men/list-1.htm" }
+            ]
+        },
+        "maxRequestsPerCrawl": {
+            "title": "Max requests per crawl",
+            "type": "integer",
+            "description": "Upper limit on pages fetched in one run. Keep small while testing.",
+            "default": 50
+        },
+        "maxPages": {
+            "title": "Max listing pages per source",
+            "type": "integer",
+            "description": "Stop following pagination after this many pages per source. 0 means no limit.",
+            "default": 0
+        },
+        "useProxy": {
+            "title": "Use Apify proxy",
+            "type": "boolean",
+            "description": "Route requests through Apify Proxy. Some sites block datacenter IPs without it.",
+            "default": true
+        }
+    }
+}
