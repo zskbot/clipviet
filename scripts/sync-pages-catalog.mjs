@@ -1,5 +1,6 @@
 import { access, readFile } from "node:fs/promises";
 import { Script } from "node:vm";
+import { spawnSync } from "node:child_process";
 
 const CATALOG_API_BASE = "https://clipviet-catalog-metadata-preview.huynhthuongg2505-f9b.workers.dev";
 const PLAYBACK_API_BASE = "https://clipviet-playback-api-preview.huynhthuongg2505-f9b.workers.dev";
@@ -8,6 +9,16 @@ const REQUIRED_CATALOG_FILES = [
   "site/browse/browse.js"
 ];
 const REQUIRED_PROVIDER_IDS = ["souavzy", "apiyutu", "lbapi9", "slapibf", "jipinvip1"];
+
+const contractTests = spawnSync(process.execPath, ["--test", "tests/jasna-integration.test.mjs"], {
+  encoding: "utf8",
+  timeout: 30000
+});
+if (contractTests.stdout) process.stdout.write(contractTests.stdout);
+if (contractTests.stderr) process.stderr.write(contractTests.stderr);
+if (contractTests.error || contractTests.status !== 0) {
+  throw new Error("Preview contract tests failed; refusing to publish the Pages build.");
+}
 
 for (const path of REQUIRED_CATALOG_FILES) {
   const source = await readFile(path, "utf8");
