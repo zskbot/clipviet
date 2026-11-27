@@ -104,7 +104,7 @@
       <p id="empty-state" class="empty-state" hidden>Không tìm thấy video phù hợp.</p>
       <p class="data-note">APPLECMS V10 · 5 PROVIDER · MỞ KHÁM PHÁ ĐỂ DUYỆT NGUỒN</p>
     </section>
-    <section class="about" id="about"><p class="eyebrow">ABOUT CLIPVIET.LIVE</p><h2>Một điểm đến.<br><span>Nhiều câu chuyện.</span></h2><p>ClipViet chạy trực tiếp trên GitHub Pages. GitHub Actions đồng bộ catalog AppleCMS thành JSON tĩnh theo lịch 6 giờ; trang web đọc catalog này và trình duyệt phát HLS/MP4 trực tiếp từ CDN nguồn. Không có API server, không proxy video và không cần dịch vụ hosting ứng dụng khác.</p></section>
+    <section class="about" id="about"><p class="eyebrow">ABOUT CLIPVIET.LIVE</p><h2>Một điểm đến.<br><span>Nhiều câu chuyện.</span></h2><p>ClipViet chạy trên Cloudflare Pages. Catalog, phân trang và chi tiết video được đọc trực tiếp từ AppleCMS qua Cloudflare Worker Preview; build kiểm tra nguồn trước khi cho phép xuất bản Preview và không tạo catalog JSON rỗng.</p></section>
   </main>
   <footer class="site-footer">
     <section class="footer-search" aria-labelledby="footer-search-title">
