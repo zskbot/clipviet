@@ -220,8 +220,9 @@ async function loadVideos() {
     totalCount = 0;
     pageCount = 1;
     $("cards").replaceChildren();
+    $("empty").textContent = "Không thể tải catalog từ nguồn AppleCMS. Đây là lỗi kết nối, không phải catalog có 0 video.";
     $("empty").hidden = false;
-    $("count").textContent = "0 VIDEO";
+    $("count").textContent = "API ERROR";
     $("page-label").textContent = "API chưa khả dụng";
     $("prev").disabled = true;
     $("next").disabled = true;
@@ -276,6 +277,8 @@ $("next").addEventListener("click", () => { if (currentPage < pageCount) { curre
     await loadVideos();
   } catch (error) {
     status("Không kết nối được AppleCMS Worker: " + error.message);
+    $("empty").textContent = "Không thể tải catalog từ nguồn AppleCMS. Đây là lỗi kết nối, không phải catalog có 0 video.";
+    $("count").textContent = "API ERROR";
     $("empty").hidden = false;
   }
 })();
