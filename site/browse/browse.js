@@ -43,6 +43,14 @@ async function api(path) {
 function providerLabel(id) {
   return providers.find((item) => item.id === id)?.name || id || "Nguồn tự động";
 }
+function populateCountryOptions() {
+  const select = $("country");
+  const previous = select.value;
+  select.replaceChildren(option("Tất cả quốc gia", ""));
+  const values = [...new Set(currentItems.map((item) => String(item.area || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "vi"));
+  for (const value of values) select.append(option(value, value));
+  if (values.includes(previous)) select.value = previous;
+}
 function populateProviders() {
   const select = $("source");
   select.replaceChildren(option("Tự động · nguồn chính và dự phòng", ""));
@@ -199,6 +207,7 @@ async function loadVideos() {
   try {
     const payload = await api(path);
     currentItems = Array.isArray(payload.items) ? payload.items : [];
+    populateCountryOptions();
     totalCount = Math.max(0, Number(payload.total) || 0);
     pageCount = Math.max(1, Number(payload.pageCount) || Math.ceil(totalCount / Math.max(1, Number(payload.limit) || PAGE_SIZE)));
     currentPage = Math.max(1, Math.min(currentPage, pageCount));
