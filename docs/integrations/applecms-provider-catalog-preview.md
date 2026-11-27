@@ -23,3 +23,7 @@ The previous feed adapter requested `ac=detail` for paginated catalog listing. T
 ## Preview boundary
 
 No secrets are committed. All providers remain pending. No Production deploy, DNS/domain update, PR merge or paid service action is included.
+
+## Verification notes
+
+The provider adapter uses `ac=list` with `pg` and `pagesize` for catalog rows and retains `ac=detail&ids=...` for a selected video. Its regression test asserts the request action, pagination parameters, normalized metadata and the rights-approved owner-hosted test fixture. A test fixture does not authorize a real provider or any live title.
