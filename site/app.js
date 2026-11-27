@@ -91,6 +91,9 @@ const sampleVideo = {
   videoUrl: "https://archive.org/download/Tears-of-Steel/tears_of_steel_720p.mp4",
   originalUrl: "https://www.youtube.com/watch?v=OHOpb2fS-cM",
   sourceName: "Blender Foundation",
+  license: "CC BY 3.0",
+  licenseUrl: "https://creativecommons.org/licenses/by/3.0/",
+  rightsVerified: true,
   isSample: true
 };
 
@@ -161,7 +164,21 @@ function render(options = {}) {
       catalogLoadedPages.add(currentPage);
       count.textContent = totalResults.toLocaleString("vi-VN") + " VIDEO";
       empty.hidden = grid.children.length + pageItems.length > 0;
-      if (!append || !featuredVideos.length) setFeaturedVideos(pageItems);
+      if (!append || !featuredVideos.length) {
+        // Prefer catalog entries only when an explicit, current playback grant and
+        // a usable media URL are present. Otherwise keep metadata visible but use
+        // the separately licensed open-movie sample in the featured player.
+        const playableFeatured = pageItems.filter((video) =>
+          video.rightsVerified === true &&
+          video.rightsStatus === "APPROVED" &&
+          Number.isFinite(Date.parse(video.rightsExpiresAt)) &&
+          Date.parse(video.rightsExpiresAt) > Date.now() &&
+          video.playbackEnabled === true &&
+          video.playbackRightsApproved === true &&
+          Boolean(video.videoUrl || video.video_url || video.hlsUrl || video.hls_url || (Array.isArray(video.lines) && video.lines.length))
+        );
+        setFeaturedVideos(playableFeatured.length ? playableFeatured : [sampleVideo]);
+      }
       renderPagination(totalPages);
       activeFiltersRoot.replaceChildren();
       if (activeCategoryName) {
