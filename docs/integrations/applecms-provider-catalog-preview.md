@@ -27,3 +27,7 @@ No secrets are committed. All providers remain pending. No Production deploy, DN
 ## Verification notes
 
 The provider adapter uses `ac=list` with `pg` and `pagesize` for catalog rows and retains `ac=detail&ids=...` for a selected video. Its regression test asserts the request action, pagination parameters, normalized metadata and the rights-approved owner-hosted test fixture. A test fixture does not authorize a real provider or any live title.
+
+## Default provider registry
+
+The five supplied AppleCMS endpoints are available as code defaults in this Preview branch. They are reported as `PENDING_RIGHTS` until a provider approval record exists in `VIDEO_PROVIDER_RIGHTS_JSON`. Per-title metadata and playback remain separately gated by `VIDEO_VIDEO_RIGHTS_JSON`. The defaults do not cause upstream requests while approval is pending.
