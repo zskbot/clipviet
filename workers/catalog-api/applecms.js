@@ -271,16 +271,25 @@ export async function checkProviderHealth(providerId, env) {
     const provider = getProvider(providerId, env);
     const categories = await getProviderCategories(providerId, env);
     const page = await listProviderVideos(providerId, { page: 1 }, env);
-    const playbackUrlsPresent = page.items.some(item => item.lines.some(line => line.episodes.length > 0));
     return {
-      id: provider.id, name: provider.name, status: page.items.length > 0 && categories.length > 0 && playbackUrlsPresent ? "api-ok" : "degraded",
-      latencyMs: Date.now() - started, categoryCount: categories.length,
-      pageCount: page.pageCount, total: page.total, sampleCount: page.items.length,
-      playbackUrlsPresent
+      id: provider.id, name: provider.name, status: "api-ok",
+      rightsStatus: provider.rights.playbackMode === "metadata_only" ? "METADATA_ONLY" : "PLAYBACK_APPROVED",
+      operationalState: "ACTIVE", latencyMs: Date.now() - started,
+      categoryCount: categories.length, pageCount: page.pageCount,
+      total: page.total, sampleCount: page.items.length
     };
   } catch (error) {
-    const provider = PROVIDERS.find(item => item.id === providerId);
-    return { id: providerId, name: provider?.name || providerId, status: error?.status === 503 ? "not-configured" : "offline", latencyMs: Date.now() - started };
+    const status = error?.status;
+    const pendingRights = status === 403;
+    const notConfigured = status === 503;
+    return {
+      id: providerId,
+      name: PROVIDERS.find(item => item.id === providerId)?.name || providerId,
+      status: pendingRights ? "pending-rights" : notConfigured ? "not-configured" : "offline",
+      rightsStatus: pendingRights ? "PENDING_RIGHTS" : "UNKNOWN",
+      operationalState: pendingRights || notConfigured ? "NOT_CHECKED" : "ERROR",
+      latencyMs: Date.now() - started
+    };
   }
 }
 export async function checkAllProviderHealth(env) {
