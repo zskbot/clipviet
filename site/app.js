@@ -99,9 +99,18 @@ let catalogLoadedPages = new Set();
 let loadMoreButton = null;
 let loadMoreSentinel = null;
 let loadMoreObserver = null;
+let retryCatalogRequest = false;
+let retryCatalogAppend = false;
 
 function loadNextCatalogPage() {
-  if (catalogLoading || currentPage >= totalPages) return;
+  if (catalogLoading) return;
+  if (retryCatalogRequest) {
+    retryCatalogRequest = false;
+    delete loadMoreButton.dataset.retry;
+    render({ append: retryCatalogAppend });
+    return;
+  }
+  if (currentPage >= totalPages) return;
   currentPage += 1;
   render({ append: true });
 }
@@ -126,7 +135,7 @@ function ensureLoadMoreButton() {
 
   if ("IntersectionObserver" in window) {
     loadMoreObserver = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting) && !loadMoreButton.hidden && !loadMoreButton.disabled) {
+      if (entries.some((entry) => entry.isIntersecting) && !loadMoreButton.hidden && !loadMoreButton.disabled && loadMoreButton.dataset.retry !== "true") {
         loadNextCatalogPage();
       }
     }, { root: null, rootMargin: "900px 0px", threshold: 0 });
@@ -157,6 +166,8 @@ function render(options = {}) {
     })
     .then((payload) => {
       if (sequence !== requestSequence) return;
+      retryCatalogRequest = false;
+      delete more.dataset.retry;
       const rows = Array.isArray(payload.items) ? payload.items : [];
       totalResults = Math.max(0, Number(payload.total) || 0);
       pageSize = Math.max(1, Number(payload.limit) || 30);
@@ -216,6 +227,9 @@ function render(options = {}) {
     .catch((error) => {
       if (sequence !== requestSequence) return;
       if (!append) renderSampleVideo("Catalog API tạm thời không khả dụng: " + error.message);
+      retryCatalogRequest = true;
+      retryCatalogAppend = append;
+      more.dataset.retry = "true";
       more.disabled = false;
       more.textContent = "THỬ TẢI LẠI";
     })
