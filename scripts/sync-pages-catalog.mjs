@@ -54,6 +54,11 @@ if (!/id="play-now"[^>]*hidden/.test(playerPage)) {
   throw new Error("Refusing Pages build: the direct-play overlay must stay hidden until the API confirms a licensed stream.");
 }
 const playerSource = await readFile("site/watch/source-player.js", "utf8");
+const playerPage = await readFile("site/watch/source.html", "utf8");
+if (!playerPage.includes('id="diagnostics"') || !playerSource.includes('"/diagnostics"')) {
+  throw new Error("Refusing Pages build: watch page is missing its rights-gated HLS/MP4 diagnostics control.");
+}
+
 if (!playerSource.includes(PLAYBACK_API_BASE) || !playerSource.includes("/api/playback/providers/")) {
   throw new Error("Refusing Pages build: source player is not connected to the dedicated rights-gated Playback Worker API.");
 }
