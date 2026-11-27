@@ -13,9 +13,11 @@ const expected = [
   "LucasLeandro1204/pornsearch"
 ];
 
-test("integration registry includes all six reviewed repositories", () => {
-  assert.equal(providers.length, expected.length);
-  assert.deepEqual(providers.map((item) => item.name), expected);
+test("integration registry includes six reviewed GitHub repositories and one pending external provider", () => {
+  assert.equal(providers.length, expected.length + 1);
+  assert.deepEqual(providers.slice(0, expected.length).map((item) => item.name), expected);
+  assert.equal(providers.at(-1).name, "AdultEmbed");
+  assert.equal(providers.at(-1).status, "PENDING");
 });
 
 test("registry entries have unique IDs and safe GitHub links", () => {
@@ -25,7 +27,12 @@ test("registry entries have unique IDs and safe GitHub links", () => {
     assert.ok(item.id && item.name && item.kind && item.status && item.role && item.readiness);
     const url = new URL(item.url);
     assert.equal(url.protocol, "https:");
-    assert.equal(url.hostname, "github.com");
+    if (item.id === "adultembed") {
+      assert.equal(url.hostname, "adultembed.com");
+      assert.equal(item.publicPlaybackEnabled, false);
+    } else {
+      assert.equal(url.hostname, "github.com");
+    }
   }
 });
 
