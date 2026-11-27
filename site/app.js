@@ -302,6 +302,8 @@ function renderFeatured() {
     image.alt = "Chưa có video nổi bật";
     $("#featured-index").textContent = "—";
     $("#featured-watch").disabled = true;
+    $("#featured-watch").hidden = true;
+    if (playButton) playButton.hidden = true;
     $("#featured-open").disabled = true;
     return;
   }
@@ -312,9 +314,7 @@ function renderFeatured() {
   image.alt = video.title || "Video nổi bật";
   image.onerror = () => { image.src = "./poster-fallback.svg"; };
   $("#featured-title").textContent = video.title || "Video nổi bật";
-  $("#featured-meta").textContent = video.isSample
-    ? "VIDEO MẪU · CC BY 3.0 · BLENDER FOUNDATION"
-    : [video.year, video.duration, video.country, video.category].filter(Boolean).join(" · ");
+  $("#featured-meta").textContent = [video.year, video.duration, video.country, video.category].filter(Boolean).join(" · ");
   $("#featured-description").textContent = video.description || "Khám phá video đang được quan tâm trên ClipViet.";
   $("#featured-index").textContent = String(featuredIndex + 1).padStart(2, "0");
   featuredRoot.querySelector(".eyebrow").textContent = "CLIPVIET / MỚI CẬP NHẬT";
@@ -366,7 +366,7 @@ function openDetail(video) {
   detail.querySelector(".description").textContent = video.description || "";
   detail.querySelector(".meta").textContent = [video.year, video.duration, video.rating, video.country].filter(Boolean).join(" · ");
   detail.querySelector(".detail-source").textContent = video.apiManaged ? "Nguồn: " + (video.sourceName || video.sourceId) : "Nguồn video";
-  if (video.apiManaged && video.sourceId && video.id) {
+  if (video.apiManaged && video.sourceId && video.id && video.playbackEnabled === true && video.playbackRightsApproved === true) {
     const link = detail.querySelector(".watch-link");
     link.hidden = false;
     link.href = "./watch/source.html?sourceId=" + encodeURIComponent(video.sourceId) + "&vodId=" + encodeURIComponent(video.id);
