@@ -206,7 +206,8 @@ async function handle(request, env) {
     const status = lastError?.status || 502;
     return json({ success: false, error: status === 403 ? "No provider is approved for metadata access" : "AppleCMS providers are unavailable", code: lastError?.code || "PROVIDER_UNAVAILABLE", providers: PROVIDERS.map(provider => providerStatus(provider, env)), items: [], total: 0, page: 1, pageCount: 0, playbackEnabled: false }, status, cors);
   }
-  const playbackMatch = path.match(/^\/api\/providers\/([a-z0-9-]+)\/videos\/([0-9]+)\/playback$/);
+  const playbackParts = path.split("/");
+  const playbackMatch = playbackParts.length === 7 && playbackParts[1] === "api" && playbackParts[2] === "providers" && playbackParts[4] === "videos" && playbackParts[6] === "playback" ? [null, playbackParts[3], playbackParts[5]] : null;
   if (playbackMatch) {
     const [, id, videoId] = playbackMatch;
     const p = getProvider(id, env);
