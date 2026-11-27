@@ -36,9 +36,17 @@
 <div class="endpoint"><span class="method">GET</span><code>/api/catalog/videos?page=1&amp;sourceId=souavzy</code><p>Danh sách video phân trang. Hỗ trợ <code>keyword</code>, <code>categoryId</code>, <code>sourceId</code>. Nếu bỏ source, Worker thử nguồn chính trước rồi mới failover.</p><pre>{ "provider": { "id": "souavzy", "name": "Souavzy · Main" }, "items": [{ "id": "62843", "sourceId": "souavzy", "title": "..." }], "page": 1, "pageCount": 6537, "total": 130740, "limit": 20 }</pre></div>
 <div class="endpoint"><span class="method">GET</span><code>/api/providers/{sourceId}/categories</code><p>Danh mục của một provider cụ thể.</p></div>
 <div class="endpoint"><span class="method">GET</span><code>/api/providers/{sourceId}/videos?page=1</code><p>Video list của provider cụ thể, hỗ trợ lọc danh mục và từ khóa.</p></div>
-<div class="endpoint"><span class="method">GET</span><code>/api/providers/{sourceId}/videos/{videoId}</code><p>Chi tiết video, bao gồm danh sách đường phát HTTPS nếu provider trả về.</p></div>
+<div class="endpoint"><span class="method">GET</span><code>/api/providers/{sourceId}/videos/{videoId}</code><p>Chi tiết metadata; không trả URL stream hoặc embed. Dùng endpoint playback riêng sau khi có rights approval.</p></div>
 <h2>Provider IDs</h2>
 <div class="grid"><div class="endpoint"><code>souavzy</code><p>Souavzy · Main</p></div><div class="endpoint"><code>apiyutu</code><p>ApiYutu · Backup 1</p></div><div class="endpoint"><code>lbapi9</code><p>LBApi9 · Backup 2</p></div><div class="endpoint"><code>slapibf</code><p>Slapibf · Backup 3</p></div><div class="endpoint"><code>jipinvip1</code><p>JipinVIP1 · Backup 4</p></div></div>
+<h2>AppleCMS Provider API v1 · normalized</h2>
+<p>Hợp đồng đầy đủ: <a href="../../docs/API-PROVIDERS-V1.md">docs/API-PROVIDERS-V1.md</a>. Mọi provider phải qua quyền cấp provider và quyền từng video; trạng thái kỹ thuật không thay thế phê duyệt pháp lý.</p>
+<div class="endpoint"><span class="method">GET</span><code>/api/providers/applecms/status</code><p>Trạng thái từng nguồn: NOT_CONFIGURED, PENDING_RIGHTS, METADATA_ONLY, PLAYBACK_APPROVED. operationalState là NOT_CHECKED cho đến khi có request thật.</p></div>
+<div class="endpoint"><span class="method">GET</span><code>/api/providers/applecms/categories?sourceId=souavzy</code><p>Danh mục AppleCMS, chỉ hiển thị danh mục lá.</p></div>
+<div class="endpoint"><span class="method">GET</span><code>/api/providers/applecms/videos?sourceId=souavzy&amp;page=1&amp;limit=30</code><p>Danh sách video metadata đã qua duyệt quyền từng video. Có thể lọc bằng categoryId và keyword.</p></div>
+<div class="endpoint"><span class="method">GET</span><code>/api/providers/applecms/videos/{videoId}?sourceId=souavzy</code><p>Chi tiết metadata, tuyệt đối không trả vod_play_url, HLS, MP4 hay embed URL.</p></div>
+<div class="endpoint"><span class="method">GET</span><code>/api/providers/applecms/videos/{videoId}/playback?sourceId=souavzy</code><p>Endpoint phát riêng. Chỉ trả official embed hoặc URL owner-hosted khi provider và video đều được duyệt, host khớp allowlist.</p></div>
+<div class="note">Năm nguồn Souavzy, ApiYutu, LBApi9, Slapibf và JipinVIP1 hiện là ứng viên PENDING cho đến khi hồ sơ quyền được ghi nhận. Không tự bật playback.</div>
 <h2>CORS & playback</h2>
 <ul>
 <li>CORS chỉ cho phép các hostname Cloudflare Pages Preview được khai báo trong Worker.</li>
