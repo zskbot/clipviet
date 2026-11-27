@@ -4,6 +4,7 @@ const $ = (id) => document.getElementById(id);
 const results = $("results");
 const summary = $("summary");
 const run = $("run");
+const video = $("test-video");
 const checks = [];
 
 $("age-confirm").addEventListener("change", updateGate);
@@ -88,11 +89,143 @@ async function checkAdminApi() {
   }
 }
 
+async function rangeProbe(url) {
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { Range: "bytes=0-0", Accept: "*/*" },
+    mode: "cors", credentials: "omit", redirect: "error", cache: "no-store"
+  });
+  const type = (response.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+  const contentRange = response.headers.get("content-range") || "";
+  const contentLength = response.headers.get("content-length") || "";
+  const validRange = /^bytes\s+0-0\/(?:[1-9]\d*|\*)$/i.test(contentRange);
+  if (response.body) await response.body.cancel().catch(() => {});
+  return {
+    status: response.status,
+    type,
+    cors: corsState(response),
+    contentRange,
+    contentLength,
+    pass: response.status === 206 && corsState(response) && validRange && (!contentLength || contentLength === "1")
+  };
+}
+
+async function fetchHlsSegment(manifestUrl) {
+  let url = manifestUrl;
+  for (let depth = 0; depth < 3; depth++) {
+    const response = await fetch(url, {
+      headers: { Accept: "application/vnd.apple.mpegurl,application/x-mpegURL,*/*" },
+      mode: "cors", credentials: "omit", redirect: "error", cache: "no-store"
+    });
+    if (!response.ok) throw new Error("HLS manifest HTTP " + response.status);
+    const type = (response.headers.get("content-type") || "").toLowerCase();
+    if (!corsState(response)) throw new Error("HLS manifest CORS blocked");
+    if (!type.includes("mpegurl") && !type.includes("vnd.apple")) throw new Error("HLS manifest MIME " + (type || "missing"));
+    const body = await response.text();
+    if (body.length > 512000) throw new Error("HLS manifest exceeds 512 KB");
+    const uri = body.split(/\r?\n/).map(x => x.trim()).find(x => x && !x.startsWith("#"));
+    if (!uri) throw new Error("HLS playlist has no media URI");
+    url = new URL(uri, url).href;
+    if (/\.m3u8(?:$|[?#])/i.test(url)) continue;
+    const segment = await fetch(url, {
+      headers: { Range: "bytes=0-0", Accept: "*/*" },
+      mode: "cors", credentials: "omit", redirect: "error", cache: "no-store"
+    });
+    const segmentType = (segment.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    const range = segment.headers.get("content-range") || "";
+    const ok = (segment.status === 206 || segment.status === 200) && corsState(segment);
+    if (segment.body) await segment.body.cancel().catch(() => {});
+    return { manifestType: type, segmentType, segmentStatus: segment.status, segmentRange: range, pass: ok };
+  }
+  throw new Error("HLS master playlist did not resolve to a media segment");
+}
+
+async function testPlayer(url, isHls, label) {
+  video.hidden = false;
+  video.crossOrigin = "anonymous";
+  video.preload = "metadata";
+  video.src = url;
+  video.load();
+  if (isHls) {
+    const support = video.canPlayType("application/vnd.apple.mpegurl");
+    add(label + " native HLS", support ? "pass" : "warn", support || "Safari did not report native HLS support");
+  }
+  await new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      video.removeEventListener("loadedmetadata", loaded);
+      video.removeEventListener("error", failed);
+      fn(value);
+    };
+    const loaded = () => finish(resolve, true);
+    const failed = () => finish(reject, new Error("HTMLVideoElement media error " + (video.error?.code || "unknown")));
+    const timer = setTimeout(() => finish(reject, new Error("No loadedmetadata event within 20 seconds")), 20000);
+    video.addEventListener("loadedmetadata", loaded, { once: true });
+    video.addEventListener("error", failed, { once: true });
+    if (video.readyState >= 1) finish(resolve, true);
+  });
+  add(label + " player metadata", "pass",
+    "readyState=" + video.readyState + " · " + video.videoWidth + "×" + video.videoHeight + " · nhấn Play để xác nhận hình/tiếng");
+  video.addEventListener("loadeddata", () => {
+    add(label + " first frame", video.videoWidth > 0 ? "pass" : "warn",
+      video.videoWidth + "×" + video.videoHeight + " · readyState=" + video.readyState);
+  }, { once: true });
+}
+
+async function inspectApprovedVideo(providerId, videoId) {
+  const response = await fetch(
+    PLAYBACK_API + "/api/playback/providers/" + encodeURIComponent(providerId) + "/videos/" + encodeURIComponent(videoId),
+    { headers: { Accept: "application/json" }, cache: "no-store", credentials: "omit", mode: "cors", redirect: "error" }
+  );
+  const body = await response.json().catch(() => ({}));
+  if (response.status !== 200 || body.data?.playbackEnabled !== true || body.data?.playbackRightsApproved !== true) {
+    const reason = body.code || body.error || "playback_not_approved";
+    add("Video rights gate", response.status === 403 ? "warn" : "fail",
+      "HTTP " + response.status + " · " + reason + " · không gửi request tới URL media");
+    return false;
+  }
+
+  const episodes = (body.data.lines || []).flatMap(line => line.episodes || []);
+  if (!episodes.length) {
+    add("Video rights gate", "warn", "Rights đã qua nhưng provider không trả episode URL hợp lệ");
+    return false;
+  }
+  const media = episodes.find(item => item.type === "hls" || /\.m3u8(?:$|[?#])/i.test(item.url || "")) ||
+    episodes.find(item => item.type === "mp4" || /\.mp4(?:$|[?#])/i.test(item.url || "")) ||
+    episodes[0];
+  add("Video rights gate", "pass", providerId + ":" + videoId + " · " + episodes.length + " episode URL(s) đã được lọc theo allowlist");
+
+  if (/\.m3u8(?:$|[?#])/i.test(media.url || "") || media.type === "hls") {
+    const probe = await fetchHlsSegment(media.url);
+    const mimeOk = ["video/mp2t", "video/mp4", "application/mp4", "application/octet-stream"].includes(probe.segmentType);
+    add("HLS manifest", "pass", probe.manifestType);
+    add("HLS segment MIME", mimeOk ? "pass" : "warn", probe.segmentType || "missing");
+    add("HLS segment HTTP/CORS", probe.pass ? "pass" : "fail",
+      "HTTP " + probe.segmentStatus + " · CORS " + (probe.pass ? "OK" : "FAIL") + " · " + (probe.segmentRange || "range not exposed"));
+    await testPlayer(media.url, true, "HLS");
+  } else {
+    const probe = await rangeProbe(media.url);
+    const mimeOk = probe.type === "video/mp4" || probe.type === "application/mp4";
+    add("MP4 MIME", mimeOk ? "pass" : "fail", probe.type || "missing");
+    add("MP4 byte-range + CORS", probe.pass ? "pass" : "fail",
+      "HTTP " + probe.status + " · CORS " + (probe.cors ? "OK" : "FAIL") +
+      " · Content-Range " + (probe.contentRange || "missing") + " · Content-Length " + (probe.contentLength || "not exposed"));
+    await testPlayer(media.url, false, "MP4");
+  }
+  return true;
+}
+
 async function runChecks() {
   run.disabled = true;
   run.textContent = "ĐANG KIỂM TRA…";
   results.replaceChildren();
   checks.length = 0;
+  video.hidden = true;
+  video.removeAttribute("src");
+  video.load();
 
   await checkAdminAccess();
   await checkAdminApi();
@@ -124,27 +257,26 @@ async function runChecks() {
       const count = Number.isFinite(Number(item.catalogCount)) ? Number(item.catalogCount) + " items" : "catalog n/a";
       add(name + " API health", technicalState,
         http + " · " + latency + " · " + count + " · " + (item.reason || item.operationalState || "unknown"));
-
-      const rightsApproved = item.rightsApproved === true;
-      add(name + " playback rights", rightsApproved ? "pass" : "warn",
+      add(name + " playback rights", item.rightsApproved === true ? "pass" : "warn",
         (item.status || "UNKNOWN") + " · mode " + (item.playbackMode || "none") +
         " · playback " + (item.playbackEnabled === true ? "enabled" : "locked"));
     }
 
-    const approved = rows.filter(item =>
-      item.rightsApproved === true && item.status === "PLAYBACK_APPROVED" && item.playbackEnabled === true
-    );
-    if (!approved.length) {
-      add("HLS / MP4 / MIME / CORS / Range", "pending",
-        "Bỏ qua kiểm tra media: chưa có provider và video được duyệt quyền phát. Không dùng URL mẫu hoặc vượt rights gate.");
+    const providerId = $("source-id").value;
+    const videoId = $("vod-id").value.trim();
+    if (videoId) {
+      if (!/^[0-9]{1,20}$/.test(videoId)) {
+        add("Video ID", "fail", "VOD ID phải là chuỗi số từ 1–20 ký tự");
+      } else {
+        await inspectApprovedVideo(providerId, videoId);
+      }
     } else {
-      add("Media acceptance", "pending",
-        "Có provider được duyệt (" + approved.map(item => item.name || item.id).join(", ") +
-        "), nhưng cần ID video và URL media thuộc hồ sơ quyền đã duyệt trước khi probe HLS/MP4.");
+      add("HLS / MP4 / MIME / CORS / Range", "pending",
+        "Chưa nhập VOD ID. Không có media request nào được gửi; không dùng URL demo.");
     }
 
-    summary.textContent = "Hoàn tất kiểm tra trên " + navigator.userAgent + " · Origin " + location.origin +
-      ". Kết quả API không thay thế thử phát video thật trên Safari.";
+    summary.textContent = "Hoàn tất trên " + navigator.userAgent + " · Origin " + location.origin +
+      ". Nếu player đã sẵn sàng, nhấn Play để xác nhận phát thật trên Safari.";
   } catch (error) {
     add("Playback diagnostics", "fail", error.message || String(error));
     summary.textContent = "Có bước diagnostics chưa đạt. Gửi kết quả trên trang này để tiếp tục xử lý.";
