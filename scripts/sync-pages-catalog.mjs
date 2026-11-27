@@ -1,21 +1,29 @@
 import { access, readFile } from "node:fs/promises";
 
-const API_BASE = "https://clipviet-catalog-metadata-preview.huynhthuongg2505-f9b.workers.dev";
-const REQUIRED_FILES = [
+const CATALOG_API_BASE = "https://clipviet-catalog-metadata-preview.huynhthuongg2505-f9b.workers.dev";
+const PLAYBACK_API_BASE = "https://clipviet-playback-api-preview.huynhthuongg2505-f9b.workers.dev";
+const REQUIRED_CATALOG_FILES = [
   "site/app.js",
-  "site/browse/browse.js",
-  "site/watch/source-player.js"
+  "site/browse/browse.js"
 ];
 const REQUIRED_PROVIDER_IDS = ["souavzy", "apiyutu", "lbapi9", "slapibf", "jipinvip1"];
 
-for (const path of REQUIRED_FILES) {
+for (const path of REQUIRED_CATALOG_FILES) {
   const source = await readFile(path, "utf8");
-  if (!source.includes(API_BASE)) {
-    throw new Error("Refusing Pages build: " + path + " is not connected to the AppleCMS Worker API.");
+  if (!source.includes(CATALOG_API_BASE)) {
+    throw new Error("Refusing Pages build: " + path + " is not connected to the AppleCMS metadata Worker API.");
   }
-  if ((path.includes("browse/") || path.includes("source-player")) && source.includes("../data/catalog.json")) {
+  if (source.includes("../data/catalog.json")) {
     throw new Error("Refusing Pages build: " + path + " still depends on the retired static catalog.");
   }
+}
+
+const playerSource = await readFile("site/watch/source-player.js", "utf8");
+if (!playerSource.includes(PLAYBACK_API_BASE) || !playerSource.includes("/api/playback/providers/")) {
+  throw new Error("Refusing Pages build: source player is not connected to the dedicated rights-gated Playback Worker API.");
+}
+if (playerSource.includes(CATALOG_API_BASE)) {
+  throw new Error("Refusing Pages build: source player must not resolve media details from the metadata-only catalog Worker.");
 }
 
 for (const providerId of REQUIRED_PROVIDER_IDS) {
@@ -32,11 +40,13 @@ try {
 }
 
 console.log(JSON.stringify({
-  mode: "runtime-worker-catalog",
-  apiBase: API_BASE,
+  mode: "separate-metadata-and-rights-gated-playback-workers",
+  catalogApiBase: CATALOG_API_BASE,
+  playbackApiBase: PLAYBACK_API_BASE,
   expectedProviders: REQUIRED_PROVIDER_IDS,
-  frontendFilesVerified: REQUIRED_FILES,
+  catalogFilesVerified: REQUIRED_CATALOG_FILES,
+  playbackFileVerified: "site/watch/source-player.js",
   staticCatalogArtifact: "absent",
   result: "PASS"
 }, null, 2));
-console.log("Build does not sync or publish a static catalog. Browser pages load live data from the read-only Worker API and display explicit errors if that API is unavailable.");
+console.log("Build verifies metadata and playback API separation. The browser receives media URLs only from the dedicated rights-gated Playback Worker.");
