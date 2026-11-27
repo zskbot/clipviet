@@ -188,6 +188,41 @@ async function handle(request, env) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (!["GET", "HEAD"].includes(request.method)) return json({ error: "Method not allowed" }, 405, { allow: "GET, HEAD, OPTIONS", ...cors });
   const states = PROVIDERS.map(provider => providerStatus(provider, env));
+  const apiParts = path.split("/");
+  if (apiParts[1] === "api" && apiParts[2] === "providers" && apiParts[3] === "applecms") {
+    const sourceId = url.searchParams.get("sourceId") || url.searchParams.get("provider") || "";
+    if (apiParts.length === 5 && apiParts[4] === "status") {
+      return json({ success: true, providers: states, rightsGate: { policy: "deny-by-default", providerAndVideoApprovalRequired: true } }, 200, cors);
+    }
+    if (apiParts.length === 5 && apiParts[4] === "categories") {
+      if (!sourceId) return json({ success: false, error: "sourceId is required", code: "SOURCE_ID_REQUIRED" }, 400, cors);
+      const data = await categories(sourceId, env);
+      return json({ success: true, provider: providerStatus(PROVIDERS.find(item => item.id === sourceId) || { id: sourceId, name: sourceId, role: "unknown", envKey: "" }, env), categories: data }, 200, cors);
+    }
+    if (apiParts.length === 5 && apiParts[4] === "videos") {
+      if (!sourceId) return json({ success: false, error: "sourceId is required", code: "SOURCE_ID_REQUIRED" }, 400, cors);
+      return json({ success: true, ...(await videos(sourceId, url, env)) }, 200, cors);
+    }
+    if (apiParts.length === 6 && apiParts[4] === "videos" && /^[0-9]+$/.test(apiParts[5])) {
+      if (!sourceId) return json({ success: false, error: "sourceId is required", code: "SOURCE_ID_REQUIRED" }, 400, cors);
+      const id = apiParts[5], provider = getProvider(sourceId, env);
+      const payload = await fetchAppleCms(provider, { ac: "detail", ids: id });
+      const row = (payload.list || []).find(item => String(item.vod_id) === id);
+      const record = parseRegistry(env.VIDEO_VIDEO_RIGHTS_JSON);
+      const data = row ? mapMetadata(provider, row, record) : null;
+      return data ? json({ success: true, provider: { id: sourceId, name: provider.name, status: "ACTIVE", operationalState: "ACTIVE" }, data, playback: { enabled: false, endpoint: data.playbackEndpoint } }, 200, cors)
+        : json({ success: false, error: "Video is not approved for metadata or was not found", code: "VIDEO_RIGHTS_PENDING" }, 403, cors);
+    }
+    if (apiParts.length === 7 && apiParts[4] === "videos" && /^[0-9]+$/.test(apiParts[5]) && apiParts[6] === "playback") {
+      if (!sourceId) return json({ success: false, error: "sourceId is required", code: "SOURCE_ID_REQUIRED" }, 400, cors);
+      const id = apiParts[5], provider = getProvider(sourceId, env);
+      const payload = await fetchAppleCms(provider, { ac: "detail", ids: id });
+      const row = (payload.list || []).find(item => String(item.vod_id) === id);
+      const record = parseRegistry(env.VIDEO_VIDEO_RIGHTS_JSON);
+      if (!row || !mapMetadata(provider, row, record)) return json({ success: false, error: "Video is not approved for metadata", code: "VIDEO_RIGHTS_PENDING" }, 403, cors);
+      return json({ success: true, provider: { id: sourceId, name: provider.name, status: "ACTIVE", operationalState: "ACTIVE" }, data: parseAuthorizedPlayback(row, provider, id, env), rightsGate: { policy: "deny-by-default", providerApproved: true, perVideoApproved: true } }, 200, cors);
+    }
+  }
   if (path === "/health") return json({ ok: true, service: "clipviet-catalog-metadata-preview", mode: "rights-gated-preview", providerCount: PROVIDERS.length, configuredProviderCount: states.filter(item => item.configured).length, playbackEnabled: false, providers: states }, 200, cors);
   if (path === "/api/providers") return json({ data: states, count: PROVIDERS.length, playbackEnabled: false, rightsGate: { policy: "deny-by-default" } }, 200, cors);
   if (path === "/api/catalog/categories") {
