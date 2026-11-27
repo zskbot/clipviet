@@ -195,7 +195,6 @@ function play() {
     hls.on(Hls.Events.ERROR, (_event, detail) => {
       if (!detail.fatal) return;
       if (detail.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
-      else if (detail.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
       else if (detail.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
       else failed("HLS lỗi: " + detail.details + ".");
     });
