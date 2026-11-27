@@ -45,6 +45,14 @@ function videoRecord(env, providerId, videoId) {
   const registry = parseRegistry(env.VIDEO_VIDEO_RIGHTS_JSON);
   return registry[providerId + ":" + videoId] || registry[videoId] || null;
 }
+function activeProviderStatus(provider) {
+  return {
+    id: provider.id, name: provider.name, role: provider.role,
+    configured: true, rightsApproved: true, playbackMode: provider.rights.playbackMode,
+    status: provider.rights.playbackMode === "metadata_only" ? "METADATA_ONLY" : "PLAYBACK_APPROVED",
+    operationalState: "ACTIVE"
+  };
+}
 function providerStatus(provider, env) {
   const configured = Boolean(env[provider.envKey]);
   const rights = parseRegistry(env.VIDEO_PROVIDER_RIGHTS_JSON)[provider.id];
@@ -143,7 +151,7 @@ async function videos(id, url, env) {
   const payload = await fetchAppleCms(p, params);
   const rightsRegistry = parseRegistry(env.VIDEO_VIDEO_RIGHTS_JSON);
   const items = (payload.list || []).map(row => mapMetadata(p, row, rightsRegistry)).filter(Boolean);
-  return { provider: { id: p.id, name: p.name, status: "ACTIVE" }, items, page: Number(payload.page) || page, pageCount: Number(payload.pagecount) || 0, total: Number(payload.total) || 0, limit: Number(payload.limit) || PAGE_SIZE, playbackEnabled: false, catalogMode: p.rights.playbackMode === "metadata_only" ? "metadata-only" : "rights-scoped" };
+  return { provider: activeProviderStatus(p), items, page: Number(payload.page) || page, pageCount: Number(payload.pagecount) || 0, total: Number(payload.total) || 0, limit: Number(payload.limit) || PAGE_SIZE, playbackEnabled: false, catalogMode: p.rights.playbackMode === "metadata_only" ? "metadata-only" : "rights-scoped" };
 }
 function parseAuthorizedPlayback(row, provider, videoId, env) {
   const approval = videoRecord(env, provider.id, videoId);
@@ -197,7 +205,7 @@ async function handle(request, env) {
     if (apiParts.length === 5 && apiParts[4] === "categories") {
       if (!sourceId) return json({ success: false, error: "sourceId is required", code: "SOURCE_ID_REQUIRED" }, 400, cors);
       const data = await categories(sourceId, env);
-      return json({ success: true, provider: providerStatus(PROVIDERS.find(item => item.id === sourceId) || { id: sourceId, name: sourceId, role: "unknown", envKey: "" }, env), categories: data }, 200, cors);
+      return json({ success: true, provider: activeProviderStatus(getProvider(sourceId, env)), categories: data }, 200, cors);
     }
     if (apiParts.length === 5 && apiParts[4] === "videos") {
       if (!sourceId) return json({ success: false, error: "sourceId is required", code: "SOURCE_ID_REQUIRED" }, 400, cors);
@@ -210,7 +218,7 @@ async function handle(request, env) {
       const row = (payload.list || []).find(item => String(item.vod_id) === id);
       const record = parseRegistry(env.VIDEO_VIDEO_RIGHTS_JSON);
       const data = row ? mapMetadata(provider, row, record) : null;
-      return data ? json({ success: true, provider: { id: sourceId, name: provider.name, status: "ACTIVE", operationalState: "ACTIVE" }, data, playback: { enabled: false, endpoint: data.playbackEndpoint } }, 200, cors)
+      return data ? json({ success: true, provider: activeProviderStatus(provider), data, playback: { enabled: false, endpoint: data.playbackEndpoint } }, 200, cors)
         : json({ success: false, error: "Video is not approved for metadata or was not found", code: "VIDEO_RIGHTS_PENDING" }, 403, cors);
     }
     if (apiParts.length === 7 && apiParts[4] === "videos" && /^[0-9]+$/.test(apiParts[5]) && apiParts[6] === "playback") {
