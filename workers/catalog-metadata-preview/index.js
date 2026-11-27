@@ -5,7 +5,7 @@ const PROVIDERS = [
   { id: "slapibf", name: "Slapibf · Backup 3", role: "backup", envKey: "APPLECMS_SLAPIBF_URL", host: "slapibf.com" },
   { id: "jipinvip1", name: "JipinVIP1 · Backup 4", role: "backup", envKey: "APPLECMS_JIPINVIP1_URL", host: "jipinvip1.com" }
 ];
-const EXCLUDED_AGE_LABEL = /(?:học[\\s_-]*sinh|nữ[\\s_-]*sinh|nam[\\s_-]*sinh|thiếu[\\s_-]*niên|vị[\\s_-]*thành[\\s_-]*niên|under[\\s_-]*age|minor|loli|shota|school[\\s_-]*(?:girl|boy|student)|teen[\\s_-]*(?:girl|boy))/i;
+const EXCLUDED_AGE_LABEL = /(?:học[\s_-]*sinh|nữ[\s_-]*sinh|nam[\s_-]*sinh|thiếu[\s_-]*niên|vị[\s_-]*thành[\s_-]*niên|under[\s_-]*age|minor|loli|shota|school[\s_-]*(?:girl|boy|student)|teen[\s_-]*(?:girl|boy))/i;
 const HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=30", "x-content-type-options": "nosniff" };
 const PAGE_SIZE = 30;
 function json(data, status = 200, headers = {}) { return new Response(JSON.stringify(data), { status, headers: { ...HEADERS, ...headers } }); }
@@ -79,18 +79,18 @@ async function categories(id, env) {
 async function videos(id, url, env) {
   const p = getProvider(id, env);
   const page = Math.max(1, Math.min(1000000, Number.parseInt(url.searchParams.get("page") || "1", 10) || 1));
-  const limit = PAGE_SIZE;
-  const params = { ac: "detail", pg: page, limit };
+  const params = { ac: "detail", pg: page, limit: PAGE_SIZE };
   const categoryId = url.searchParams.get("categoryId");
   const keyword = url.searchParams.get("keyword") || url.searchParams.get("wd");
   if (categoryId) params.t = String(categoryId).slice(0, 20);
   if (keyword) params.wd = String(keyword).trim().slice(0, 100);
   const payload = await fetchAppleCms(p, params);
   const items = (payload.list || []).map(row => mapMetadata(p, row)).filter(Boolean);
-  return { provider: { id: p.id, name: p.name }, items, page: Number(payload.page) || page, pageCount: Number(payload.pagecount) || 0, total: Number(payload.total) || 0, limit: Number(payload.limit) || limit, playbackEnabled: false, catalogMode: "metadata-only" };
+  return { provider: { id: p.id, name: p.name }, items, page: Number(payload.page) || page, pageCount: Number(payload.pagecount) || 0, total: Number(payload.total) || 0, limit: Number(payload.limit) || PAGE_SIZE, playbackEnabled: false, catalogMode: "metadata-only" };
 }
 async function handle(request, env) {
-  const url = new URL(request.url), path = url.pathname.replace(/\\/$/, "") || "/";
+  const url = new URL(request.url);
+  const path = url.pathname.endsWith("/") ? url.pathname.slice(0, -1) || "/" : url.pathname;
   const origin = corsOrigin(request);
   if (origin === null) return json({ error: "Preview origin not allowed" }, 403);
   const cors = corsHeaders(origin);
@@ -113,7 +113,7 @@ async function handle(request, env) {
     }
     return json({ error: "All AppleCMS providers are currently unavailable", detail: String(lastError?.message || "unknown"), items: [], total: 0, page: 1, pageCount: 0, playbackEnabled: false }, 502, cors);
   }
-  const match = path.match(/^\\/api\\/providers\\/([a-z0-9-]+)\\/(categories|videos)(?:\\/([0-9]+))?$/);
+  const match = path.match(/^\/api\/providers\/([a-z0-9-]+)\/(categories|videos)(?:\/([0-9]+))?$/);
   if (match) {
     const [, id, kind, vodId] = match;
     if (kind === "categories") {
