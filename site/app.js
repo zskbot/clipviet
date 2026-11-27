@@ -203,7 +203,7 @@ function render(options = {}) {
         img.addEventListener("error", () => { img.src = "./poster-fallback.svg"; }, { once: true });
         card.querySelector(".poster-label").textContent = "18+";
         card.querySelector("h3").textContent = video.title || "Video";
-        card.querySelector(".card-info p").textContent = [video.year, video.area, video.categoryName].filter(Boolean).join(" · ");
+        card.querySelector(".card-info p").textContent = [video.year, video.duration, video.area, video.categoryName, video.sourceName].filter(Boolean).join(" · ");
         card.addEventListener("click", () => openDetail(video));
         grid.append(card);
       }
