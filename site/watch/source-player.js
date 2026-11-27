@@ -232,6 +232,10 @@ setImageFilter();
 
 const playNowButton = $("play-now");
 playNowButton?.addEventListener("click", async () => {
+  if (!video.currentSrc && !video.src) {
+    say("Chưa có luồng video hợp lệ để phát.");
+    return;
+  }
   try {
     await video.play();
     say("Đang phát video.");
