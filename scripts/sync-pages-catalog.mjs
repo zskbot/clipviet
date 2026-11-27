@@ -1,4 +1,5 @@
 import { access, readFile } from "node:fs/promises";
+import { Script } from "node:vm";
 
 const CATALOG_API_BASE = "https://clipviet-catalog-metadata-preview.huynhthuongg2505-f9b.workers.dev";
 const PLAYBACK_API_BASE = "https://clipviet-playback-api-preview.huynhthuongg2505-f9b.workers.dev";
@@ -20,6 +21,7 @@ for (const path of REQUIRED_CATALOG_FILES) {
 
 const diagnosticsSource = await readFile("site/diagnostics/diagnostics.js", "utf8");
 const diagnosticsHtml = await readFile("site/diagnostics/index.html", "utf8");
+new Script(diagnosticsSource, { filename: "site/diagnostics/diagnostics.js" });
 if (!diagnosticsSource.includes(PLAYBACK_API_BASE) ||
     !diagnosticsSource.includes("/api/providers/diagnostics") ||
     !diagnosticsSource.includes("/api/playback/providers/")) {
