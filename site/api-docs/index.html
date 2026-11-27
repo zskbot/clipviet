@@ -40,7 +40,7 @@
 <h2>Provider IDs</h2>
 <div class="grid"><div class="endpoint"><code>souavzy</code><p>Souavzy · Main</p></div><div class="endpoint"><code>apiyutu</code><p>ApiYutu · Backup 1</p></div><div class="endpoint"><code>lbapi9</code><p>LBApi9 · Backup 2</p></div><div class="endpoint"><code>slapibf</code><p>Slapibf · Backup 3</p></div><div class="endpoint"><code>jipinvip1</code><p>JipinVIP1 · Backup 4</p></div></div>
 <h2>AppleCMS Provider API v1 · normalized</h2>
-<p>Hợp đồng đầy đủ: <a href="../../docs/API-PROVIDERS-V1.md">docs/API-PROVIDERS-V1.md</a>. Mọi provider phải qua quyền cấp provider và quyền từng video; trạng thái kỹ thuật không thay thế phê duyệt pháp lý.</p>
+<p>Hợp đồng đầy đủ: <a href="https://github.com/zskbot/clipviet/blob/feat/issue-155-provider-api-safari-preview-20261127/docs/API-PROVIDERS-V1.md" target="_blank" rel="noopener noreferrer">docs/API-PROVIDERS-V1.md</a>. Mọi provider phải qua quyền cấp provider và quyền từng video; trạng thái kỹ thuật không thay thế phê duyệt pháp lý.</p>
 <div class="endpoint"><span class="method">GET</span><code>/api/providers/applecms/status</code><p>Trạng thái từng nguồn: NOT_CONFIGURED, PENDING_RIGHTS, METADATA_ONLY, PLAYBACK_APPROVED. operationalState là NOT_CHECKED cho đến khi có request thật.</p></div>
 <div class="endpoint"><span class="method">GET</span><code>/api/providers/applecms/categories?sourceId=souavzy</code><p>Danh mục AppleCMS, chỉ hiển thị danh mục lá.</p></div>
 <div class="endpoint"><span class="method">GET</span><code>/api/providers/applecms/videos?sourceId=souavzy&amp;page=1&amp;limit=30</code><p>Danh sách video metadata đã qua duyệt quyền từng video. Có thể lọc bằng categoryId và keyword.</p></div>
