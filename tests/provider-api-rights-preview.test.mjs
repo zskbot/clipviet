@@ -104,10 +104,11 @@ test("metadata worker playback endpoint returns an owner-hosted URL only when ex
 test("legacy catalog API worker denies providers without rights before upstream access", async () => {
   const h = harness();
   try {
-    const response = await catalogApiWorker.fetch(h.request("/api/catalog/videos?sourceId=souavzy"), { APPLECMS_SOUAVZY_URL: apiUrl });
+    const request = new Request("https://worker.example/api/catalog/videos?sourceId=souavzy", { headers: { Origin: "https://pr-155.clipviet-live-preview.pages.dev" } });
+    const response = await catalogApiWorker.fetch(request, { APPLECMS_SOUAVZY_URL: apiUrl });
     assert.equal(response.status, 403);
     const body = await response.json();
-    assert.equal(body.code, "PLAYBACK_RIGHTS_PENDING");
+    assert.equal(body.code, "PROVIDER_RIGHTS_PENDING");
     assert.equal(h.calls(), 0);
   } finally { h.restore(); }
 });
