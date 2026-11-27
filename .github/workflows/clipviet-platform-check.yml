@@ -3,7 +3,8 @@ name: ClipViet platform checks
 on:
   pull_request:
     paths:
-      - "site/**"\n      - "tests/**"
+      - "site/**"
+      - "tests/**"
       - "worker/telegram-api/**"
       - ".github/workflows/clipviet-platform-check.yml"
   workflow_dispatch:
