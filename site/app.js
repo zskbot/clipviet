@@ -382,7 +382,7 @@ function renderEmptyCatalog(reason) {
   if (note) note.textContent = reason;
 }
 
-const isHttpUrl = (value) => typeof value === "string" && (value.startsWith("https://") || value.startsWith("http://"));
+const isHttpUrl = (value) => typeof value === "string" && /^https:\/\//i.test(value);
 
 function setFeaturedVideos(items) {
   if (!featuredRoot) return;
