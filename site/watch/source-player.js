@@ -18,6 +18,14 @@ const imageDefaults = { brightness: 100, contrast: 100, saturation: 100 };
 const imageSettings = { ...imageDefaults };
 
 function say(message) { status.textContent = message; }
+
+function isPlaybackAuthorized(record) {
+  const expiry = Date.parse(record?.rightsExpiresAt || record?.licenseExpiresAt || "");
+  return record?.rightsVerified === true && record?.rightsStatus === "APPROVED" &&
+    Number.isFinite(expiry) && expiry > Date.now() &&
+    record?.playbackEnabled === true && record?.playbackRightsApproved === true;
+}
+
 function setResolution(width, height) {
   resolutionLabel.textContent = width && height ? "ĐỘ PHÂN GIẢI: " + width + "×" + height : "ĐỘ PHÂN GIẢI: ĐANG NHẬN…";
 }
@@ -105,7 +113,7 @@ function renderEpisodes() {
 function failed(message) {
   say(message + " Hãy thử đổi đường phát hoặc chọn tập khác.");
   const episode = currentEpisode();
-  if (episode?.url) { $("external").hidden = false; $("external").href = episode.url; }
+  if (isPlaybackAuthorized(data) && episode?.url) { $("external").hidden = false; $("external").href = episode.url; }
 }
 function applyQuality() {
   if (!hls) return;
@@ -113,12 +121,14 @@ function applyQuality() {
   else hls.currentLevel = Number(selectedQuality);
 }
 function play() {
+  if (!isPlaybackAuthorized(data)) { failed("Quyền phát chưa được xác minh, đã hết hạn hoặc chưa được cấp phép cho nội dung này."); return; }
+  if (playNowButton) playNowButton.hidden = false;
   const episode = currentEpisode();
   if (!episode || typeof episode.url !== "string") { failed("Không có URL phát hợp lệ."); return; }
   let mediaUrl;
   try {
     mediaUrl = new URL(episode.url);
-    if (mediaUrl.protocol !== "https:") throw new Error("Chỉ cho phép media URL HTTPS.");
+    if (mediaUrl.protocol !== "https:" || mediaUrl.username || mediaUrl.password) throw new Error("Chỉ cho phép media URL HTTPS không chứa thông tin đăng nhập.");
   } catch (error) { failed(error.message || "Media URL không hợp lệ."); return; }
   destroy();
   $("external").hidden = false;
@@ -246,15 +256,21 @@ video.addEventListener("pause", () => {
     if (!response.ok) throw new Error(payload.error || ("Catalog API HTTP " + response.status));
     data = payload.data || null;
     if (!data) throw new Error("Video không còn tồn tại trên nguồn AppleCMS.");
+    if (!isPlaybackAuthorized(data)) throw new Error("Nguồn hiện chỉ cung cấp metadata hoặc chưa có hồ sơ quyền phát còn hiệu lực. ClipViet đã khóa phát.");
     data.lines = (Array.isArray(data.lines) ? data.lines : []).map((line) => ({
       ...line,
       name: line.name || line.lineName || "Nguồn phát",
-      episodes: (Array.isArray(line.episodes) ? line.episodes : []).map((episode) => ({
-        ...episode,
-        name: episode.name || ("Tập " + (Number(episode.index) + 1))
-      }))
+      episodes: (Array.isArray(line.episodes) ? line.episodes : []).map((episode) => {
+        let safeUrl = "";
+        try {
+          const parsed = new URL(String(episode.url || ""));
+          if (parsed.protocol === "https:" && !parsed.username && !parsed.password) safeUrl = parsed.href;
+        } catch {}
+        return safeUrl ? { ...episode, url: safeUrl, name: episode.name || ("Tập " + (Number(episode.index) + 1)) } : null;
+      }).filter(Boolean)
     }));
-    if (!data.lines.length || !data.lines.some((line) => line.episodes.length)) throw new Error("Nguồn không cung cấp đường phát HTTPS hợp lệ.");
+    data.lines = data.lines.filter((line) => line.episodes.length > 0);
+    if (!data.lines.length) throw new Error("Không có đường phát HTTPS hợp lệ trong nội dung đã được cấp quyền.");
     title.textContent = data.title;
     $("meta").textContent = [data.sourceName, data.year, data.area, data.categoryName, data.duration].filter(Boolean).join(" · ");
     $("description").textContent = data.description || "";
