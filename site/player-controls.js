@@ -40,7 +40,7 @@ function loadApiVideoSdk() {
   if (apiVideoScriptPromise) return apiVideoScriptPromise;
   apiVideoScriptPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = "https://unpkg.com/@api.video/player-sdk";
+    script.src = "https://unpkg.com/@api.video/player-sdk@1.2.33";
     script.async = true;
     script.crossOrigin = "anonymous";
     script.onload = () => window.PlayerSdk ? resolve(window.PlayerSdk) : reject(new Error("SDK đã tải nhưng không tìm thấy PlayerSdk"));
