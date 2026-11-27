@@ -38,11 +38,11 @@ test("direct player enforces explicit, current playback rights and HTTPS media U
   assert.match(player, /parsed\.protocol === "https:"/);
 });
 
-test("play overlay stays hidden until a rights-approved HTTPS stream is ready", () => {
+test("Play control stays visible but disabled until a rights-approved HTTPS stream is ready", () => {
   const watchPage = readFileSync(new URL("../site/watch/source.html", import.meta.url), "utf8");
-  assert.match(watchPage, /id="play-now"[^>]*hidden/);
+  assert.match(watchPage, /id="play-now"[^>]*disabled/);
   const authorizedCheck = player.indexOf("if (!isPlaybackAuthorized(data))");
-  const revealButton = player.indexOf('playNowButton.hidden = false');
+  const revealButton = player.indexOf('playNowButton.disabled = false');
   const validateUrl = player.indexOf('mediaUrl = new URL(episode.url)');
   assert.ok(authorizedCheck >= 0 && validateUrl > authorizedCheck && revealButton > validateUrl);
   assert.match(player, /if \(!video\.currentSrc && !video\.src\)/);
