@@ -386,7 +386,7 @@ const isHttpUrl = (value) => typeof value === "string" && (value.startsWith("htt
 
 function setFeaturedVideos(items) {
   if (!featuredRoot) return;
-  const blocked = /underage|minor|loli|shota|school\\s?(girl|boy|student)|teen\\s?(girl|boy)|học sinh|nữ sinh|nam sinh|thiếu nhi/i;
+  const blocked = /underage|minor|loli|shota|school\s?(girl|boy|student)|teen\s?(girl|boy)|học sinh|nữ sinh|nam sinh|thiếu nhi/i;
   featuredVideos = items.filter((video) => {
     const safeContent = !blocked.test([video.title, video.category, video.description, video.genre].filter(Boolean).join(" "));
     const rightsApproved = video.playbackEnabled === true && video.playbackRightsApproved === true;
