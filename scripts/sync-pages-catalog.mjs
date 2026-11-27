@@ -39,7 +39,7 @@ if (diagnosticsSource.includes("/api/catalog/videos")) {
 }
 
 const playerPage = await readFile("site/watch/source.html", "utf8");
-if (!/id="play-now"[^>]*\\bhidden\\b/.test(playerPage)) {
+if (!/id="play-now"[^>]*hidden/.test(playerPage)) {
   throw new Error("Refusing Pages build: the direct-play overlay must stay hidden until the API confirms a licensed stream.");
 }
 const playerSource = await readFile("site/watch/source-player.js", "utf8");
