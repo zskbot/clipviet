@@ -47,6 +47,24 @@
 <li>MP4/HLS được phát trực tiếp từ media host của provider. Safari/iPhone dùng native HLS khi có hỗ trợ.</li>
 <li>API không proxy, không relay segment, không tạo endpoint tải xuống.</li>
 </ul>
+<h2>api.video · VOD Player SDK</h2>
+<p>Adapter tùy chọn dùng SDK chính chủ <code>@api.video/player-sdk</code> cho video được lưu trữ trên api.video. SDK chỉ tải khi bản ghi có <code>apiVideoId</code> hoặc <code>api_video_id</code> hợp lệ. Video từ AppleCMS và các nguồn HLS/MP4 khác tiếp tục dùng player HTML5/HLS.js hiện tại.</p>
+<div class="note"><strong>Quyền phát:</strong> Chỉ khởi tạo SDK khi <code>playbackEnabled === true</code> và <code>playbackRightsApproved === true</code>. Video riêng tư còn cần token/session hợp lệ; không đưa API access key vào trình duyệt.</div>
+<pre>{
+  "provider": "api.video",
+  "videoId": "YOUR_PUBLIC_VIDEO_ID",
+  "playbackEnabled": true,
+  "playbackRightsApproved": true
+}</pre>
+<p>Player khởi tạo với autoplay tắt; SDK được tải từ <code>https://unpkg.com/@api.video/player-sdk</code> theo nhu cầu và được hủy khi chuyển sang nguồn video khác.</p>
+<h3>Upstream và vai trò các repository</h3>
+<ul>
+<li><a href="https://github.com/apivideo/api.video-documentation" target="_blank" rel="noopener noreferrer">api.video official documentation</a> — tài liệu chính chủ.</li>
+<li><a href="https://github.com/apivideo/api.video-player-sdk" target="_blank" rel="noopener noreferrer">api.video Player SDK</a> — upstream SDK, MIT License.</li>
+<li><a href="https://github.com/zskbot/api.video-documentation" target="_blank" rel="noopener noreferrer">zskbot documentation mirror</a> — mirror tham khảo, không tải trùng vào frontend.</li>
+<li><a href="https://github.com/zskbot/api.video-player-sdk" target="_blank" rel="noopener noreferrer">zskbot SDK mirror</a> — mirror tham khảo; upstream chính chủ vẫn là nguồn phát hành.</li>
+<li><a href="https://github.com/zskbot/api-video" target="_blank" rel="noopener noreferrer">zskbot/api-video</a> — hồ sơ API metadata, không phải backend/player có thể cài đặt.</li>
+</ul>
 <h2>Kiểm thử trên iPhone Safari</h2>
 <p>Mở trang chẩn đoán để kiểm tra JSON/CORS, MP4 MIME, HLS manifest/segment, HTTP Range 206 và <code>HTMLVideoElement.loadeddata</code> ngay trên thiết bị đang dùng.</p>
 <p><a class="primary-link" href="../diagnostics/">MỞ SAFARI DIAGNOSTICS ↗</a></p>
