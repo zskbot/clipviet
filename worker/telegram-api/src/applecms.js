@@ -52,7 +52,7 @@ function getProvider(id, env) {
 export function parsePlayUrls(raw, playFrom) {
   if (!raw) return [];
   const froms = String(playFrom || "").split(/\${3,}/);
-  return String(raw).split(/\\${3,}/).map((line, li) => ({
+  return String(raw).split(/\${3,}/).map((line, li) => ({
     lineName: froms[li] || "线路" + (li + 1),
     episodes: line.split("#").filter(Boolean).map((segment, i) => {
       const pos = segment.lastIndexOf("$");
