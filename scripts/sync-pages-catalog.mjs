@@ -38,9 +38,22 @@ if (diagnosticsSource.includes("/api/catalog/videos")) {
   throw new Error("Refusing Pages build: Safari diagnostics must not probe media from the metadata-only catalog API.");
 }
 
+const playerPage = await readFile("site/watch/source.html", "utf8");
+if (!/id="play-now"[^>]*\\bhidden\\b/.test(playerPage)) {
+  throw new Error("Refusing Pages build: the direct-play overlay must stay hidden until the API confirms a licensed stream.");
+}
 const playerSource = await readFile("site/watch/source-player.js", "utf8");
 if (!playerSource.includes(PLAYBACK_API_BASE) || !playerSource.includes("/api/playback/providers/")) {
   throw new Error("Refusing Pages build: source player is not connected to the dedicated rights-gated Playback Worker API.");
+}
+if (!playerSource.includes("if (!video.currentSrc && !video.src)")) {
+  throw new Error("Refusing Pages build: the play action must reject empty media sources.");
+}
+const rightsCheckIndex = playerSource.indexOf("if (!isPlaybackAuthorized(data))");
+const sourceCheckIndex = playerSource.indexOf("mediaUrl = new URL(episode.url)");
+const revealIndex = playerSource.indexOf("playNowButton.hidden = false");
+if (rightsCheckIndex < 0 || sourceCheckIndex <= rightsCheckIndex || revealIndex <= sourceCheckIndex) {
+  throw new Error("Refusing Pages build: the play overlay must be revealed only after rights and HTTPS URL validation.");
 }
 if (playerSource.includes(CATALOG_API_BASE)) {
   throw new Error("Refusing Pages build: source player must not resolve media details from the metadata-only catalog Worker.");
