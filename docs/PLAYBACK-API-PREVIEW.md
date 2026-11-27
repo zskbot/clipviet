@@ -20,3 +20,6 @@ Until rights records and approved media hosts exist in the Preview provider regi
 - Pages Preview branch: `preview/playback-api-diagnostics-20261127`
 - This exact branch is enabled in the Cloudflare Preview branch allowlist.
 - Production deployments remain disabled; no domain or DNS changes are part of this Preview.
+
+
+The dedicated Playback Worker also exposes `GET /api/providers` with per-provider legal rights state and separate technical health. Rights states are `PENDING_RIGHTS`, `METADATA_ONLY`, `PLAYBACK_APPROVED`, and `NOT_CONFIGURED`; technical health is `NOT_CHECKED`, `ACTIVE`, or `ERROR`. Official embed is not yet enabled by this Preview adapter; it requires a verified provider-specific embed contract.
