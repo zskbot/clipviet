@@ -520,3 +520,5 @@ suggestionForm?.addEventListener("submit", async (event) => {
     status.dataset.state = "error";
   }
 });
+
+// Preview build trigger: enable the all-catalog lazy-loading branch deployment.
