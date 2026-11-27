@@ -128,14 +128,34 @@ function render(options = {}) {
         return;
       }
       currentPage = Math.max(1, Math.min(requestedPage, totalPages || 1));
-      const pageItems = rows.map((item) => ({
-        ...item,
-        category: item.categoryName || "Khác",
-        genre: item.categoryName || "",
-        country: item.area || "",
-        apiManaged: true,
-        rating: "18+"
-      }));
+      const pageItems = rows.map((item) => {
+        const rightsApproved = item.rightsVerified === true &&
+          item.rightsStatus === "APPROVED" &&
+          Number.isFinite(Date.parse(item.rightsExpiresAt)) &&
+          Date.parse(item.rightsExpiresAt) > Date.now() &&
+          item.playbackEnabled === true &&
+          item.playbackRightsApproved === true;
+        const sources = rightsApproved
+          ? (Array.isArray(item.lines) ? item.lines : []).flatMap((line) =>
+              (Array.isArray(line.episodes) ? line.episodes : [])
+                .filter((episode) => /^https?:\\/\\//i.test(String(episode.url || "")))
+                .map((episode) => ({
+                  url: episode.url,
+                  type: String(episode.url).toLowerCase().includes(".m3u8") ? "hls" : "mp4"
+                })))
+          : [];
+        return {
+          ...item,
+          category: item.categoryName || "Khác",
+          genre: item.categoryName || "",
+          country: item.area || "",
+          apiManaged: true,
+          playbackEnabled: rightsApproved,
+          playbackRightsApproved: rightsApproved,
+          sources,
+          rating: rightsApproved ? "18+" : "Chỉ xem metadata"
+        };
+      });
       if (!append) {
         grid.replaceChildren();
         catalogLoadedPages.clear();
@@ -145,7 +165,7 @@ function render(options = {}) {
       count.textContent = totalResults.toLocaleString("vi-VN") + " VIDEO";
       empty.hidden = grid.children.length + pageItems.length > 0;
       if (!append || !featuredVideos.length) {
-        setFeaturedVideos(playableFeatured);
+        setFeaturedVideos(pageItems);
       }
       renderPagination(totalPages);
       activeFiltersRoot.replaceChildren();
@@ -344,7 +364,17 @@ function renderEmptyCatalog(reason) {
 function setFeaturedVideos(items) {
   if (!featuredRoot) return;
   const blocked = /underage|minor|loli|shota|school\\s?(girl|boy|student)|teen\\s?(girl|boy)|học sinh|nữ sinh|nam sinh|thiếu nhi/i;
-  featuredVideos = items.filter((video) => !blocked.test([video.title, video.category, video.description, video.genre].filter(Boolean).join(" ")));
+  featuredVideos = items.filter((video) => {
+    const safeContent = !blocked.test([video.title, video.category, video.description, video.genre].filter(Boolean).join(" "));
+    const rightsApproved = video.playbackEnabled === true && video.playbackRightsApproved === true;
+    const sources = [...(Array.isArray(video.sources) ? video.sources : []), ...(Array.isArray(video.playbackSources) ? video.playbackSources : []), ...(Array.isArray(video.playback_sources) ? video.playback_sources : [])];
+    const hasDirectUrl = [video.videoUrl, video.video_url, video.hlsUrl, video.hls_url, video.playbackUrl, video.playback_url].some((url) => typeof url === "string" && /^https?:\\/\\//i.test(url));
+    const hasSourceUrl = sources.some((source) => {
+      const url = typeof source === "string" ? source : source?.url || source?.src || source?.file || "";
+      return typeof url === "string" && /^https?:\\/\\//i.test(url);
+    });
+    return safeContent && rightsApproved && (hasDirectUrl || hasSourceUrl);
+  });
   featuredVideos.sort((a, b) => (b.trendingScore - a.trendingScore) || (b.views - a.views) || (b.playCount - a.playCount) || (Number(b.year || 0) - Number(a.year || 0)));
   featuredIndex = 0;
   renderFeatured();
