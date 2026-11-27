@@ -174,7 +174,7 @@ async function handle(request, env) {
         return json({sourceId:providerId,data,count:data.length,failover:!explicit&&providerId!=="souavzy"},200,headers);
       } catch(error) { lastError=error; if(explicit) break; }
     }
-    return json({error:"All eligible providers failed",providerId:lastError?.providerId||explicit||"souavzy"},lastError?.status||502,headers);
+    return json({success:false,error:"All eligible providers failed",code:lastError?.status===403?"PROVIDER_RIGHTS_PENDING":"PROVIDER_ERROR",providerId:lastError?.providerId||explicit||"souavzy"},lastError?.status||502,headers);
   }
   if(path==="/api/catalog/videos") {
     const explicit=url.searchParams.get("sourceId"), categoryId=url.searchParams.get("categoryId")||undefined;
@@ -219,7 +219,7 @@ async function handle(request, env) {
       },env);
       return json(data,200,headers);
     } catch(error) {
-      return json({error:error?.message||"Provider request failed",providerId},error?.status||502,headers);
+      return json({success:false,error:error?.message||"Provider request failed",code:error?.status===403?"PROVIDER_RIGHTS_PENDING":"PROVIDER_ERROR",providerId},error?.status||502,headers);
     }
   }
   return json({error:"Not found"},404,headers);
