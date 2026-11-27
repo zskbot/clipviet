@@ -138,7 +138,7 @@ function render(options = {}) {
         const sources = rightsApproved
           ? (Array.isArray(item.lines) ? item.lines : []).flatMap((line) =>
               (Array.isArray(line.episodes) ? line.episodes : [])
-                .filter((episode) => /^https?:\\/\\//i.test(String(episode.url || "")))
+                .filter((episode) => isHttpUrl(String(episode.url || "")))
                 .map((episode) => ({
                   url: episode.url,
                   type: String(episode.url).toLowerCase().includes(".m3u8") ? "hls" : "mp4"
@@ -361,6 +361,8 @@ function renderEmptyCatalog(reason) {
   if (note) note.textContent = reason;
 }
 
+const isHttpUrl = (value) => typeof value === "string" && (value.startsWith("https://") || value.startsWith("http://"));
+
 function setFeaturedVideos(items) {
   if (!featuredRoot) return;
   const blocked = /underage|minor|loli|shota|school\\s?(girl|boy|student)|teen\\s?(girl|boy)|học sinh|nữ sinh|nam sinh|thiếu nhi/i;
@@ -368,10 +370,10 @@ function setFeaturedVideos(items) {
     const safeContent = !blocked.test([video.title, video.category, video.description, video.genre].filter(Boolean).join(" "));
     const rightsApproved = video.playbackEnabled === true && video.playbackRightsApproved === true;
     const sources = [...(Array.isArray(video.sources) ? video.sources : []), ...(Array.isArray(video.playbackSources) ? video.playbackSources : []), ...(Array.isArray(video.playback_sources) ? video.playback_sources : [])];
-    const hasDirectUrl = [video.videoUrl, video.video_url, video.hlsUrl, video.hls_url, video.playbackUrl, video.playback_url].some((url) => typeof url === "string" && /^https?:\\/\\//i.test(url));
+    const hasDirectUrl = [video.videoUrl, video.video_url, video.hlsUrl, video.hls_url, video.playbackUrl, video.playback_url].some((url) => typeof url === "string" && isHttpUrl(url));
     const hasSourceUrl = sources.some((source) => {
       const url = typeof source === "string" ? source : source?.url || source?.src || source?.file || "";
-      return typeof url === "string" && /^https?:\\/\\//i.test(url);
+      return typeof url === "string" && isHttpUrl(url);
     });
     return safeContent && rightsApproved && (hasDirectUrl || hasSourceUrl);
   });
