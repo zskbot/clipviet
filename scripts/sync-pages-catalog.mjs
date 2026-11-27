@@ -10,7 +10,7 @@ const REQUIRED_CATALOG_FILES = [
 ];
 const REQUIRED_PROVIDER_IDS = ["souavzy", "apiyutu", "lbapi9", "slapibf", "jipinvip1"];
 
-const contractTests = spawnSync(process.execPath, ["--test", "tests/jasna-integration.test.mjs"], {
+const contractTests = spawnSync(process.execPath, ["--test", "tests/jasna-integration.test.mjs", "tests/maccms-provider.test.mjs", "tests/provider-registry-rights-migration.test.mjs"], {
   encoding: "utf8",
   timeout: 30000
 });
