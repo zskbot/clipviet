@@ -19,8 +19,18 @@ for (const path of REQUIRED_CATALOG_FILES) {
 }
 
 const diagnosticsSource = await readFile("site/diagnostics/diagnostics.js", "utf8");
-if (!diagnosticsSource.includes(PLAYBACK_API_BASE) || !diagnosticsSource.includes("/api/providers/diagnostics")) {
+const diagnosticsHtml = await readFile("site/diagnostics/index.html", "utf8");
+if (!diagnosticsSource.includes(PLAYBACK_API_BASE) ||
+    !diagnosticsSource.includes("/api/providers/diagnostics") ||
+    !diagnosticsSource.includes("/api/playback/providers/")) {
   throw new Error("Refusing Pages build: Safari diagnostics page is not connected to the rights-gated Playback Worker.");
+}
+if (!diagnosticsHtml.includes('id="source-id"') || !diagnosticsHtml.includes('id="vod-id"')) {
+  throw new Error("Refusing Pages build: Safari acceptance page is missing provider/VOD inputs.");
+}
+if (!diagnosticsSource.includes("playbackRightsApproved !== true") ||
+    diagnosticsSource.includes("autoplay")) {
+  throw new Error("Refusing Pages build: Safari diagnostics must verify video rights and never autoplay.");
 }
 if (diagnosticsSource.includes("/api/catalog/videos")) {
   throw new Error("Refusing Pages build: Safari diagnostics must not probe media from the metadata-only catalog API.");
