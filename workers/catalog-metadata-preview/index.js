@@ -137,6 +137,8 @@ export default { async fetch(request, env) {
     if (request.method === "HEAD") return new Response(null, { status: response.status, headers: response.headers });
     return response;
   } catch (error) {
-    return json({ error: error?.message || "Catalog error", code: error?.status || 502 }, error?.status || 502);
+    const origin = corsOrigin(request);
+    const cors = origin && origin !== null ? corsHeaders(origin) : {};
+    return json({ error: error?.message || "Catalog error", code: error?.status || 502 }, error?.status || 502, cors);
   }
 } };
