@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const API_BASE = "https://clipviet-catalog-readonly-preview.huynhthuongg2505-f9b.workers.dev";
+const API_BASE = "https://clipviet-catalog-metadata-preview.huynhthuongg2505-f9b.workers.dev";
 const PAGE_SIZE = 30;
 let providers = [];
 let currentItems = [];
