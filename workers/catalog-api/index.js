@@ -189,7 +189,8 @@ async function handle(request, env) {
     }
     return json({error:"All eligible providers failed",providerId:lastError?.providerId||explicit||"souavzy"},lastError?.status||502,headers);
   }
-  const playbackMatch=path.match(/^\\/api\\/providers\\/([a-z0-9-]+)\\/videos\\/([0-9]+)\\/playback$/);
+  const playbackParts=path.split("/");
+  const playbackMatch=playbackParts.length===7 && playbackParts[1]==="api" && playbackParts[2]==="providers" && playbackParts[4]==="videos" && playbackParts[6]==="playback" ? [null,playbackParts[3],playbackParts[5]] : null;
   if(playbackMatch) {
     const [,providerId,videoId]=playbackMatch;
     try {
