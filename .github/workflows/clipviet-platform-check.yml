@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "site/**"
+      - "tests/**"
       - "worker/telegram-api/**"
       - ".github/workflows/clipviet-platform-check.yml"
   workflow_dispatch:
@@ -31,6 +32,8 @@ jobs:
             done
       - name: Run AppleCMS adapter unit tests
         run: npm --prefix worker/telegram-api run test:providers
+      - name: Run platform integration contract tests
+        run: node --test tests/jasna-integration.test.mjs
       - name: Validate platform routes and required files
         run: |
           set -eu

@@ -26,6 +26,7 @@ button:disabled{opacity:.35;cursor:not-allowed}
 video{display:block;width:100%;max-height:360px;background:#000;border:1px solid var(--line);margin-top:14px}
 iframe{display:block;width:100%;height:720px;border:1px solid var(--line);background:#000}
 .links{display:flex;flex-wrap:wrap;gap:18px}.small{font-size:11px;color:var(--muted)}
+.field{margin:12px 0}.field label{display:block;margin:0 0 6px;color:#ddd;font-size:12px}.field input,.field select{width:100%;min-height:46px;border:1px solid var(--line);border-radius:0;background:#08090d;color:var(--fg);padding:10px 12px;font:13px ui-monospace,monospace}
 @media(max-width:520px){.wrap{padding:18px 12px 48px}.panel{padding:14px}.actions{grid-template-columns:1fr}.results li{grid-template-columns:64px 1fr}}
 </style>
 </head>
@@ -34,21 +35,24 @@ iframe{display:block;width:100%;height:720px;border:1px solid var(--line);backgr
 <header><a class="brand" href="../">CLIP<span>VIET</span>.LIVE</a><span class="eyebrow">PREVIEW / DEVICE QA</span></header>
 <p class="eyebrow">IPHONE SAFARI ACCEPTANCE</p>
 <h1>Kiểm tra Safari<br><span style="color:#777">Preview API & Player</span></h1>
-<p class="muted">Trang kiểm tra chạy ngay trên thiết bị đang mở. Kết quả phản ánh trình duyệt thật, CORS thật và kết nối mạng hiện tại; không thay thế xác nhận quyền phân phối nội dung.</p>
+<p class="muted">Trang kiểm tra chạy trên Safari của thiết bị đang mở và gọi Playback Worker Preview để kiểm tra tình trạng từng nguồn. Chỉ kiểm tra HLS/MP4, MIME, CORS và byte-range khi có video được duyệt quyền phát; không thay thế xác nhận quyền phân phối nội dung.</p>
 
 <section class="panel" id="consent-panel">
 <h2>Trước khi chạy kiểm tra</h2>
-<p class="muted">Quy trình sẽ gọi API catalog, đọc metadata video và gửi HTTP Range 1 byte tới URL media đầu tiên. Trình phát chỉ tải dữ liệu để kiểm tra khung hình; không tự động phát âm thanh.</p>
+<p class="muted">Quy trình sẽ kiểm tra health, quyền provider và trạng thái kỹ thuật của 5 API nguồn. Không tải URL media nếu chưa có hồ sơ quyền video được duyệt; không tự động phát âm thanh.</p>
 <label><input id="age-confirm" type="checkbox"> Tôi xác nhận đã đủ 18 tuổi.</label>
-<label><input id="rights-confirm" type="checkbox"> Tôi có quyền kiểm thử metadata và URL media do provider đã cấu hình trả về.</label>
+<label><input id="rights-confirm" type="checkbox"> Tôi có quyền kiểm thử metadata của các nguồn đã cấu hình và chỉ kiểm tra URL media khi nội dung đó đã được cấp quyền.</label>
+<div class="field"><label for="source-id">Provider ID</label><select id="source-id"><option value="souavzy">souavzy</option><option value="apiyutu">apiyutu</option><option value="lbapi9">lbapi9</option><option value="slapibf">slapibf</option><option value="jipinvip1">jipinvip1</option></select></div>
+<div class="field"><label for="vod-id">VOD ID (không bắt buộc)</label><input id="vod-id" type="text" inputmode="numeric" autocomplete="off" placeholder="Nhập ID video đã được cấp quyền"></div>
 <button id="run" type="button" disabled>BẮT ĐẦU KIỂM TRA TRÊN THIẾT BỊ NÀY</button>
 </section>
 
 <section class="panel">
 <div class="eyebrow">01 / LIVE TEST RESULTS</div>
-<h2>API · CORS · MIME · BYTE-RANGE · PLAYER</h2>
+<h2>PLAYBACK WORKER · PROVIDER RIGHTS · SOURCE HEALTH · SAFARI</h2>
 <ul id="results" class="results"><li><span class="state pending">WAIT</span><span>Chưa chạy kiểm tra.</span></li></ul>
-<video id="test-video" controls playsinline preload="none"></video>
+<video id="test-video" controls playsinline preload="none" hidden></video>
+<p id="media-note" class="muted">Nếu nhập VOD ID, Worker sẽ kiểm tra quyền video trước. Chỉ khi được duyệt mới truy vấn URL media, MIME, CORS, byte-range và khung hình. Không có video demo hoặc URL giả.</p>
 <p id="summary" class="muted">Chờ người dùng bắt đầu kiểm tra.</p>
 </section>
 
