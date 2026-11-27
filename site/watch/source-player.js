@@ -122,7 +122,6 @@ function applyQuality() {
 }
 function play() {
   if (!isPlaybackAuthorized(data)) { failed("Quyền phát chưa được xác minh, đã hết hạn hoặc chưa được cấp phép cho nội dung này."); return; }
-  if (playNowButton) playNowButton.hidden = false;
   const episode = currentEpisode();
   if (!episode || typeof episode.url !== "string") { failed("Không có URL phát hợp lệ."); return; }
   let mediaUrl;
@@ -130,6 +129,7 @@ function play() {
     mediaUrl = new URL(episode.url);
     if (mediaUrl.protocol !== "https:" || mediaUrl.username || mediaUrl.password) throw new Error("Chỉ cho phép media URL HTTPS không chứa thông tin đăng nhập.");
   } catch (error) { failed(error.message || "Media URL không hợp lệ."); return; }
+  if (playNowButton) playNowButton.hidden = false;
   destroy();
   $("external").hidden = false;
   $("external").href = mediaUrl.href;
