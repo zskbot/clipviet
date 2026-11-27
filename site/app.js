@@ -77,26 +77,6 @@ let totalResults = 0;
 let pageSize = 30;
 const API_BASE = "https://clipviet-catalog-metadata-preview.huynhthuongg2505-f9b.workers.dev";
 
-// Real, openly licensed fallback used only when the catalog API is empty or unavailable.
-// Tears of Steel — Blender Foundation; CC BY 3.0, attribution required.
-const sampleVideo = {
-  id: "tears-of-steel-open-movie",
-  title: "Tears of Steel",
-  category: "Phim ngắn khoa học viễn tưởng",
-  year: 2012,
-  duration: "12 phút",
-  rating: "Mọi lứa tuổi",
-  description: "Video mẫu có thể phát để kiểm thử trình phát ClipViet. © Blender Foundation; được cấp phép CC BY 3.0. Giữ nguyên nội dung và credit cuối phim.",
-  poster: "https://i.ytimg.com/vi/OHOpb2fS-cM/hqdefault.jpg",
-  videoUrl: "https://archive.org/download/Tears-of-Steel/tears_of_steel_720p.mp4",
-  originalUrl: "https://www.youtube.com/watch?v=OHOpb2fS-cM",
-  sourceName: "Blender Foundation",
-  license: "CC BY 3.0",
-  licenseUrl: "https://creativecommons.org/licenses/by/3.0/",
-  rightsVerified: true,
-  isSample: true
-};
-
 let catalogLoading = false;
 let catalogLoadedPages = new Set();
 let loadMoreButton = null;
@@ -144,7 +124,7 @@ function render(options = {}) {
       pageSize = Math.max(1, Number(payload.limit) || 30);
       totalPages = Math.max(0, Number(payload.pageCount) || Math.ceil(totalResults / pageSize));
       if (!rows.length) {
-        if (!append) renderSampleVideo("Catalog API hiện chưa có video đủ điều kiện.");
+        if (!append) renderEmptyCatalog("Catalog hiện chưa có video đủ điều kiện phát.");
         return;
       }
       currentPage = Math.max(1, Math.min(requestedPage, totalPages || 1));
@@ -165,19 +145,7 @@ function render(options = {}) {
       count.textContent = totalResults.toLocaleString("vi-VN") + " VIDEO";
       empty.hidden = grid.children.length + pageItems.length > 0;
       if (!append || !featuredVideos.length) {
-        // Prefer catalog entries only when an explicit, current playback grant and
-        // a usable media URL are present. Otherwise keep metadata visible but use
-        // the separately licensed open-movie sample in the featured player.
-        const playableFeatured = pageItems.filter((video) =>
-          video.rightsVerified === true &&
-          video.rightsStatus === "APPROVED" &&
-          Number.isFinite(Date.parse(video.rightsExpiresAt)) &&
-          Date.parse(video.rightsExpiresAt) > Date.now() &&
-          video.playbackEnabled === true &&
-          video.playbackRightsApproved === true &&
-          Boolean(video.videoUrl || video.video_url || video.hlsUrl || video.hls_url || (Array.isArray(video.lines) && video.lines.length))
-        );
-        setFeaturedVideos(playableFeatured.length ? playableFeatured : [sampleVideo]);
+        setFeaturedVideos(playableFeatured);
       }
       renderPagination(totalPages);
       activeFiltersRoot.replaceChildren();
@@ -211,7 +179,7 @@ function render(options = {}) {
     })
     .catch((error) => {
       if (sequence !== requestSequence) return;
-      if (!append) renderSampleVideo("Catalog API tạm thời không khả dụng: " + error.message);
+      if (!append) renderEmptyCatalog("Catalog API tạm thời không khả dụng: " + error.message);
       more.disabled = false;
       more.textContent = "THỬ TẢI LẠI";
     })
@@ -334,6 +302,8 @@ function renderFeatured() {
     image.alt = "Chưa có video nổi bật";
     $("#featured-index").textContent = "—";
     $("#featured-watch").disabled = true;
+    $("#featured-watch").hidden = true;
+    if (playButton) playButton.hidden = true;
     $("#featured-open").disabled = true;
     return;
   }
@@ -344,14 +314,10 @@ function renderFeatured() {
   image.alt = video.title || "Video nổi bật";
   image.onerror = () => { image.src = "./poster-fallback.svg"; };
   $("#featured-title").textContent = video.title || "Video nổi bật";
-  $("#featured-meta").textContent = video.isSample
-    ? "VIDEO MẪU · CC BY 3.0 · BLENDER FOUNDATION"
-    : [video.year, video.duration, video.country, video.category].filter(Boolean).join(" · ");
+  $("#featured-meta").textContent = [video.year, video.duration, video.country, video.category].filter(Boolean).join(" · ");
   $("#featured-description").textContent = video.description || "Khám phá video đang được quan tâm trên ClipViet.";
   $("#featured-index").textContent = String(featuredIndex + 1).padStart(2, "0");
-  featuredRoot.querySelector(".eyebrow").textContent = video.isSample
-    ? "VIDEO MẪU CÓ GIẤY PHÉP / OPEN MOVIE"
-    : "CLIPVIET / MỚI CẬP NHẬT";
+  featuredRoot.querySelector(".eyebrow").textContent = "CLIPVIET / MỚI CẬP NHẬT";
   $("#featured-open").onclick = () => openDetail(video);
   const startPlayback = () => {
     if (featuredTimer) clearInterval(featuredTimer);
@@ -362,28 +328,17 @@ function renderFeatured() {
   playButton.onclick = startPlayback;
 }
 
-function renderSampleVideo(reason) {
+function renderEmptyCatalog(reason) {
   grid.replaceChildren();
-  setFeaturedVideos([sampleVideo]);
-  const card = document.createElement("button");
-  card.type = "button";
-  card.className = "video-card";
-  card.innerHTML = '<div class="poster"><img loading="lazy" alt=""><span class="poster-label"></span></div><div class="card-info"><h3></h3><p></p></div>';
-  const img = card.querySelector("img");
-  img.src = sampleVideo.poster;
-  img.alt = sampleVideo.title;
-  card.querySelector(".poster-label").textContent = "MẪU CC BY";
-  card.querySelector("h3").textContent = sampleVideo.title;
-  card.querySelector(".card-info p").textContent = "2012 · Blender Foundation · CC BY 3.0";
-  card.addEventListener("click", () => openDetail(sampleVideo));
-  grid.append(card);
-  count.textContent = "1 VIDEO MẪU";
-  empty.hidden = true;
+  setFeaturedVideos([]);
+  count.textContent = "0 VIDEO KHẢ DỤNG";
+  empty.hidden = false;
+  empty.textContent = reason;
   renderPagination(0);
   activeFiltersRoot.replaceChildren();
   activeFiltersRoot.hidden = true;
   const note = document.querySelector(".data-note");
-  if (note) note.textContent = reason + " · ĐANG HIỂN THỊ VIDEO MẪU CÓ GIẤY PHÉP";
+  if (note) note.textContent = reason;
 }
 
 function setFeaturedVideos(items) {
@@ -410,18 +365,8 @@ function openDetail(video) {
   detail.querySelector("h2").textContent = video.title;
   detail.querySelector(".description").textContent = video.description || "";
   detail.querySelector(".meta").textContent = [video.year, video.duration, video.rating, video.country].filter(Boolean).join(" · ");
-  detail.querySelector(".detail-source").textContent = video.isSample
-    ? "Nguồn: Blender Foundation · CC BY 3.0 · " + "https://creativecommons.org/licenses/by/3.0/"
-    : video.apiManaged ? "Nguồn: " + (video.sourceName || video.sourceId) : "Bản ghi demo.";
-  if (video.isSample && video.videoUrl) {
-    const link = detail.querySelector(".watch-link");
-    link.hidden = false;
-    link.href = video.originalUrl || "https://www.youtube.com/watch?v=OHOpb2fS-cM";
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = "PHÁT VIDEO GỐC ↗";
-  }
-  if (video.apiManaged && video.sourceId && video.id) {
+  detail.querySelector(".detail-source").textContent = video.apiManaged ? "Nguồn: " + (video.sourceName || video.sourceId) : "Nguồn video";
+  if (video.apiManaged && video.sourceId && video.id && video.playbackEnabled === true && video.playbackRightsApproved === true) {
     const link = detail.querySelector(".watch-link");
     link.hidden = false;
     link.href = "./watch/source.html?sourceId=" + encodeURIComponent(video.sourceId) + "&vodId=" + encodeURIComponent(video.id);
