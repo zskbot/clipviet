@@ -15,7 +15,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-[#08090d]/90 backdrop-blur-xl">
       <div className="container flex h-[70px] items-center gap-6">
-        <Link href="/" aria-label="TX.TOP — Trang chủ" className="shrink-0 text-2xl font-black tracking-[-.07em] text-red-600">TX<span className="text-white">.</span>TOP<span className="ml-1 align-top text-[9px] tracking-normal text-red-500">18+</span></Link>
+        <Link href="/" aria-label="ClipViet.live — Trang chủ" className="flex shrink-0 items-center gap-2">
+          <img src="/clipviet-logo.svg" alt="" width="34" height="34" />
+          <span className="text-xl font-black tracking-[-.055em] text-white">Clip<span className="text-red-500">Viet</span><span className="ml-1 text-xs font-semibold tracking-normal text-zinc-400">.live</span></span>
+        </Link>
         <nav aria-label="Điều hướng chính" className="hidden items-center gap-6 text-sm font-medium text-zinc-400 md:flex">
           <Link className="hover:text-white" href="/">Trang chủ</Link>
           <a className="hover:text-white" href="/#catalog">Khám phá</a>
