@@ -1,5 +1,13 @@
 # ClipViet.live — Video Streaming Platform
 
+## GitHub Pages deployment (the only publishing target)
+
+The public site is the static website in `site/`. The only production publishing workflow is `.github/workflows/deploy-clipviet-pages.yml`, which uploads **only** `site/` to GitHub Pages. It runs after approved changes reach `main` and on a six-hour schedule.
+
+AppleCMS source configuration and static catalog generation live in `scripts/sync-pages-catalog.mjs`. GitHub Actions fetches source JSON, writes `site/data/catalog.json` into the Pages artifact, and never commits the generated catalog or source media into Git. The browser reads that static JSON; HLS/MP4 is delivered directly from the source CDN.
+
+The repository's legacy Next.js Pages, duplicate Pages and Google Cloud/GKE deployment workflows are disabled. No Netlify, Vercel, Cloudflare Worker or separate application deployment is used for this GitHub Pages rollout. GitHub Pages cannot run server-side API routes or safely store browser-visible credentials; the five listed AppleCMS endpoints are configured as anonymous JSON sources in the supplied integration specification.
+
 ClipViet.live is a Vietnamese streaming catalogue built with Next.js App Router, React and Tailwind CSS. The canonical domain configured for the application is https://clipviet.live.
 
 ## Features
@@ -44,3 +52,15 @@ The repository rebrand does not change DNS, registrar settings, Vercel project d
 - `GET /api/videos?id=<video-id>` returns one video or 404.
 
 Provider responses are cached for 60 seconds. The browser refreshes the feed every five minutes.
+
+## OCodeJS Admin Control
+
+A read-only monitoring workspace is available at `/admin/ocodejs`. Configure `OCODEJS_API_BASE_URL` and `OCODEJS_API_TOKEN` as server-side hosting secrets, plus the existing `ADMIN_CMS_TOKEN`. See [the integration roadmap](docs/OCODEJS-ADMIN-ROADMAP.md) for rollout boundaries and remaining backend verification.
+
+## Clipform video suggestions
+
+The community video-suggestion form is hosted in Clipform:
+- Public form: https://clipform.io/3d76a8c57
+- Responses dashboard: https://app.clipform.io/ce617e6d-4c43-475b-9c9d-d7ee953e3181/forms/3c0b50ba-72f3-426e-a489-36325e012907/responses
+- Embedded on the static and Next.js homepages and Admin screens.
+- Suggestions are reviewed manually. Submission does not grant distribution rights and does not publish or ingest media automatically.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isAllowedEmbedUrl } from "@/lib/embed-security.mjs";
 
 const PROVIDERS = [
   { id: "youtube", label: "YouTube" },
@@ -75,7 +76,7 @@ export default function ProviderSandboxPage() {
       {selected && <section className="mt-8">
         <h2 className="mb-3 text-lg font-bold">{selected.title}</h2>
         <div className="aspect-video overflow-hidden rounded-xl border border-white/10 bg-black">
-          {selected.embedUrl ? <iframe title={selected.title} src={selected.embedUrl} className="h-full w-full" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation" /> : <div className="grid h-full place-items-center p-6 text-center text-sm text-zinc-400">Provider không trả về embed URL hợp lệ hoặc video không cho phép nhúng.</div>}
+          {selected.embedUrl && isAllowedEmbedUrl(selected.embedUrl) ? <iframe title={selected.title} src={selected.embedUrl} className="h-full w-full" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-presentation" /> : <div className="grid h-full place-items-center p-6 text-center text-sm text-zinc-400">Provider không trả về embed URL hợp lệ hoặc video không cho phép nhúng.</div>}
         </div>
         <p className="mt-2 text-xs text-zinc-500">Nguồn: {selected.provider} · ID: {selected.providerId}</p>
       </section>}

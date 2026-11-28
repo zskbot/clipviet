@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import ClipformSuggestionPanel from "@/components/ClipformSuggestionPanel";
 
 export default function HomeFeed() {
   const [videos, setVideos] = useState([]);
@@ -24,10 +25,20 @@ export default function HomeFeed() {
     let active = true;
     async function load() {
       try {
-        const response = await fetch("/api/videos", { headers: { Accept: "application/json" } });
-        const data = await response.json();
-        if (!response.ok || !data.success) throw new Error(data.error || "Không tải được video feed");
-        if (active) { setVideos(data.results || []); setSource(data.source || "provider"); setError(""); }
+        const allResults = [];
+        let page = 1;
+        let sourceName = "provider";
+        let hasMore = true;
+        while (hasMore && page <= 20) {
+          const response = await fetch(`/api/videos?page=${page}&limit=100`, { headers: { Accept: "application/json" } });
+          const data = await response.json();
+          if (!response.ok || !data.success) throw new Error(data.error || "Không tải được video feed");
+          allResults.push(...(data.results || []));
+          sourceName = data.source || sourceName;
+          hasMore = Boolean(data.hasMore);
+          page += 1;
+        }
+        if (active) { setVideos(allResults); setSource(sourceName); setError(""); }
       } catch (err) { if (active) setError(err.message || "Không thể tải dữ liệu video."); }
       finally { if (active) setLoading(false); }
     }
@@ -61,5 +72,6 @@ export default function HomeFeed() {
         <div className="p-3"><h3 className="line-clamp-2 text-sm font-bold text-zinc-100 group-hover:text-red-400">{video.title}</h3><p className="mt-2 text-xs text-zinc-500">{video.year} · {video.category}</p><p className="mt-1 text-[11px] text-zinc-600">{Number(video.views || 0).toLocaleString("vi-VN")} lượt xem</p></div>
       </Link>)}</div> : <div className="rounded-2xl border border-dashed border-white/10 py-20 text-center text-sm text-zinc-500">Không tìm thấy video phù hợp.</div>}
     </section>
+    <ClipformSuggestionPanel />
   </main>;
 }
